@@ -413,6 +413,7 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 else:
                     action_logger.info("in append")
                     actions.append(task)
+                                    
             else:
                 actions.append(task)
         else:
