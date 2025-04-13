@@ -1,3 +1,20 @@
+8.36.10(2025/04/11)
+add:
+1. add log of key and value when secsgem report_envent has exception
+mod:
+fix:
+1. fix bug that the safety check for clean location group might not work
+2. fix clean_right timing when stop routing
+3. fix that when erack offline and online will send different ALID
+4. fix bug that when MR alarm does not clean the wait_error_code counter
+
+8.36.9(2025/04/11) UI version(250411)
+add:
+1. add by_mix_lowest_cost_priority algo
+mod:
+fix:
+1. fix by_priority algo issue
+
 8.36.8 (2025/04/08)
 add:
 mod:
