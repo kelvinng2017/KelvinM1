@@ -109,7 +109,7 @@ class GyroErackAdapter(threading.Thread):
 
         self.thread_stop=False
         self.sock=0
-        self.alarm_table={20002:[], 20003:[], 20004:0, 20005:[]}
+        self.alarm_table={20002:[], 20003:[], 20051:0, 20005:[]}
         self.associate_queue=collections.deque()
         self.last_erack_status='None'
         self.connected=False
@@ -787,10 +787,10 @@ class GyroErackAdapter(threading.Thread):
             self.heart_beat=time.time()
             try:
                 if not self.connected:
-                    if not self.alarm_table[20004] and not start_up: #if carrier check by operator,then launch movin event
-                        # self.E88_Zones.Data[self.device_id].zone_alarm_set(20004, True)
+                    if not self.alarm_table[20051] and not start_up: #if carrier check by operator,then launch movin event
+                        # self.E88_Zones.Data[self.device_id].zone_alarm_set(20051, True)
                         alarms.ErackOffLineWarning(self.device_id, handler=self.secsgem_e88_h)
-                        self.alarm_table[20004]=1
+                        self.alarm_table[20051]=1
                         dataset={'DeviceID':self.device_id}
                         E88.report_event(self.secsgem_e88_h, E88.DeviceOffline, dataset)
                         for zonename in self.zone_list:
@@ -817,11 +817,11 @@ class GyroErackAdapter(threading.Thread):
                     else:
                         print('Out loop for ')
                         raise alarms.ConnectWarning(self.device_id, self.ip, self.port, handler=self.secsgem_e88_h)
-                    if self.alarm_table[20004]: #if carrier check by operator,then launch movin event
-                        # self.E88_Zones.Data[self.device_id].zone_alarm_set(20004, False)
+                    if self.alarm_table[20051]: #if carrier check by operator,then launch movin event
+                        # self.E88_Zones.Data[self.device_id].zone_alarm_set(20051, False)
                         alarms.ErackOffLineWarning(self.device_id, handler=self.secsgem_e88_h)
-                        self.secsgem_e88_h.clear_alarm(20004)
-                        self.alarm_table[20004]=0
+                        self.secsgem_e88_h.clear_alarm(20051)
+                        self.alarm_table[20051]=0
                     dataset={'DeviceID':self.device_id}
                     E88.report_event(self.secsgem_e88_h, E88.DeviceOnline, dataset)
                     buf=''
