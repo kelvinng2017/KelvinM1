@@ -1,0 +1,1 @@
+erack_data=['index', 'lotID', 'stage', 'machine', 'desc', 'booked', 'box_color', 'area_id', 'cust', 'partID', 'lottype', 'automotive', 'state', 'holdcode','turnratio', 'eotd', 'holdreas', 'potd', 'waferlot']

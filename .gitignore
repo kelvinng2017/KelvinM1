@@ -1,0 +1,6 @@
+log/*
+param/
+__pycache__/
+*.pyc
+pose_table.txt
+dijkstra_map.txt

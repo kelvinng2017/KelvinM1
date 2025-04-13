@@ -1,0 +1,4 @@
+(12568, 17040, 0, 91)
+initial pose:C002, [14345, 17640, 0, 270]
+ ==  ==  ==  == NormalProcess ==  ==  ==  == 
+input cmd

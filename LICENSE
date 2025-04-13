@@ -1,0 +1,30 @@
+# LICENSES FOR THIRD-PARTY LIBRARIES USED IN THIS PROJECT
+
+This file contains license information for the third-party libraries used in this project, grouped by license type.
+
+## MIT License
+- Library Name: <future>
+- Library Name: <python-dateutil>
+- Library Name: <python-engineio>
+- Library Name: <python-socketio>
+- Library Name: <six>
+- Library Name: <transitions>
+- Library Name: <urllib3>
+
+## Apache License 2.0 License
+- Library Name: <funcsigs>
+- Library Name: <python-dateutil>
+- Library Name: <requests>
+- Library Name: <websocket_client>
+
+## GNU Lesser General Public License v2.1
+- Library Name: <chardet>
+- Library Name: <secsgem>
+
+## BSD License
+- Library Name: <mock>
+- Library Name: <idna>
+- Library Name: <pyzmq>
+
+## Mozilla Public License 2.0
+- Library Name: <certifi>

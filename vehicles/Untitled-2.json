@@ -1,0 +1,171 @@
+{
+    "loc": "BUF01",
+    "target": "MGZ_01_001",
+    "point": "MGZ_ERACK_01",
+    "local_tr_cmd": {
+        "TransferInfo": {
+            "ExecuteTime": 0,
+            "CarrierID": "GY001",
+            "CarrierType": "F08",
+            "SourcePort": "MGZ_01_001",
+            "DestPort": "E0167916_LL",
+            "HostSpecifyMR": ""
+        },
+        "dest": "E0167916_LL",
+        "start_time": 1738400025.243475,
+        "host_tr_cmd": {
+            "received_time": 1738400013.006163,
+            "destType": "WorkStation",
+            "back": "",
+            "zoneID": "zone4",
+            "preTransfer": False,
+            "BufConstrain": False,
+            "Residence_Time": 2000,
+            "sourceType": "Normal",
+            "uuid": "U173840001280",
+            "equipmentID": "MGZ_ERACK_01",
+            "priority": 1,
+            "source": "MGZ_01_001",
+            "carrierID": "GY001",
+            "channel": "WebApi",
+            "TransferCompleteInfo": [],
+            "TransferInfoList": [
+                {
+                    "ExecuteTime": 0,
+                    "CarrierID": "GY001",
+                    "CarrierType": "F08",
+                    "SourcePort": "MGZ_01_001",
+                    "DestPort": "E0167916_LL",
+                    "HostSpecifyMR": ""
+                }
+            ],
+            "dest": "E0167916_LL",
+            "primary": 1,
+            "link": None,
+            "OriginalTransferInfoList": [
+                {
+                    "ExecuteTime": 0,
+                    "CarrierID": "GY001",
+                    "CarrierType": "",
+                    "SourcePort": "MGZ_01_001",
+                    "DestPort": "E0167916_LL",
+                    "HostSpecifyMR": ""
+                }
+            ],
+            "OriginalTransferCompleteInfo": [],
+            "replace": 0,
+            "stage": False,
+            "original_priority": 1,
+            "CommandInfo": {
+                "Priority": "1",
+                "TransferState": 2,
+                "CommandID": "U173840001280",
+                "Replace": 0
+            },
+            "original_source": "MGZ_01_001"
+        },
+        "source_type": "workstation",
+        "dest_type": "workstation",
+        "last": True,
+        "uuid": "U173840001280",
+        "travel": 0,
+        "OriginalTransferInfo": {
+            "ExecuteTime": 0,
+            "CarrierID": "GY001",
+            "CarrierType": "",
+            "SourcePort": "MGZ_01_001",
+            "DestPort": "E0167916_LL",
+            "HostSpecifyMR": ""
+        },
+        "priority": 1,
+        "source": "MGZ_01_001",
+        "carrierID": "GY001",
+        "carrierLoc": "MGZ_01_001",
+        "first": True
+    },
+    "records": [
+        {
+            "TransferInfo": {
+                "ExecuteTime": 0,
+                "CarrierID": "GY001",
+                "CarrierType": "F08",
+                "SourcePort": "MGZ_01_001",
+                "DestPort": "E0167916_LL",
+                "HostSpecifyMR": ""
+            },
+            "dest": "E0167916_LL",
+            "start_time": 1738400025.243475,
+            "host_tr_cmd": {
+                "received_time": 1738400013.006163,
+                "destType": "WorkStation",
+                "back": "",
+                "zoneID": "zone4",
+                "preTransfer": False,
+                "BufConstrain": False,
+                "Residence_Time": 2000,
+                "sourceType": "Normal",
+                "uuid": "U173840001280",
+                "equipmentID": "MGZ_ERACK_01",
+                "priority": 1,
+                "source": "MGZ_01_001",
+                "carrierID": "GY001",
+                "channel": "WebApi",
+                "TransferCompleteInfo": [],
+                "TransferInfoList": [
+                    {
+                        "ExecuteTime": 0,
+                        "CarrierID": "GY001",
+                        "CarrierType": "F08",
+                        "SourcePort": "MGZ_01_001",
+                        "DestPort": "E0167916_LL",
+                        "HostSpecifyMR": ""
+                    }
+                ],
+                "dest": "E0167916_LL",
+                "primary": 1,
+                "link": None,
+                "OriginalTransferInfoList": [
+                    {
+                        "ExecuteTime": 0,
+                        "CarrierID": "GY001",
+                        "CarrierType": "",
+                        "SourcePort": "MGZ_01_001",
+                        "DestPort": "E0167916_LL",
+                        "HostSpecifyMR": ""
+                    }
+                ],
+                "OriginalTransferCompleteInfo": [],
+                "replace": 0,
+                "stage": False,
+                "original_priority": 1,
+                "CommandInfo": {
+                    "Priority": "1",
+                    "TransferState": 2,
+                    "CommandID": "U173840001280",
+                    "Replace": 0
+                },
+                "original_source": "MGZ_01_001"
+            },
+            "source_type": "workstation",
+            "dest_type": "workstation",
+            "last": True,
+            "uuid": "U173840001280",
+            "travel": 0,
+            "OriginalTransferInfo": {
+                "ExecuteTime": 0,
+                "CarrierID": "GY001",
+                "CarrierType": "",
+                "SourcePort": "MGZ_01_001",
+                "DestPort": "E0167916_LL",
+                "HostSpecifyMR": ""
+            },
+            "priority": 1,
+            "source": "MGZ_01_001",
+            "carrierID": "GY001",
+            "carrierLoc": "MGZ_01_001",
+            "first": True
+        }
+    ],
+    "type": "ACQUIRE",
+    "order": 0
+}

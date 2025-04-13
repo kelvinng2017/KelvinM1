@@ -1,0 +1,16 @@
+certifi==2020.6.20
+chardet==3.0.4
+funcsigs==1.0.2
+future==0.18.2
+idna==2.9
+mock==3.0.5
+python-dateutil==2.8.1
+python-engineio==3.13.0
+python-socketio==4.6.0
+requests==2.24.0
+secsgem==0.1.0
+six==1.15.0
+transitions==0.7.0
+urllib3==1.25.9
+websocket-client==0.57.0
+pyzmq>=15.4.0
