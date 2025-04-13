@@ -1100,6 +1100,8 @@ class RoutePlanner(threading.Thread):
                 if start_run:
                     if self.memory_group: # Mike: 2021/02/19
                         for group in self.memory_group.split("|"):
+                            if group not in global_variables.global_vehicles_location:
+                                global_variables.global_vehicles_location[group]=''
                             if global_variables.global_vehicles_location[group] == self.id:
                                 global_variables.global_vehicles_location[group]=''
                                 self.logger.debug('{} {} {}'.format('[{}] '.format(self.id), 'clean location 1: ', group))
@@ -1154,13 +1156,13 @@ class RoutePlanner(threading.Thread):
                     '''th=threading.Thread(target=self.adapter.vehicle_stop,)
                     th.setDaemon(True)
                     th.start()'''
-                    self.logger.debug('why alaso me')
                     if not self.adapter.vehicle_stop(check_stop=0, check_get_right_th=False):
                         if self.adapter.wait_stop == 1:
                             continue
                         elif self.adapter.wait_stop == 2:
                             self.clean_route()
                     self.is_moving=False
+                    self.clean_right(True)
                     if global_variables.TSCSettings.get('Communication', {}).get('RackNaming', 0) == 18:
                         E82.report_event(self.adapter.secsgem_e82_h,
                                          E82.VehicleExitSegment,{
@@ -1349,10 +1351,6 @@ class RoutePlanner(threading.Thread):
             self.adapter.last_point=P
         # self.logger.debug(''.format('location: ', global_variables.global_vehicles_location)
 
-        if self.occupied_route and not self.current_route and self.adapter.move['status'] == 'Idle':
-            self.clean_right()
-            return
-
         self.route_right_lock.acquire(True) # Mike: 2024/01/05
         try:
             if index >= 0:
@@ -1523,6 +1521,8 @@ class RoutePlanner(threading.Thread):
                 global_variables.global_vehicles_location_index[self.id] = self.adapter.last_point # Mike: 2021/04/06
             if self.memory_group:
                 for group in self.memory_group.split("|"):
+                    if group not in global_variables.global_vehicles_location:
+                        global_variables.global_vehicles_location[group]=''
                     if global_variables.global_vehicles_location[group] == self.id and group not in group_list:
                         global_variables.global_vehicles_location[group]=''
                         self.logger.debug('{} {} {}'.format('[{}] '.format(self.id), 'clean location 2: ', group))
@@ -1535,6 +1535,8 @@ class RoutePlanner(threading.Thread):
             group_list=PoseTable.mapping[self.adapter.last_point]['group'].split("|") if at_point else []
             if self.memory_group:
                 for group in self.memory_group.split("|"):
+                    if group not in global_variables.global_vehicles_location:
+                        global_variables.global_vehicles_location[group]=''
                     if global_variables.global_vehicles_location[group] == self.id and group not in group_list:
                         global_variables.global_vehicles_location[group]=''
                         self.logger.debug('{} {} {}'.format('[{}] '.format(self.id), 'clean location 3: ', group))
@@ -1573,6 +1575,8 @@ class RoutePlanner(threading.Thread):
             if self.adapter.last_point:
                 if self.memory_group:
                     for group in self.memory_group.split("|"):
+                        if group not in global_variables.global_vehicles_location:
+                            global_variables.global_vehicles_location[group]=''
                         if global_variables.global_vehicles_location[group] == self.id:
                             global_variables.global_vehicles_location[group]=''
                             self.logger.debug('{} {} {}'.format('[{}] '.format(self.id), 'clean location 4', group))
