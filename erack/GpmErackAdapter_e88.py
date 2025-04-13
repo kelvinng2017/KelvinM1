@@ -190,7 +190,7 @@ class GpmErackAdapter(threading.Thread):
         self.syncing_time=0
         self.erack_status='DOWN'
 
-        #GpmErackAdapter_logger.error("DOWN1")
+        # GpmErackAdapter_logger.error("DOWN1")
 
         # self.all_erack_port={
         #     "TBD01-01":"","TBD01-02":"","TBD01-03":"","TBD01-04":"","TBD01-05":"","TBD01-06":"","TBD01-07":"","TBD01-08":"","TBD01-09":"","TBD01-10":"","TBD01-11":"","TBD01-12":"",\
