@@ -124,6 +124,9 @@ class IotMgr(threading.Thread):
                     except:
                         h_device=0
 
+                    if device_id in tmp: # zhangpeng 2025-02-13 # Prevent duplicate creation of threads with the same vehicle id
+                        continue
+
                     if h_device:
                         if h_device.ip == setting['ip'] and h_device.port == setting['port']:
                             if setting['enable']:
@@ -152,6 +155,7 @@ class IotMgr(threading.Thread):
                     if setting['enable']:
                         print("<<< new: {} >>>".format(device_id))
                         # h_vehicle=Vehicle(setting) #avoid adapter not enable, with erack different
+                        h_device.name=str(device_id)
                         h_device.setDaemon(True)
                         h_device.start()
 

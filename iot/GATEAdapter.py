@@ -193,7 +193,7 @@ class GATE(threading.Thread):
                 self.comm.run()
                 self.logger.info("IOT GATE device_id <{}> on {}:{} disconnected.".format(self.device_id, self.ip, self.port))
             except:
-                self.logger.warning("\n{traceback.format_exc()}")
+                self.logger.warning(traceback.format_exc())
                 self.IOT_OD["link"] = "Disconnect"
                 self.IOT_OD["status"] = "ALARM"
         self.logger.info("Iot device {} thread stopped.".format(self.device_id))
