@@ -220,6 +220,7 @@ class EqMgr(threading.Thread):
                             if global_variables.TSCSettings.get('Other', {}).get('RTDEnable') == 'yes' or\
                                     global_variables.TSCSettings.get('Other', {}).get('EAPConnect') == 'yes':
                                 print("<<< new: {} >>>".format(workstation_id))
+                                h_workstation.name=str(equipment_id)
                                 h_workstation.setDaemon(True)
                                 h_workstation.start()
 

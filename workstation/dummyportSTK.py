@@ -70,6 +70,7 @@ class DummyPortSTKE88(threading.Thread):
         self.BufConstrain=setting.get('bufConstrain', False) #for Buf Constrain
         self.open_door_assist=setting.get('openDoorAssist', False) #for req open door assist
         self.allow_shift=setting.get('allowShift', False)
+        self.limitBuf=setting.get('limitBuf', 'All')
 
         alarm=setting.get('alarm')
         self.alarm=alarm if alarm else False

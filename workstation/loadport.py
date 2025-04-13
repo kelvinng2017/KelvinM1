@@ -53,6 +53,7 @@ class LoadPort(threading.Thread):
 
         self.BufConstrain=setting.get('bufConstrain', False) #for Buf Constrain
         self.open_door_assist=setting.get('openDoorAssist', False) #for req open door assist
+        self.limitBuf=setting.get('limitBuf', 'All')
 
         state=setting.get('state')
         self.state= state if state else 'Unknown'
