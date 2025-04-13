@@ -48,6 +48,7 @@ class tcp_bridge:
         self.angular_speed=30
         self.buffer_num=buf_num
         self.use_readfail_carrier=True
+        self.sleep=0
 
         self.current_map=''
 
@@ -207,7 +208,7 @@ class tcp_bridge:
         self.current_map=pose_mapping[initial_point][4]
 
         for i in range(self.buffer_num):
-            self.jsonstatus["cassette"][i]["id"]='Unknown'
+            self.jsonstatus["cassette"][i]["id"]=''
 
         print("initial pose:{}, {}".format(initial_point, self.jsonstatus["pose"]))
 
@@ -599,7 +600,7 @@ class tcp_bridge:
                                     if 'BUFFER' in from_port:
                                         idx=int(fromportnum)
                                         self.jsonstatus["cassette"][idx]["id"]=''
-                                    else:
+                                    elif 'BUFFER' in to_port:
                                         idx=int(toportnum)
                                         self.jsonstatus["cassette"][idx]["id"]='ReadIdFail'
                             total_pos += "0"
@@ -621,7 +622,7 @@ class tcp_bridge:
 
                         elif (raw_rx[1:4] == "P17"): # version Request # Mike: 2021/07/16
                             total_pos += 'Sw{:<13}Sp{}'.format(self.soft_ver, self.spec_ver)
-                            self.output_buffer.appendleft(total_pos)
+                            self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
 
                         elif (raw_rx[1:4] == "S18"): # version Request
                             print('version: {}'.format(raw_rx[4:]))
@@ -630,11 +631,11 @@ class tcp_bridge:
                             print('Reset all alarms')
                             self.move_cmd_queue.clear()
                             self.jsonstatus["error"]=False
-                            self.output_buffer.appendleft(total_pos)
+                            self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
 
                         else:
                             if raw_rx[1] == 'P':
-                                self.output_buffer.appendleft(total_pos)
+                                self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
 
                     except:
                         traceback.print_exc()
@@ -671,7 +672,14 @@ class tcp_bridge:
                         self.sendMessage(output[0], output[1])
                     else:
                         self.sendMessage(output)
-
+                if self.sleep > 0:
+                    time.sleep(self.sleep)
+                    self.sleep=0
+                toc = time.time()
+                if toc-tic > 5:
+                    msg = 'P00'
+                    # self.sendMessage(msg)
+                    tic = toc
                 time.sleep(0.01)
             except Exception as e:
                 traceback.print_exc()
@@ -691,9 +699,12 @@ class tcp_bridge:
                     path.append(obj['move_cmd'])
                     if obj['move_cmd'][5] == 'G':
                         print(path)
+                        self.jsonstatus["state"]='moving'
                         self.move_simulate(path)
                         time.sleep(self.go_delay) # Mike: 2021/08/25
                         path=[]
+                        if not len(self.move_cmd_queue):
+                            self.jsonstatus["state"]='standby'
                 else:
                     if self.stop_move:
                         self.stop_move=False
@@ -1239,10 +1250,6 @@ if __name__ =='__main__':
                 h.setalarm(cmds[1], True)
                 print("reset alarm")
 
-            elif cmds[0] == 'warning': #warning, ECFEEE
-                h.setwarning(cmds[1], True)
-                print("set warning")
-
             elif cmds[0] == 'reset':
                 h.reset_all_alarm_request()
                 print("reset alarm")
@@ -1305,6 +1312,10 @@ if __name__ =='__main__':
             elif cmds[0] == 'retry':
                 print('retry')
                 h.retry_report()
+
+            elif cmds[0] == 'sleep':
+                print('sleep', cmds[1])
+                h.sleep=int(cmds[1])
 
 
     except:
