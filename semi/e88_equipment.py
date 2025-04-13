@@ -55,8 +55,9 @@ def report_event(secsgem_h, ceid, dataset={}):
         secsgem_h.trigger_collection_events([ceid])
         #print('report_vehicle_event, ceid=%d'%ceid)
     except Exception as e:
-        getattr(secsgem_h, "logger").warn('*** report event error ***')
-        getattr(secsgem_h, "logger").warn(e)
+        getattr(secsgem_h, "communicationLogger").warn('*** report event error ***')
+        getattr(secsgem_h, "communicationLogger").warn('CEID:{}, DATASET:{}'.format(ceid, dataset))
+        getattr(secsgem_h, "communicationLogger").warn(e)
         traceback.print_exc()
         pass
         
@@ -77,8 +78,9 @@ def alarm_set(secsgem_h, alid, alarm_set, dataset={}):
         #print('alarm_set, alid=%d'%alid)
         sleep(0.05) #chocp 2021/11/24
     except Exception as e:
-        getattr(secsgem_h, "logger").warn('*** report event error ***')
-        getattr(secsgem_h, "logger").warn(e)
+        getattr(secsgem_h, "communicationLogger").warn('*** report event error ***')
+        getattr(secsgem_h, "communicationLogger").warn('ALID:{}, SET:{}, DATASET:{}'.format(alid, alarm_set, dataset))
+        getattr(secsgem_h, "communicationLogger").warn(e)
         traceback.print_exc()
         pass
         
@@ -94,8 +96,8 @@ def get_variables(secsgem_h, key):
         value=getattr(secsgem_h, key)
             
     except Exception as e:
-        getattr(secsgem_h, "logger").warn('*** get variables error ***')
-        getattr(secsgem_h, "logger").warn(e)
+        getattr(secsgem_h, "communicationLogger").warn('*** get variables error ***')
+        getattr(secsgem_h, "communicationLogger").warn(e)
         traceback.print_exc()
         pass
         

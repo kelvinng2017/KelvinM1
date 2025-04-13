@@ -59,6 +59,7 @@ def report_event(secsgem_h, ceid, dataset={}):
         #print('report_vehicle_event, ceid=%d'%ceid)
     except Exception as e:
         getattr(secsgem_h, "communicationLogger").warn('*** report event error ***')
+        getattr(secsgem_h, "communicationLogger").warn('CEID:{}, DATASET:{}'.format(ceid, dataset))
         getattr(secsgem_h, "communicationLogger").warn(e)
         traceback.print_exc()
         pass
@@ -84,6 +85,7 @@ def alarm_set(secsgem_h, alid, alarm_set, dataset={}): # Mike: 2021/08/10
         sleep(0.05) #chocp fix 2021/11/24
     except Exception as e:
         getattr(secsgem_h, "communicationLogger").warn('*** report event error ***')
+        getattr(secsgem_h, "communicationLogger").warn('ALID:{}, SET:{}, DATASET:{}'.format(alid, alarm_set, dataset))
         getattr(secsgem_h, "communicationLogger").warn(e)
         traceback.print_exc()
         pass
