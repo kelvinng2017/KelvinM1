@@ -2362,6 +2362,8 @@ class Adapter(threading.Thread):
             if self.last_point:
                 if self.planner.memory_group:
                     for group in self.planner.memory_group.split("|"):
+                        if group not in global_variables.global_vehicles_location:
+                            global_variables.global_vehicles_location[group]=''
                         if global_variables.global_vehicles_location[group] == self.id:
                             global_variables.global_vehicles_location[group]=''
                             self.logger.debug('{} {} {}'.format('[{}] '.format(self.id), 'clean location 7: ', group))

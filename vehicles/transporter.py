@@ -1536,7 +1536,6 @@ class Transporter(threading.Thread):
             if cost < 0:
                 alarms.BaseRouteWarning(self.id, uuid, self.adapter.last_alarm_point, to_point, handler=self.secsgem_e82_h)
             else:
-                self.logger.debug('why alaso me1')
                 if not self.adapter.vehicle_stop():
                     # warning
                     return
@@ -2410,7 +2409,6 @@ class Transporter(threading.Thread):
                             continue
 
                         if (self.stop_command and not self.adapter.cmd_sending) or (self.emergency_evacuation_cmd and not self.emergency_evacuation_stop and self.AgvLastState !='Evacuation'): #8.21N-6:
-                            self.logger.debug('why alaso me2')
                             self.adapter.vehicle_stop() #blocking
                             
                             #self.stop_command=False

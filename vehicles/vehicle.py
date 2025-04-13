@@ -22,6 +22,7 @@ import algorithm.schedule_by_fix_order as schedule_by_fix_order
 import algorithm.schedule_by_priority as schedule_by_priority
 import algorithm.schedule_by_auto_order as schedule_by_auto_order
 import algorithm.schedule_by_better_cost as schedule_by_better_cost
+import algorithm.schedule_by_mix_lowest_cost_priority as schedule_by_mix_lowest_cost_priority
 import algorithm.schedule_by_point_cost as schedule_by_point_cost
 import semi.e82_equipment as E82
 
@@ -302,7 +303,7 @@ class Vehicle(threading.Thread):
             
         elif self.model == 'Type_G':
             self.bufNum=16
-            self.vehicle_onTopBufs=['BUF01', 'BUF02', 'BUF03', 'BUF04', 'BUF05', 'BUF06', 'BUF07', 'BUF08', 'BUF09', 'BUF10', 'BUF11', 'BUF12']
+            self.vehicle_onTopBufs=['BUF01', 'BUF02', 'BUF03', 'BUF04', 'BUF05', 'BUF06', 'BUF07', 'BUF08', 'BUF09', 'BUF10', 'BUF11', 'BUF12', 'BUF13', 'BUF14', 'BUF15', 'BUF16']
             
         elif self.model == 'Type_H':
             self.bufNum=10
@@ -619,17 +620,21 @@ class Vehicle(threading.Thread):
         target=self.action_in_run.get('target', '')
 
         if self.adapter.last_point and self.adapter.last_point not in PoseTable.mapping: #8.28.26
+            self.wait_error_code=0
             raise alarms.PointNotInMapWarning(self.adapter.last_point, handler=self.secsgem_e82_h)
         
         elif self.manual:
+            self.wait_error_code=0
             raise alarms.OperateManualTestWarning(self.id, uuid, handler=self.secsgem_e82_h)
 
         elif self.adapter.online['status']!='Ready': #disconnect
+            self.wait_error_code=0
             raise alarms.BaseOffLineWarning(self.id, uuid, handler=self.secsgem_e82_h)
 
         elif self.adapter.alarm['error_code']: #one time alarm, chocp fix hex code
             #"900001":"GetRouteTimeout",
             sub_code=self.adapter.alarm['error_code']
+            self.wait_error_code=0
             if self.adapter.alarm['error_code'] == '900001': #Mike: 2022/10/21
                 raise alarms.GetRouteTimeoutWarning(self.id, uuid, target, sub_code, handler=self.secsgem_e82_h)
             elif self.adapter.alarm['error_code'] == 'TSC031':
@@ -1567,7 +1572,6 @@ class Vehicle(threading.Thread):
 
 
         if not self.action_in_run['loc']: #for not Buf prefer
-            self.adapter.logger.debug("6666:{}".format(self.action_in_run))
             self.action_loc_assign(self.action_in_run)
 
             """available_buffer_list=range(self.bufNum)
@@ -1756,7 +1760,7 @@ class Vehicle(threading.Thread):
                         payload['NextBuffer']='BUFFER{:02d}'.format(self.vehicle_bufID.index(self.actions[1]['loc']))
 
         if global_variables.TSCSettings.get('CassetteTypeSensitive', {}).get('CassetteTypeSensitiveEnable') == 'yes':
-            if carrierType not in global_variables.global_cassetteType and global_variables.RackNaming!=36:
+            if carrierType not in global_variables.global_cassetteType and global_variables.RackNaming != 36:
                 raise alarms.CarrierTypeCheckWarning(self.id, uuid, carrierID, carrierType)
             if carrierType:
                 carrier_type_index=global_variables.global_cassetteType.index(carrierType)+1
@@ -1788,7 +1792,13 @@ class Vehicle(threading.Thread):
         target2=self.action_in_run.get('target2', '')
         to_point=tools.find_point(target)
 
-        
+        cont=0
+        carrier_type_index=1
+        if global_variables.TSCSettings.get('CassetteTypeSensitive', {}).get('CassetteTypeSensitiveEnable') == 'yes':
+            if carrierType not in global_variables.global_cassetteType and global_variables.RackNaming != 36:
+                raise alarms.CarrierTypeCheckWarning(self.id, uuid, carrierID, carrierType)
+            if carrierType:
+                carrier_type_index=global_variables.global_cassetteType.index(carrierType)+1
         if not self.adapter.version_check(self.adapter.mr_spec_ver, '4.0') or global_variables.TSCSettings.get('Other',{}).get('DisablePort2AddrTable', 'no') == 'no':
             raise alarms.ActionNotSupportWarning(self.id, uuid, self.action_in_run.get('target', ''))
 
@@ -1850,7 +1860,6 @@ class Vehicle(threading.Thread):
                     if self.actions[1]['loc']:
                         payload['NextBuffer']='BUFFER{:02d}'.format(self.vehicle_bufID.index(self.actions[1]['loc']))
 
-        
         if global_variables.TSCSettings.get('CassetteTypeSensitive', {}).get('CassetteTypeSensitiveEnable') == 'yes':
             if carrierType not in global_variables.global_cassetteType and global_variables.RackNaming != 36:
                 raise alarms.CarrierTypeCheckWarning(self.id, uuid, carrierID, carrierType)
@@ -2035,9 +2044,8 @@ class Vehicle(threading.Thread):
                         payload['NextBuffer']='BUFFER{:02d}'.format(self.vehicle_bufID.index(self.actions[1]['loc']))
 
         if global_variables.TSCSettings.get('CassetteTypeSensitive', {}).get('CassetteTypeSensitiveEnable') == 'yes':
-            if carrierType not in global_variables.global_cassetteType and global_variables.RackNaming!=36:
+            if carrierType not in global_variables.global_cassetteType and global_variables.RackNaming != 36:
                 raise alarms.CarrierTypeCheckWarning(self.id, uuid, carrierID, carrierType)
-
             if carrierType:
                 carrier_type_index=global_variables.global_cassetteType.index(carrierType)+1
             #print('current_stop:{} {}, next_stop:{} {}, port_info:{}, carrierType_index:{}'.format(current_stop, current_direct, next_stop, next_direct, port, carrier_type_index))
@@ -2599,7 +2607,7 @@ class Vehicle(threading.Thread):
                 if not valid_input: #chocp add 2022/4/14
                     self.enter_depositing_state()
                     return
-                if global_variables.RackNaming in [33, 42, 58] and self.error_skip_tr_req and self.tr_assert_result:
+                if global_variables.RackNaming in [33, 42, 58] and self.error_skip_tr_req and self.tr_assert_result and self.tr_assert_result == target:
                     self.error_skip_tr_req=False
                     self.enter_depositing_state()  
                     return
@@ -3083,7 +3091,7 @@ class Vehicle(threading.Thread):
                                 break
                 else:
                     res, target=tools.new_auto_assign_dest_port(dest_erack, '')
-                    if target in EqMgr.getInstance().workstations and global_variables.RackNaming!=36:#peter 241105
+                    if target in EqMgr.getInstance().workstations and global_variables.RackNaming != 36:#peter 241105
                         print('Faulty dest cannot be a workstation!')
                         res=False
 
@@ -3419,7 +3427,6 @@ class Vehicle(threading.Thread):
             if cost < 0:
                 alarms.BaseRouteWarning(self.id, uuid, self.adapter.last_alarm_point, to_point, handler=self.secsgem_e82_h)
             else:
-                self.logger.debug('why alaso me4')
                 if not self.adapter.vehicle_stop():
                     # warning
                     return
@@ -4463,6 +4470,7 @@ class Vehicle(threading.Thread):
             if target_point == self.adapter.last_point: #when MR in erack don't try_append_transfer
                 if actions[0].get('type') == 'ACQUIRE':
                     try_append_transfer=False
+                    
             print('parmater',target,target_point,at_equipmentID,self.adapter.last_point,actions[0].get('type'),try_append_transfer)   
             if try_append_transfer and vehicle_wq:
                 if len(vehicle_wq.queue):
@@ -4933,7 +4941,6 @@ class Vehicle(threading.Thread):
                 #self.wq.wq_lock.acquire()
                 try:
                     if len(self.wq.tr_point) and point in self.wq.tr_point:
-                        self.logger.debug('why alaso me5')
                         if self.adapter.vehicle_stop(Stime=0.41,check_stop=0):
                             self.enroute_append_transfer(num,buf_list,point)
                             self.wq.wq_lock.release()
@@ -5380,6 +5387,8 @@ class Vehicle(threading.Thread):
                                     fail_tr_cmds_id, actions=schedule_by_fix_order.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point)
                                 elif self.use_schedule_algo == 'by_priority':
                                     fail_tr_cmds_id, actions=schedule_by_priority.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point)
+                                elif self.use_schedule_algo == 'by_mix_lowest_cost_priority':
+                                    fail_tr_cmds_id, actions=schedule_by_mix_lowest_cost_priority.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point)
                                 elif self.bufNum<=8 and self.use_schedule_algo == 'by_lowest_cost': #chocp 2024/8/21 for shift
                                     fail_tr_cmds_id, actions=schedule_by_lowest_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point, self.model)
                                 elif self.bufNum>=12:

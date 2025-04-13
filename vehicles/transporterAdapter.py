@@ -1292,7 +1292,6 @@ class Adapter(threading.Thread):
         return True
 
     def vehicle_stop(self):
-        self.logger.debug('why alaso me3')
         self.stop_control()
         for i in range(120):
             if not self.wait_stop:
@@ -1708,6 +1707,8 @@ class Adapter(threading.Thread):
             if self.last_point:
                 if self.planner.memory_group:
                     for group in self.planner.memory_group.split("|"):
+                        if group not in global_variables.global_vehicles_location:
+                            global_variables.global_vehicles_location[group]=''
                         if global_variables.global_vehicles_location[group] == self.id:
                             global_variables.global_vehicles_location[group]=''
                     global_variables.global_vehicles_location_index[self.id]=''
