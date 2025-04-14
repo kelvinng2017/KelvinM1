@@ -1273,6 +1273,7 @@ if __name__ == '__main__':
     except:
         pass
 
+    logger.info('TSC version {}'.format(global_variables.soft_ver))
     global_variables.controller_id=args.id
     print('-id', args.id)
 
