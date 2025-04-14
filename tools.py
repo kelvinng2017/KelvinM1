@@ -1160,13 +1160,14 @@ def allocate_buffer(buffer_list,transfer,check_carrier_type="no",vehicle_onTopBu
         
     return buffID
 
-def update_lot_list(lot_list, lot_id, command_id, quantity):
-    if lot_id in lot_list:
-        lot_list[lot_id]["CommandID"].append(command_id)
+def update_lot_list(lot_list, lot_id, command_id, quantity, handling_type):
+    if handling_type not in lot_list:
+        lot_list[handling_type] = {}
+
+    if lot_id in lot_list[handling_type]:
+        lot_list[handling_type][lot_id]["CommandID"].append(command_id)
     else:
-        lot_list[lot_id] = {"CommandID": [command_id], "QUANTITY": quantity, "dispatch": False}
-    
-    if len(lot_list[lot_id]["CommandID"]) == lot_list[lot_id]["QUANTITY"]:
-        lot_list[lot_id]["dispatch"] = True
-    
-    return lot_list
+        lot_list[handling_type][lot_id] = {"CommandID": [command_id], "QUANTITY": quantity, "dispatch": False}
+
+    if len(lot_list[handling_type][lot_id]["CommandID"]) == lot_list[handling_type][lot_id]["QUANTITY"]:
+        lot_list[handling_type][lot_id]["dispatch"] = True
