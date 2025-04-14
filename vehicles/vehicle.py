@@ -4545,9 +4545,9 @@ class Vehicle(threading.Thread):
                 for action in actions:
                     if action.get('type') == 'ACQUIRE':
                         try_append_transfer=False
-            if global_variables.RackNaming in [16, 23, 34, 54]: # zhangpeng 2025/02/24 # Fix transfer will be appended to the execution queue when there is a task with priority 101 in the execution queue.
-                if actions[0].get('local_tr_cmd', {}).get('host_tr_cmd', {}).get('priority', '') == 101:
-                    try_append_transfer=False
+            # if global_variables.RackNaming in [16, 23, 34, 54]: # zhangpeng 2025/02/24 # Fix transfer will be appended to the execution queue when there is a task with priority 101 in the execution queue.
+            if actions[0].get('local_tr_cmd', {}).get('host_tr_cmd', {}).get('priority', '') == 101:
+                try_append_transfer=False
 
             TransferAllowed=True
             if try_append_transfer and vehicle_wq:
