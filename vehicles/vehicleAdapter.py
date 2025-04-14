@@ -1622,7 +1622,7 @@ class Adapter(threading.Thread):
         else:
             from_port='%7s'%eq_port[:7]
 
-        self.logger.info('{} {} {} {} {} {}'.format('[{}] '.format(self.id), 'acquire_control:', from_port, to_port, pn, carrierID))
+        self.logger.info('{} {} {} {} {} {} {}'.format('[{}] '.format(self.id), 'acquire_control:', from_port, fpn, to_port, tpn, carrierID))
         self.buf_idx_estimate=tpn-1
         self.buf_status_estimate=carrierID #not safty
         # Mike: 2021/05/27
