@@ -1,3 +1,12 @@
+8.36.11(2025/04/14)
+add:
+1.add check buffer01 status before execute cmd only for FCBGA
+mod:
+1.modify vehicle robot control log
+2.modify priority 101 to all custom can use
+3.modify Renesas BJ lot dispatch logic
+fix:
+
 8.36.10(2025/04/11)
 add:
 1. add log of key and value when secsgem report_envent has exception
