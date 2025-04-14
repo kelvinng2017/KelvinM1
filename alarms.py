@@ -305,6 +305,10 @@ class SwapCarrierIDErrWarning(MyException):
     def __init__(self, vehicleID, carrierID, sub_code='TSC033', handler=None):
         MyException.__init__(self, 'Serious', 10018, sub_code, 'Safety check fail, buffer check fail')
         self.notify({'Vehicle':vehicleID}, collections.OrderedDict({'VehicleID':vehicleID, 'CarrierID':carrierID}), handler=handler)
+class BaseCovertrayWarning(MyException):
+    def __init__(self, vehicleID, commandID, carrierID, sub_code='TSC034', handler=None):
+        MyException.__init__(self, 'Warning', 10018, sub_code, 'Safety check fail, buffer check fail')
+        self.notify({'Vehicle':vehicleID}, collections.OrderedDict({'VehicleID':vehicleID, 'CommandID':commandID , 'CarrierID':carrierID}), handler=handler)
 class BaseCarrRfidFailWarning(MyException): #chocp 2022
     def __init__(self, vehicleID, commandID, buffer, carrierID, sub_code='0', handler=None):
         MyException.__init__(self, 'Warning', 10019, sub_code, 'Buffer carrier ID read fail')
