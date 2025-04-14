@@ -581,6 +581,8 @@ class TransferWaitQueue():
 
         self.log_flag=0
         self.stop_vehicle=False
+        self.can_dispatch_lot_in=False
+        self.can_dispatch_lot_out=False
 
         self.preferVehicle='' #for StockOut
         self.activeHandlingType=''
@@ -810,7 +812,7 @@ class TransferWaitQueue():
                 lotNum = host_tr_cmd['TransferInfoList'][0].get('LotNum')
                 handlingType = host_tr_cmd.get('handlingType','')
                 if lotID and lotNum and handlingType and handlingType in ['In', 'Out']:
-                    self.lot_list=tools.update_lot_list(self.lot_list, lotID, host_tr_cmd["uuid"], lotNum)
+                    self.lot_list=tools.update_lot_list(self.lot_list, lotID, host_tr_cmd["uuid"], lotNum,handlingType)
 
                 print(self.lot_list) 
             print("{} queue priority >>>".format(self.queueID),[(cmd['uuid'],cmd['priority']) for cmd in self.queue])
@@ -1351,6 +1353,8 @@ class TransferWaitQueue():
                         if res:
                             if buf_assigned: #2022/7/13 bufseq 4321
                                 with_buf_contrain_batch=True
+                            if priority == 101:
+                                high_priority=True
                             vehicle_wq.dispatch_tr_cmd_to_vehicle(host_tr_cmd, h_vehicle, buf_assigned, unload_buf_assigned)
                             HostSpecify_res=True
                         else:
@@ -1366,29 +1370,26 @@ class TransferWaitQueue():
                                 if res:
                                     if buf_assigned: #2022/7/13 bufseq 4321
                                         with_buf_contrain_batch=True
+                                    if priority == 101:
+                                        high_priority=True
                                     vehicle_wq.dispatch_tr_cmd_to_vehicle(host_tr_cmd, h_vehicle, buf_assigned, unload_buf_assigned)
                                     HostSpecify_res=True
                                 else:
                                     break
                             else:
-                                if host_tr_cmd['dest'][:-5] in Vehicle.h.vehicles: #GF 5: 
+                                # if 'MR' not in host_tr_cmd['source']: #GF 5:
+                                if host_tr_cmd['source'][:-5] not in Vehicle.h.vehicles and host_tr_cmd['dest'][:-5] not in Vehicle.h.vehicles: #GF 5: 
+                                    break
+
+                                r=re.match(r'(.+)(BUF\d+)', host_tr_cmd['source'])
+                                if not r:
                                     r=re.match(r'(.+)(BUF\d+)', host_tr_cmd['dest'])
-                                    if r:
-                                        bufID=r.group(2)
-                                        if bufID!='BUF00':
-                                            buf_specified.append(bufID)
+                                    if not r:
+                                        break
+                                bufID=r.group(2)
+                                if bufID!='BUF00' and not host_tr_cmd['replace']:
+                                    buf_specified.append(bufID)
 
-                        else:
-                            # if 'MR' not in host_tr_cmd['source']: #GF 5:
-                            if host_tr_cmd['source'][:-5] not in Vehicle.h.vehicles: #GF 5: 
-                                break
-
-                            r=re.match(r'(.+)(BUF\d+)', host_tr_cmd['source'])
-                            if not r:
-                                break
-                            bufID=r.group(2)
-                            if bufID!='BUF00' and not host_tr_cmd['replace']:
-                                buf_specified.append(bufID)
                 except: #like no cmd
                     break
                 time.sleep(1)
@@ -1397,7 +1398,7 @@ class TransferWaitQueue():
 
                 #vehicle_wq.dispatch_tr_cmd_to_vehicle(host_tr_cmd, h_vehicle, []) # bug free by Jason, 2022/7/13 #one dispatch cmd
                 if not HostSpecify_res:
-                    if global_variables.RackNaming in [16,23,34,54] and priority == 101:
+                    if priority == 101:
                         high_priority=True
                     vehicle_wq.dispatch_tr_cmd_to_vehicle(host_tr_cmd, h_vehicle, buf_specified) # GF
                     res=True
@@ -1419,21 +1420,44 @@ class TransferWaitQueue():
             same_equipmentID_count=0
             same_AMR_MGZ_equipmentID_dict={}
             
-            if global_variables.RackNaming == 40: 
-                dispatch_cmd_num=0
-                dispatch_cmd_list=[]
-                dispatch_cmd_lots=[]
+            if global_variables.RackNaming == 40 and self.queue:
+                dispatch_cmd_num = 0
+                dispatch_cmd_list = []
+                dispatch_cmd_lots = []
+
+                first_handling_type = self.queue[0].get('handlingType', '')
                 
-                for host_tr_cmd in self.queue:
-                    LotID=host_tr_cmd['TransferInfoList'][0].get('LotID','')
-                    handlingType=host_tr_cmd.get('handlingType','')
-                    if LotID and LotID in self.lot_list and handlingType and handlingType in ['In', 'Out']:
-                        if self.lot_list[LotID]['dispatch'] and (len(buf_available_list_sorted)-dispatch_cmd_num) >= self.lot_list[LotID]['QUANTITY'] and LotID not in dispatch_cmd_lots:
-                            dispatch_cmd_num+= self.lot_list[LotID]['QUANTITY']
-                            dispatch_cmd_list.extend(self.lot_list[LotID]['CommandID'])
-                            dispatch_cmd_lots.append(LotID)
-                            '''self.lot_list.remove(LotID)
-                                del self.lot_list[LotID]  ''' 
+                if first_handling_type == 'In' and self.can_dispatch_lot_in:
+                    allowed_type = 'In'
+                elif first_handling_type == 'Out' and self.can_dispatch_lot_out:
+                    allowed_type = 'Out'
+                elif first_handling_type == 'In' and not self.can_dispatch_lot_in and self.can_dispatch_lot_out:
+                    allowed_type = 'Out'
+                elif first_handling_type == 'Out' and not self.can_dispatch_lot_out and self.can_dispatch_lot_in:
+                    allowed_type = 'In'
+                else:
+                    allowed_type = None  
+
+                if allowed_type:
+                    for host_tr_cmd in self.queue:
+                        lot_id = host_tr_cmd['TransferInfoList'][0].get('LotID', '')
+                        handling_type = host_tr_cmd.get('handlingType', '')
+                        
+                        if (
+                            lot_id and 
+                            handling_type == allowed_type and 
+                            handling_type in self.lot_list and 
+                            lot_id in self.lot_list[handling_type]
+                        ):
+                            lot_info = self.lot_list[handling_type][lot_id]
+                            if (
+                                lot_info['dispatch'] and 
+                                (len(buf_available_list_sorted) - dispatch_cmd_num) >= lot_info['QUANTITY'] and 
+                                lot_id not in dispatch_cmd_lots
+                            ):
+                                dispatch_cmd_num += lot_info['QUANTITY']
+                                dispatch_cmd_list.extend(lot_info['CommandID'])
+                                dispatch_cmd_lots.append(lot_id)
                 print(self.lot_list)
                 print(dispatch_cmd_list)
                 print(dispatch_cmd_lots)
@@ -1607,9 +1631,9 @@ class TransferWaitQueue():
                         del host_tr_cmd['SkipDispatch']
                     tools.book_slot(host_tr_cmd['dest'], h_vehicle.id, host_tr_cmd['source'])
                     tools.book_slot(host_tr_cmd['back'], h_vehicle.id, host_tr_cmd['dest'])
-                    if global_variables.RackNaming in [16,23,34,54] and priority == 101:
+                    if  priority == 101:
                         high_priority=True
-                    elif global_variables.RackNaming == 40:
+                    if global_variables.RackNaming == 40:
                         actual_dispatch_cmd_list.append(host_tr_cmd['uuid'])
                         self.activeHandlingType=host_tr_cmd.get('handlingType','')
                     self.dispatch_tr_cmd_to_vehicle(host_tr_cmd, h_vehicle, buf_assigned, unload_buf_assigned, i)
@@ -1639,19 +1663,23 @@ class TransferWaitQueue():
             else: #2022/7/13 buf seq 1234
                 h_vehicle.with_buf_contrain_batch=False
                 
-            if actual_dispatch_cmd_list and global_variables.RackNaming == 40:
-                to_remove=[]
+            if global_variables.RackNaming == 40 and actual_dispatch_cmd_list:
+                to_remove = []
                 for uuid in actual_dispatch_cmd_list:
-                    for lot_id, lot_info in self.lot_list.items():
-                        if uuid in lot_info['CommandID']:
-                            lot_info["CommandID"].remove(uuid)
-                        if len(lot_info["CommandID"]) < lot_info["QUANTITY"]:
-                            lot_info["dispatch"] = False
-                        if len(lot_info["CommandID"]) == 0 and lot_id not in to_remove:
-                            to_remove.append(lot_id)
-                if to_remove:
-                    for lot_id in to_remove:
-                        del self.lot_list[lot_id] 
+                    for handling_type in ['In', 'Out']:
+                        if handling_type in self.lot_list:
+                            for lot_id, lot_info in self.lot_list[handling_type].items():
+                                if uuid in lot_info['CommandID']:
+                                    lot_info['CommandID'].remove(uuid)
+
+                                if len(lot_info['CommandID']) < lot_info['QUANTITY']:
+                                    lot_info['dispatch'] = False
+
+                                if len(lot_info['CommandID']) == 0 and (handling_type, lot_id) not in to_remove:
+                                    to_remove.append((handling_type, lot_id))
+
+                for handling_type, lot_id in to_remove:
+                    del self.lot_list[handling_type][lot_id]
 
             print('<<dispatch total primary cmd count:{}, single cmd count:{} into {} executing queue, buf_reserved:{}>>'.format(primary_cmds_total, single_cmds_total, h_vehicle.id, buf_reserved))
             print('h_vehicle.tr_cmds len={}, with_buf_contrain_batch={}'.format(len(h_vehicle.tr_cmds), with_buf_contrain_batch))
@@ -1924,6 +1952,27 @@ class TransferWaitQueue():
         
         else:
             self.remove_waiting_transfer_by_idx(host_tr_cmd, idx)
+
+            if global_variables.RackNaming == 42:
+                if host_tr_cmd.get('priority', 0) == 101:
+                    if h_vehicle.bufs_status[0]['stockID'] != 'None':
+                        E82.report_event(self.secsgem_e82_h,
+                                    E82.TransferCompleted, {
+                                    'CommandInfo':host_tr_cmd['CommandInfo'],
+                                    'VehicleID':h_vehicle.id,
+                                    'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo'], #9/13
+                                    'TransferInfo':host_tr_cmd['OriginalTransferInfoList'][0] if host_tr_cmd['OriginalTransferInfoList'] else {},
+                                    'CommandID':host_tr_cmd['CommandInfo'].get('CommandID', ''),
+                                    'Priority':host_tr_cmd['CommandInfo'].get('Priority', 0),
+                                    'Replace':host_tr_cmd['CommandInfo'].get('Replace', 0),
+                                    'CarrierID':host_tr_cmd['carrierID'], #chocp fix for tfme 2021/10/23
+                                    'SourcePort':host_tr_cmd['source'], #chocp fix for tfme 2021/10/23
+                                    'DestPort':host_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                                    #'CarrierLoc':self.action_in_run['loc'],
+                                    'CarrierLoc':host_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                                    'ResultCode':10018 })
+                        alarms.BaseCovertrayWarning(h_vehicle.id, host_tr_cmd['uuid'], host_tr_cmd['carrierID'], handler=self.secsgem_e82_h)
+                        return
 
             if host_tr_cmd['carrierID']: #chocp 2022/12/29
                 res, new_source_port=tools.re_assign_source_port(host_tr_cmd['carrierID']) #cost all lot
