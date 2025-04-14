@@ -251,19 +251,23 @@ class TSC(threading.Thread):
                     wq.preferVehicle=''
                     queueID=queue_id
                     cancel_success=True
-                    if wq.lot_list and global_variables.RackNaming == 40:
-                        to_remove=[]
-                        for lot_id, lot_info in wq.lot_list.items():
-                            if host_command_id in lot_info['CommandID']:
-                                lot_info["CommandID"].remove(host_command_id)
-                            if len(lot_info["CommandID"]) < lot_info["QUANTITY"]:
-                                lot_info["dispatch"] = False
-                            if len(lot_info["CommandID"]) == 0 and lot_id not in to_remove:
-                                to_remove.append(lot_id)
-                        if to_remove:
-                            for lot_id in to_remove:
-                                del wq.lot_list[lot_id]    
-                    print(wq.lot_list)
+                    if global_variables.RackNaming == 40 and wq.lot_list:
+                        to_remove = []
+                        for handling_type in ['In', 'Out']:
+                            if handling_type in wq.lot_list:
+                                for lot_id, lot_info in wq.lot_list[handling_type].items():
+                                    if host_command_id in lot_info['CommandID']:
+                                        lot_info['CommandID'].remove(host_command_id)
+
+                                    if len(lot_info['CommandID']) < lot_info['QUANTITY']:
+                                        lot_info['dispatch'] = False
+
+                                    if len(lot_info['CommandID']) == 0 and (handling_type, lot_id) not in to_remove:
+                                        to_remove.append((handling_type, lot_id))
+
+                        for handling_type, lot_id in to_remove:
+                            del wq.lot_list[handling_type][lot_id]
+                        print(wq.lot_list)
                     #self.secsgem_e82_default_h.rm_transfer_cmd(host_command_id)
                     # E82.report_event(self.secsgem_e82_default_h, E82.TransferCancelCompleted, {'CommandID':host_command_id}) #2022/6/30
 
@@ -2205,12 +2209,27 @@ class TSC(threading.Thread):
                                         pass
                                     
                                 elif global_variables.RackNaming == 40 and wq.lot_list:
-                                    can_dispatch_lot=0
-                                    for lotinfo in wq.lot_list.values():
-                                        if lotinfo.get('dispatch'):
-                                            can_dispatch_lot+=1
-                                    if can_dispatch_lot >= wq.merge_max_lots:
-                                        can_run_flag=True
+                                    can_dispatch_lot_in = 0
+                                    can_dispatch_lot_out = 0
+                                    wq.can_dispatch_lot_in=False
+                                    wq.can_dispatch_lot_out=False
+
+                                    if "In" in wq.lot_list:
+                                        for lotinfo in wq.lot_list["In"].values():
+                                            if lotinfo.get('dispatch'):
+                                                can_dispatch_lot_in += 1
+
+                                    if "Out" in wq.lot_list:
+                                        for lotinfo in wq.lot_list["Out"].values():
+                                            if lotinfo.get('dispatch'):
+                                                can_dispatch_lot_out += 1
+
+                                    if can_dispatch_lot_in >= wq.merge_max_lots:
+                                        wq.can_dispatch_lot_in=True
+                                        can_run_flag = True
+                                    if can_dispatch_lot_out >= wq.merge_max_lots:
+                                        wq.can_dispatch_lot_out=True
+                                        can_run_flag = True
 
                                 if can_run_flag: #run the zone queue condition available, chocp 10/23 # Mike: 2022/3/11
                                     major_candidates=[] #8.21H-3
