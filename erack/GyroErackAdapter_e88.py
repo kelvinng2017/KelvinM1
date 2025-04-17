@@ -380,13 +380,20 @@ class GyroErackAdapter(threading.Thread):
                             self.read_carriers[idx]['carrierID']=''
 
                     #add cacel order when carrier remove 2023/1/17
-                    if global_variables.RackNaming == 13 and sendby == 0:
+                    if global_variables.RackNaming in [13,35] and sendby==0:
                         carrierID=self.last_carriers[idx]['carrierID']
                         if carrierID:
                             WorkID=EqMgr.getInstance().orderMgr.query_work_list_by_carrierID(carrierID)
                             if WorkID:
                                 obj={'remote_cmd':'work_cancel', 'WorkID':WorkID}
                                 remotecmd_queue.append(obj)
+                            if global_variables.field_id == 'USG3':
+                                erack_WorkID=EqMgr.getInstance().orderMgr.query_erack_work_list_by_carrierID(carrierID)
+                                if erack_WorkID:
+                                    obj={'CommandID':erack_WorkID}
+                                    EqMgr.getInstance().orderMgr.cancel_transfer(obj)
+                                    # print('>>carrier_removed:{}'.format(obj))
+                                    # carrier['cmd_send']=False
 
                 if CarrierLoc in self.alarm_table[20002]: #if carrier check by operator,then launch movin event
                     datasets={}
@@ -608,6 +615,7 @@ class GyroErackAdapter(threading.Thread):
             self.lots[info['port_idx']]['waferlot']=''
             self.lots[info['port_idx']]['recipe']=''
             self.lots[info['port_idx']]['alarm']=''
+            self.lots[info['port_idx']]['device'] = ''
             self.lots[info['port_idx']]['lpt']=''
             self.lots[info['port_idx']]['qty']=''
             self.lots[info['port_idx']]['background_color']=''
@@ -636,16 +644,26 @@ class GyroErackAdapter(threading.Thread):
 
                 self.lots[info['port_idx']]['stage']=stage
             if 'CustID' in info['data']: # Mike: 2022/05/04
-                # self.lots[info['port_idx']]['stage']=info['data']['stage']
-                cust_info=info['data']['CustID'].split(',') #ASECL use ','
-                #print(cust_info)
-                #lotID='{}({})'.format(lot_info[0], len(lot_info)) #chocp 2021/12/15
-                if len(cust_info) == 1: #chi 2022/09/26
-                    cust_info='{}'.format(cust_info[0])
-                else:
-                    cust_info='{}({})'.format(cust_info[0], len(cust_info))  if cust_info[0] else '' #chocp 2021/12/15 ......
+                if global_variables.RackNaming not in [13, 35]:
+                    # self.lots[info['port_idx']]['stage']=info['data']['stage']
+                    cust_info=info['data']['CustID'].split(',') #ASECL use ','
+                    #print(cust_info)
+                    #lotID='{}({})'.format(lot_info[0], len(lot_info)) #chocp 2021/12/15
+                    if len(cust_info) == 1: #chi 2022/09/26
+                        cust_info='{}'.format(cust_info[0])
+                    else:
+                        cust_info='{}({})'.format(cust_info[0], len(cust_info))  if cust_info[0] else '' #chocp 2021/12/15 ......
 
-                self.lots[info['port_idx']]['cust']=cust_info
+                    self.lots[info['port_idx']]['cust']=cust_info
+                else:
+                    # print('add_cust_1', info['data']['CustID'])
+                    self.lots[info['port_idx']]['cust']=info['data']['CustID']
+                    # print('add_cust_2', info['data']['CustID'])
+
+            if 'DeviceID' in info['data']: # Jwo 2024/03/29
+                # print('add_device_1', info['data']['DeviceID'])
+                self.lots[info['port_idx']]['device']=info['data']['DeviceID']
+                # print('add_device_2', info['data']['DeviceID'])
             if 'Product' in info['data']: # Mike: 2022/05/04
                 # self.lots[info['port_idx']]['stage']=info['data']['stage']
                 product_info=info['data']['Product'].split(',') #ASECL use ','
@@ -940,6 +958,7 @@ class GyroErackAdapter(threading.Thread):
                                 self.lots[idx]['alarm']=''
                                 self.lots[idx]['background_color']=''
                                 self.lots[idx]['buzzer']=''
+                                self.lots[idx]['device']=''
                                 #self.lots[idx]['booked']=0 #chocp add 0917
                             else:
                                 self.lots[idx]['booked']=0 #chocp 9/17
@@ -967,6 +986,7 @@ class GyroErackAdapter(threading.Thread):
                                         'potd':self.lots[idx].get('potd',''),\
                                         'waferlot':self.lots[idx].get('waferlot',''),\
                                         'desc':self.lots[idx].get('desc',''),\
+                                        'device':self.lots[idx].get('device',''),\
                                         'booked':self.lots[idx].get('booked', 0),\
                                         'area_id':self.carriers[idx].get('area_id', ''),\
                                         'box_color':self.carriers[idx].get('box_color', 0), #chocp 2021/12/14
