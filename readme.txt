@@ -1,3 +1,33 @@
+8.36.15(2025/04/17)
+add:
+mod:
+fix:
+1.fix the error of TrBackReq using "at_station" as the TransferPort
+
+8.36.14(2025/04/16)
+add:
+1. add field_id for UTAC, USG1ASSY, USG1SORT
+2. add ELV_simulator, ELV_adapter for multi floor transfer
+mod:
+1. change dummyportUTAC dispatch logic
+2. mod orderMgr send_transfer, cancel_transfer format
+3. mod erackMgr work_add logic
+fix:
+1. fix orderMgr add_work_list/update_work_status to ensure compatibility for all customers
+
+8.36.13(2025/04/16)
+add:
+mod:
+1.modify P19 cmd
+fix:
+
+8.36.12(2025/04/15)
+add:
+mod:
+1.modify Renease vehicle stop cmd and replace new job no need use auto recover function
+fix:
+1.fix same point robot control bug
+
 8.36.11(2025/04/14)
 add:
 1.add check buffer01 status before execute cmd only for FCBGA
