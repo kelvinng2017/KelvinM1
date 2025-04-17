@@ -3894,7 +3894,7 @@ class Vehicle(threading.Thread):
             E82.report_event(self.secsgem_e82_h,
                             E82.TrBackReq, {
                             'VehicleID':self.id,
-                            'TransferPort':self.at_station,
+                            'TransferPort':target, # zhangpeng 2025-04-17 fix the error of TrBackReq using "at_station" as the TransferPort
                             'CarrierID':carrierID})
 
             output('TrBackReq',{

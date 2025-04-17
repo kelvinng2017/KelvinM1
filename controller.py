@@ -818,7 +818,8 @@ def mount_socketio_func(sio):
                                         order.get('destport', ''),
                                         order.get('replace', 0),
                                         order.get('status', ''),
-                                        order.get('cause', ''))
+                                        order.get('cause', ''),
+                                        order.get('couples', []))
 
             print('\nTransferQueues:')
             # print(data['TransferQueues'])
