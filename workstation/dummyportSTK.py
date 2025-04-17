@@ -211,7 +211,7 @@ class DummyPortSTKE82(threading.Thread):
         self.listeners=[]
 
         self.state=''
-
+        self.next_state=''
         self.code=0
         self.extend_code=0
         self.msg=''
@@ -275,6 +275,8 @@ class DummyPortSTKE82(threading.Thread):
         self.carrier_source=''
 
         self.notify(event)
+        print('PortStatusReq for {}, due to {}'.format(self.workstationID, event))
+        E82.report_event(self.secsgem_e82_h, E82.PortStatusReq, {'PortID':self.workstationID})
 
     def enter_out_of_service_state(self, event):
         self.alarm=False
@@ -320,7 +322,55 @@ class DummyPortSTKE82(threading.Thread):
 
     def change_state(self, event, data={}): #0825
         try:
-            if event == 'alarm_set':
+            # for USG3 LifterPort (MCS to TSC)
+            if global_variables.RackNaming == 35:
+                if event == 'remote_port_state_set':
+                    LifterPortState = ['OutOfService', 'InService', 'TransferBlock', 'ReadyToLoad', 'ReadyToUnLoad', 'PortAlarm']
+                    try:
+                        self.next_state = LifterPortState[int(data.get('PortStatus', 0))-1]
+                        print('next_state:', self.next_state)
+                    except:
+                        pass
+
+                elif event == 'manual_port_state_set':
+                    port_status = data.get('next_state', 'Unknown')
+                    if port_status == 'Running':
+                        self.next_state = 'TransferBlock'
+                        self.enter_transfer_block_state(event)
+                    elif port_status == 'UnLoaded':
+                        self.next_state = 'ReadyToLoad'
+                        self.enter_ready_to_load_state(event)
+                    elif port_status == 'Loaded':
+                        data={}
+                        self.next_state = 'ReadyToUnLoad'
+                        self.enter_ready_to_unload_state(event, data)
+
+                    print('next_state:', self.next_state)
+
+                elif self.next_state == 'OutOfService':
+                    self.enter_out_of_service_state(event)
+
+                elif event=='in_service_evt':
+                    self.enter_in_service_state(event)
+
+                elif self.next_state == 'TransferBlock':
+                    self.enter_transfer_block_state(event)
+
+                elif self.next_state == 'ReadyToLoad':
+                    self.enter_ready_to_load_state(event)
+
+                elif self.next_state == 'ReadyToUnLoad':
+                    self.enter_ready_to_unload_state(event, data)
+
+                elif event=='timeout_10_sec':
+                    print('timeout_10_sec', self.state, self.enable, self.workstationID, (time.time()-self.enter_unknown_time), self.check_unknown_timeout)
+                    if self.state == 'InService' and self.enter_unknown_time and (time.time()-self.enter_unknown_time) > self.check_unknown_timeout:
+                    # if self.state == 'InService' and (time.time()-self.enter_unknown_time) > self.check_unknown_timeout:
+                        self.enter_unknown_state(event)
+                        print('PortStatusReq for {}, due to {}'.format(self.workstationID, event))
+                        E82.report_event(self.secsgem_e82_h, E82.PortStatusReq, {'PortID':self.workstationID})
+
+            if event=='alarm_set':
                 self.alarm=True
                 self.state='Alarm'
                 self.code=50000
