@@ -783,10 +783,26 @@ class Adapter(threading.Thread):
                 self.logger.info('{} {}'.format('[{}] '.format(self.id), 'Get reset alarm:'))
                 
             elif (head == 'P19'): #retry command
-                if data[1] == '0':
-                    if self.vehicle_instance.AgvState == 'Pause' and self.vehicle_instance.action_in_run:
-                        self.vehicle_instance.error_retry_cmd=True
-                        self.logger.info('{} {}'.format('[{}] '.format(self.id), 'Get retry command:'))
+                if self.version_check(self.mr_spec_ver, '5.4'):
+                    matches = re.findall(r'<(.*?)>', data)
+                    if matches:
+                        result = {}
+                        result['Event_Type'] = matches[0]
+                        if len(matches) > 1:
+                            result['Event_Data'] = matches[1]
+                        else:
+                            result['Event_Data'] = ''
+                        if result:
+                            print('P19 result', result)
+                            if result['Event_Type'] == 'Retry':
+                                if self.vehicle_instance.AgvState == 'Pause' and self.vehicle_instance.action_in_run:
+                                    self.vehicle_instance.error_retry_cmd=True
+                                    self.logger.info('{} {}'.format('[{}] '.format(self.id), 'Get retry command:'))        
+                else: 
+                    if data[1] == '0':
+                        if self.vehicle_instance.AgvState == 'Pause' and self.vehicle_instance.action_in_run:
+                            self.vehicle_instance.error_retry_cmd=True
+                            self.logger.info('{} {}'.format('[{}] '.format(self.id), 'Get retry command:'))
                    
 
             elif (head == "S64"): # Reset cmd response
