@@ -52,9 +52,9 @@ class E88_ErackMgr(threading.Thread):
         self.port_areas={}
         self.port_areas_revert={} #chocp 2022/4/12
         self.map_zones={}
-    
+
         self.api_queue=queue.Queue()
-        
+
         self.secsgem_e88_h=secsgem_e88_h
         self.tsclogger=logging.getLogger("tsc")
 
@@ -75,10 +75,10 @@ class E88_ErackMgr(threading.Thread):
     def remote_command_callback(self, obj):
         print("Callback get: ", obj)
 
-        if obj['remote_cmd'] == 'sc_pause': #2022/08/09 Chi 
+        if obj['remote_cmd'] == 'sc_pause': #2022/08/09 Chi
             remotecmd_queue.append(obj)
-    
-        elif obj['remote_cmd'] == 'sc_resume': #2022/08/09 Chi 
+
+        elif obj['remote_cmd'] == 'sc_resume': #2022/08/09 Chi
             remotecmd_queue.append(obj)
 
         elif obj['remote_cmd'] == 'transfer':
@@ -143,19 +143,43 @@ class E88_ErackMgr(threading.Thread):
                                     'carrierID':carrierID,
                                     'data':data})
 
-                                if global_variables.RackNaming == 13 and global_variables.TSCSettings.get('Other', {}).get('RTDEnable') == 'yes' and '[HoldLot]' not in data.get('desc'): #chocp new for UTAC 2023/9/7
-                                    for_stage=h_eRack.func.get('LotIn') #for UTAC usg1
-                                    print('for_stage', for_stage)
-                                    print('stage', data.get('stage'))
-                                    #if for_stage and for_stage!=data.get('stage'): #for UTAC usg1 filter
-                                    if not for_stage or for_stage!=data.get('stage'): #for UTAC usg1 filter
-                                        print('for_stage check fail:', for_stage, data.get('stage'))
-                                        break #finish and not gen order
-                                    
+                                if global_variables.RackNaming in [13, 35] and global_variables.TSCSettings.get('Other', {}).get('RTDEnable') == 'yes':
+
+                                    if global_variables.RackNaming == 35:
+                                        for key in self.port_areas:
+                                            if 'CrossFloor' in key:
+                                                for item in self.port_areas[key]:
+                                                    if item['rack_id'] == rack_id and item['slot_no'] == port_idx + 1:
+                                                        break  # Stop looping once a match is found
+
+                                    if '[HoldLot]' in data.get('desc'):
+                                        # print('>>>>>data', data)
+                                        exist_workID = EqMgr.getInstance().orderMgr.query_work_list_by_carrierID(carrierID)
+                                        if exist_workID:
+                                            obj={'remote_cmd':'work_cancel', 'WorkID':exist_workID}
+                                            print('<<work_cancel_for_Hold>>:', obj)
+                                            # self.Carriers.Data['carrierID']['cmd_send'] = False
+                                            # print('>>>>Carrier_data'.format(self.Carriers.Data['carrierID']))
+                                            remotecmd_queue.append(obj)
+
+                                        break
+
+                                    elif '[HoldLot]' not in data.get('desc'):
+                                        if global_variables.RackNaming == 13:  # for UTAC usg1 filter
+                                            for_stage=h_eRack.func.get('LotIn')
+                                            if not for_stage or for_stage != data.get('stage'):
+                                                print('for_stage check fail:', for_stage, data.get('stage'))
+                                                break
+                                        elif global_variables.RackNaming == 35:
+                                            for_stage=h_eRack.func.get('LotIn', 'NoStage')
+                                            if 'CrossFloor' in for_stage:
+                                                data['stage']='CrossFloor'
+                                            # print('for_stage', data['stage'])
+                                            # first_machine = data.get('desc', '').split(',')[0].strip()
                                     WorkID=EqMgr.getInstance().orderMgr.infoupdate_work_list_by_carrierID(carrierID, data.get('lotID', ''), data.get('stage', ''), data.get('desc', ''), data.get('priority', 0))
-                                    test_lot_id=data.get('lotID')
+                                    lot_id=data.get('lotID')
                                     #if not WorkID:
-                                    if not WorkID and test_lot_id: #lotID need have
+                                    if not WorkID and lot_id: #lotID need have
 
                                         uuid=100*time.time()
                                         uuid%=1000000000000
@@ -174,10 +198,10 @@ class E88_ErackMgr(threading.Thread):
                                         # print('work_add:', data)
                                         remotecmd_queue.append(obj)
 
-                                
+
                             else:
                                 h_eRack.change_state(h_eRack.carriers[port_idx], 'host_associate_cmd', data)
-                                
+
                             break #chocp:2021/3/7
 
 
@@ -185,7 +209,7 @@ class E88_ErackMgr(threading.Thread):
             except Exception as e:
                 print(e)
                 pass
-            
+
         elif obj['remote_cmd'] == 'infoupdatebyrack': # 2021/04/18 SJ
             try:
                 h_eRack=self.eRacks.get(obj['ErackID'])
@@ -193,7 +217,7 @@ class E88_ErackMgr(threading.Thread):
                 for label, value in obj['Data'].items():
                     tmp[label]=value.split(',')
                 carrierlen=len(tmp['CARRIERID'])
-                for i in range(carrierlen): 
+                for i in range(carrierlen):
                     data={}
                     if tmp['CARRIERID'][i] in self.Carriers.Data:
                         res, rack_id, port_no=tools.rackport_format_parse(self.Carriers.Data[tmp['CARRIERID'][i]].CarrierLoc)
@@ -212,7 +236,7 @@ class E88_ErackMgr(threading.Thread):
             except Exception as e:
                 print(e)
                 pass
-            
+
         if obj['remote_cmd'] == 'book':
             device_id=obj['ZoneName']
             for erackid, h_eRack in self.eRacks.items():#2021/12/8
@@ -328,7 +352,7 @@ class E88_ErackMgr(threading.Thread):
                             if setting['enable'] == 'yes':
                                 if not h.is_alive():
                                     h.start()
-                                
+
                                 print("<<< continue: {} >>>".format(rack_id))
                                 h.update_params(setting)
                                 update_groups_zones_areas(erack_groups_tmp, map_zones_tmp, port_areas_tmp, port_areas_revert_tmp, setting, h)
@@ -341,7 +365,7 @@ class E88_ErackMgr(threading.Thread):
                                     update_groups_zones_areas(erack_groups_tmp, map_zones_tmp, port_areas_tmp, port_areas_revert_tmp, setting, h)
                                     eRacks_tmp[rack_id]=h
                                     continue
-                                    
+
                                 print("<<< stop: {} >>>".format(rack_id))
                                 h.thread_stop=True
                         else:
@@ -351,7 +375,7 @@ class E88_ErackMgr(threading.Thread):
 
                     if setting['enable'] == 'yes': # Mike: 2022/02/17
                         secsgem_e88_h=self.secsgem_e88_h
-                        
+
                         if setting.get('model') == 'OtherShelf1':
                             h=ICWiserErackAdapter(secsgem_e88_h, setting, self.Transfers, self.Carriers, self.Zones)
                         elif setting.get('model') == 'OtherShelf2':
@@ -375,7 +399,7 @@ class E88_ErackMgr(threading.Thread):
                         h.start()
                         update_groups_zones_areas(erack_groups_tmp, map_zones_tmp, port_areas_tmp, port_areas_revert_tmp, setting, h)
 
-                
+
                 #need clear ....
                 for erackid, h in self.eRacks.items():#2021/12/8
                     h.thread_stop=True
@@ -385,7 +409,7 @@ class E88_ErackMgr(threading.Thread):
                 self.erack_groups=erack_groups_tmp #fix chocp 2021/112/7
                 self.port_areas=port_areas_tmp
                 self.port_areas_revert=port_areas_revert_tmp
-            
+
                 print(self.eRacks)
                 print(self.map_zones)
                 print('=================')
