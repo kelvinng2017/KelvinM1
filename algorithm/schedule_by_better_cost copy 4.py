@@ -31,11 +31,6 @@ def query_order_by_point(point, order_type='loadOrder'):
         traceback.print_exc()
         print('query_order:{} fail'.format(point))
         return 0
-    
-def add_to_list_dict(d, key, value):
-    if key not in d:
-        d[key] = []
-    d[key].append(value)
 
 def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq_has_desposit_action,eq_has_null_action):# kelvinng 20240927 TI Baguio WB
     actions_in_order=[]
@@ -62,16 +57,14 @@ def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq
     elif global_variables.RackNaming == 36:
 
         if station in eq_has_acquire_action:
-
-            
-            actions_in_order.extend(eq_has_acquire_action[station])
+            actions_in_order.append(eq_has_acquire_action[station])
 
 
         if station in eq_has_shift_action:
-            actions_in_order.extend(eq_has_shift_action[station])
+            actions_in_order.append(eq_has_shift_action[station])
 
         if station in eq_has_desposit_action:
-            actions_in_order.extend(eq_has_desposit_action[station])
+            actions_in_order.append(eq_has_desposit_action[station])
 
         
         
@@ -151,16 +144,10 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 'local_tr_cmd':transfer,
                 'records':[transfer]
                 }
-            if global_variables.RackNaming in [46]:
+            if global_variables.RackNaming in [46,36]:
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     eq_has_shift_action[h_workstation.equipmentID]=action
-
-            if global_variables.RackNaming in [36]:
-                h_workstation=EqMgr.getInstance().workstations.get(action['target'])
-                if h_workstation and  h_workstation.workstation_type != "ErackPort":
-                    add_to_list_dict(eq_has_shift_action,h_workstation.equipmentID,action)
-                    
 
             if 'workstation' in transfer['host_tr_cmd'].get('sourceType', '') :
                 from_seq_list.append([action])
@@ -203,16 +190,12 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 }
 
             h_workstation=EqMgr.getInstance().workstations.get(source_port)
-            if global_variables.RackNaming in [46]:
+            if global_variables.RackNaming in [46,36]:
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     eq_has_acquire_action[h_workstation.equipmentID]=action
                 else:
                     has_erack_acquire_acton=True
-            if global_variables.RackNaming in [36]:
-                h_workstation=EqMgr.getInstance().workstations.get(action['target'])
-                if h_workstation and  h_workstation.workstation_type != "ErackPort":
-                    add_to_list_dict(eq_has_acquire_action,h_workstation.equipmentID,action)
             if not h_workstation or 'ErackPort' in h_workstation.workstation_type or 'Stock' in h_workstation.workstation_type: #from Erack for K25
                 from_seq_list.append([action])
 
@@ -267,14 +250,10 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 }
 
             h_workstation=EqMgr.getInstance().workstations.get(dest_port)
-            if global_variables.RackNaming in [46]:
+            if global_variables.RackNaming in [36,46]:
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     eq_has_desposit_action[h_workstation.equipmentID]=action
-            if global_variables.RackNaming in [36]:
-                h_workstation=EqMgr.getInstance().workstations.get(action['target'])
-                if h_workstation and  h_workstation.workstation_type != "ErackPort":
-                    add_to_list_dict(eq_has_desposit_action,h_workstation.equipmentID,action)
             if not h_workstation or 'ErackPort' in h_workstation.workstation_type or 'Stock' in h_workstation.workstation_type:
                 end_seq_list.append([action])
             #elif last_middle_action and (last_middle_action.get('target', '').rstrip('AB') == source_port.rstrip('AB')): #do swap
@@ -420,7 +399,7 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 action_logger.info("task target:{}".format(task['target']))
                 action_logger.info("h_workstation.equipmentID:{}".format(h_workstation.equipmentID))
                 if h_workstation.workstation_type != "ErackPort":
-                    if h_workstation.equipmentID not in ["EQ_5078_P019"]:
+                    if h_workstation.equipmentID not in ["EQ_5078_P01"]:
                         if h_workstation.equipmentID not in eq_already_add_action:
                             action_logger.info("in extend")
                             

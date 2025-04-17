@@ -35,6 +35,7 @@ import alarms
 
 import tr_wq_lib
 from  tr_wq_lib import TransferWaitQueue
+# from web_service_log import tsc
 
 class TSC(threading.Thread):
     def __init__(self, secsgem_e82_h, secsgem_e88_h, secsgem_e88_stk_h):
@@ -161,6 +162,7 @@ class TSC(threading.Thread):
 
         for port_type, portID in [('Source', tr_cmd['source']), ('Dest', tr_cmd['dest'])]:
             zoneID=portID.split('BUF')[0]
+            self.logger.debug("port_type:{},portID:{}".format(port_type, portID))
             if zoneID in list(Vehicle.h.vehicles.keys()): #port in vehicle
                 return zoneID, True
 
@@ -175,7 +177,18 @@ class TSC(threading.Thread):
                         RackToRackTransfer=True
                     rack_detect_flag=True
                     #zoneID=getattr(h_workstation, 'zoneID', 'other')
-                    zoneID=getattr(h_workstation, 'zoneID', 'other')
+                    if port_type == "Source":
+                        if global_variables.RackNaming == 36:
+                            if "_I" in tr_cmd['dest'] or "_O" in tr_cmd['dest']:
+                                h_workstation_dest=EqMgr.getInstance().workstations.get(tr_cmd['dest'])
+                                test1=getattr(h_workstation_dest, 'equipmentID', 'other')
+                                self.logger.debug("test1:{}".format(test1))
+                                zoneID=getattr(h_workstation, 'zoneID', 'other')
+                            else:
+                                zoneID=getattr(h_workstation, 'zoneID', 'other')
+                        else:
+                        
+                            zoneID=getattr(h_workstation, 'zoneID', 'other')
                     candidate_link_zones.append(zoneID)
                 else:
                     zoneID=getattr(h_workstation, 'zoneID', 'other')
@@ -695,10 +708,15 @@ class TSC(threading.Thread):
                         pattern_of_eq_3910_match=pattern_of_eq_3910.match(dest_workstation.equipmentID)
                         if pattern_of_eq_3910_match:
                             host_tr_cmd['bufferAllowedDirections']=dest_workstation.limitBuf
-                            
+                            self.logger.info("host_tr_cmd['bufferAllowedDirections']:{}".format(host_tr_cmd['bufferAllowedDirections']))
+                        else:
+                            host_tr_cmd['bufferAllowedDirections']=source_workstation.limitBuf
+                            self.logger.info("host_tr_cmd['bufferAllowedDirections']:{}".format(host_tr_cmd['bufferAllowedDirections']))
                         
                     else:
                         host_tr_cmd['bufferAllowedDirections']=source_workstation.limitBuf
+                        self.logger.info("host_tr_cmd['bufferAllowedDirections']:{}".format(host_tr_cmd['bufferAllowedDirections']))
+
                     
             elif source_workstation and source_workstation.BufConstrain:
                 host_tr_cmd['bufferAllowedDirections']=source_workstation.limitBuf

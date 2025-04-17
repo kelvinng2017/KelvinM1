@@ -43,7 +43,7 @@ class tcp_bridge:
         self.exchange_time=0.1 #45 default
         self.go_delay=0.1
         #self.go_delay=2 #for GB real
-        self.end_delay=0.1
+        self.end_delay=0.5
         #self.end_delay=4 #for GB real
         self.angular_speed=30
         self.buffer_num=buf_num
@@ -216,12 +216,6 @@ class tcp_bridge:
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket=None
         self.automode=False
-        #peter 24/04/11,for K9 tcp log
-        current_dir=os.path.dirname(os.path.abspath(__file__))
-        log_file_path=os.path.join(current_dir, '..', 'log', 'example.log')
-        logging.basicConfig(filename=log_file_path, level=logging.DEBUG, 
-                            format='%(asctime)s - %(levelname)s - %(message)s')
-        self.logger=logging.getLogger(__name__)
 
 
     def handle_client_connection(self, client_socket):
@@ -664,6 +658,8 @@ class tcp_bridge:
 
     def output_sending(self):
         print("start output_sending")
+        tic = time.time()
+        toc = tic
         while(self.keepThreadAlive):
             try:
                 if(len(self.output_buffer) > 0):

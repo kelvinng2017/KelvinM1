@@ -1572,6 +1572,7 @@ class Vehicle(threading.Thread):
 
 
         if not self.action_in_run['loc']: #for not Buf prefer
+            self.adapter.logger.info("why also me1111111111")
             self.action_loc_assign(self.action_in_run)
 
             """available_buffer_list=range(self.bufNum)
@@ -1755,9 +1756,12 @@ class Vehicle(threading.Thread):
                 if global_variables.TSCSettings.get('Other', {}).get('E84Continue', 'yes') == 'yes':
                     cont=1
                 if self.actions[1]['type'] == 'DEPOSIT':
-                    self.action_loc_assign(self.actions[1])
-                    if self.actions[1]['loc']:
-                        payload['NextBuffer']='BUFFER{:02d}'.format(self.vehicle_bufID.index(self.actions[1]['loc']))
+                    if carrierID and carrierID == self.actions[1]['local_tr_cmd']['carrierID']:
+                        payload['NextBuffer']='BUFFER{:02d}'.format(self.vehicle_bufID.index(self.actions[0]['loc']))
+                    else:
+                        self.action_loc_assign(self.actions[1])
+                        if self.actions[1]['loc']:
+                            payload['NextBuffer']='BUFFER{:02d}'.format(self.vehicle_bufID.index(self.actions[1]['loc']))
 
         if global_variables.TSCSettings.get('CassetteTypeSensitive', {}).get('CassetteTypeSensitiveEnable') == 'yes':
             if carrierType not in global_variables.global_cassetteType and global_variables.RackNaming != 36:

@@ -320,6 +320,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     if 'Stock' in h_workstation_type:
                         SourcePortDuplicatedCheck=False
                 else:
+                    tr_wq_lib_logger.debug("h_workstation.equipmentID in check:{}".format(h_workstation.equipmentID))
                     if 'Stock' in h_workstation_type:
                         SourcePortDuplicatedCheck=False
                     elif h_workstation.equipmentID in ['EQ_3800_MGZ', 'EQ_3800_CRR']:
