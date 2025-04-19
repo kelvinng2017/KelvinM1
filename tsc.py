@@ -177,18 +177,10 @@ class TSC(threading.Thread):
                         RackToRackTransfer=True
                     rack_detect_flag=True
                     #zoneID=getattr(h_workstation, 'zoneID', 'other')
-                    if port_type == "Source":
-                        if global_variables.RackNaming == 36:
-                            if "_I" in tr_cmd['dest'] or "_O" in tr_cmd['dest']:
-                                h_workstation_dest=EqMgr.getInstance().workstations.get(tr_cmd['dest'])
-                                test1=getattr(h_workstation_dest, 'equipmentID', 'other')
-                                self.logger.debug("test1:{}".format(test1))
-                                zoneID=getattr(h_workstation, 'zoneID', 'other')
-                            else:
-                                zoneID=getattr(h_workstation, 'zoneID', 'other')
-                        else:
+                    
                         
-                            zoneID=getattr(h_workstation, 'zoneID', 'other')
+                        
+                    zoneID=getattr(h_workstation, 'zoneID', 'other')
                     candidate_link_zones.append(zoneID)
                 else:
                     zoneID=getattr(h_workstation, 'zoneID', 'other')
