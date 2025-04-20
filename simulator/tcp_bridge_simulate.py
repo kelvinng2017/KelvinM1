@@ -1086,7 +1086,7 @@ class tcp_bridge:
         self.map_report()
 
 
-    def move_simulate(self, path): # Mike: 2021/03/11 #alarm,TB1008
+    def move_simulate(self, path): # Mike: 2021/03/11
 
         i=0
         time_interval=1.0
@@ -1317,9 +1317,6 @@ if __name__ =='__main__':
     except:
         traceback.print_exc()
         pass
-#pose,19558,28671,0,272(4305)
-#pose,19497,28649,0,280(4305)
 
-#pose,17163,28716,0,270(4110B)
-#pose,17253,28518,0,269(4110A)
+
 

@@ -738,7 +738,7 @@ class Adapter(threading.Thread):
             #############
 
             elif (head == 'P61'):    # Alarm Report
-                self.logger.error('{} {}'.format('=>P61', data[1], data[2:8]))
+                self.logger.error('{} {} {}'.format('=>P61', data[1], data[2:8]))
                 # Mike: 2021/02/22
                 if self.version_check(self.mr_spec_ver, '2.4') and data[1] in ['2', '3']:
                     command_id=self.vehicle_instance.action_in_run.get('local_tr_cmd', {}).get('uuid', '')
@@ -1716,8 +1716,8 @@ class Adapter(threading.Thread):
             to_port=eq_port
         else:
             to_port='%7s'%eq_port[:7]
-
-        self.logger.info('{} {} {} {} {}'.format('[{}] '.format(self.id), 'deposite_control:', from_port, to_port, pn))
+        self.logger.info('{} {} {} {} {} {}'.format('[{}] '.format(self.id), 'deposite_control:', from_port, fpn, to_port, tpn))
+        #self.logger.info('{} {} {} {} {}'.format('[{}] '.format(self.id), 'deposite_control:', from_port, to_port, pn))
         self.buf_idx_estimate=fpn-1
         self.buf_status_estimate='None'  #not safty
         # Mike: 2021/05/27

@@ -200,7 +200,7 @@ EventTable={
     TSCPauseCompleted: {'report':[]},
     TSCPaused: {'report':[]},
     TSCPauseInitiated: {'report':[]},
-    TransferAbortCompleted: {'report':[SV_CommandID, SV_TransferCompleteInfo]},
+    TransferAbortCompleted: {'report':[SV_CommandID, SV_TransferCompleteInfo,SV_VehicleID]},
     TransferAbortFailed: {'report':[SV_CommandID]},
     TransferAbortInitiated: {'report':[SV_CommandID]},
     TransferCancelCompleted: {'report':[SV_CommandID, SV_TransferCompleteInfo]},
