@@ -678,7 +678,9 @@ class Vehicle(threading.Thread):
                 raise alarms.BaseNotAutoModeWarning(self.id, uuid, 'Error', handler=self.secsgem_e82_h)
 
         elif mr_state == 'Unassigned' or mr_state == 'Parked': #chocp 2021/7/16
+            
             if self.adapter.move['status']!='Idle':
+                self.adapter.logger.info("amrid:{},move status:{}".format(self.id,self.adapter.move['status']))
                 sub_code=self.adapter.alarm['error_code']
                 raise alarms.BaseMoveCheckWarning(self.id, uuid, target, sub_code, handler=self.secsgem_e82_h) #fix 2022/2/10
 

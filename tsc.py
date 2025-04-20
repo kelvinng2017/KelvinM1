@@ -696,14 +696,9 @@ class TSC(threading.Thread):
                 else:
                     if global_variables.RackNaming == 36:
                         self.logger.debug("jkjk:{}".format(dest_workstation.equipmentID))
-                        pattern_of_eq_3910=re.compile(M1_global_variables.re_pattern_of_eq_3910)
-                        pattern_of_eq_3910_match=pattern_of_eq_3910.match(dest_workstation.equipmentID)
-                        if pattern_of_eq_3910_match:
-                            host_tr_cmd['bufferAllowedDirections']=dest_workstation.limitBuf
-                            self.logger.info("host_tr_cmd['bufferAllowedDirections']:{}".format(host_tr_cmd['bufferAllowedDirections']))
-                        else:
-                            host_tr_cmd['bufferAllowedDirections']=source_workstation.limitBuf
-                            self.logger.info("host_tr_cmd['bufferAllowedDirections']:{}".format(host_tr_cmd['bufferAllowedDirections']))
+                        host_tr_cmd['bufferAllowedDirections']=dest_workstation.limitBuf
+                        self.logger.info("host_tr_cmd['bufferAllowedDirections']:{}".format(host_tr_cmd['bufferAllowedDirections']))
+                        
                         
                     else:
                         host_tr_cmd['bufferAllowedDirections']=source_workstation.limitBuf
