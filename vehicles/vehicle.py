@@ -6643,6 +6643,7 @@ class Vehicle(threading.Thread):
                             E82.report_event(self.secsgem_e82_h,
                                         E82.VehicleShiftCompleted, {
                                         'VehicleID':self.id,
+                                        'CarrierLoc':target,
                                         'TransferPort':target2,
                                         'CarrierID':carrierID, #chocp fix for tfme 2021/10/23
                                         'CommandID':uuid, # jason  add 10/30

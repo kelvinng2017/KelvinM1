@@ -224,7 +224,7 @@ EventTable={
     VehicleDepositStarted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID]},
 
     VehicleDepositCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
-    VehicleShiftCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
+    VehicleShiftCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_CarrierLoc,SV_TransferPort, SV_CarrierID, SV_ResultCode]},
     VehicleShiftStarted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
 
     VehicleStateChange: {'report':[SV_VehicleID, SV_VehicleState, SV_VehicleLastState]},

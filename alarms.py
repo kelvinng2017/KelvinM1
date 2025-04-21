@@ -250,7 +250,15 @@ class EqBackCheckFailWarning(MyException):
     def __init__(self, vehicleID, commandID, portID, sub_code='TSC028', handler=None):
         MyException.__init__(self, 'Error', 10016, sub_code, 'Safety check, Eq port check fail')
         self.notify({'Tsc':'Tsc'}, collections.OrderedDict({'VehicleID':vehicleID, 'CommandID':commandID ,'PortID':portID}), handler=handler)
+class EqShiftCheckFailWarning(MyException):# kelvinng 2024/11/04 TrShiftCheck    
+    def __init__(self, vehicleID, commandID, portID, sub_code='TSC035', handler=None):
+        MyException.__init__(self, 'Error', 10016, sub_code, 'Safty check, Eq port check fail')
+        self.notify({'Tsc':'Tsc'}, collections.OrderedDict({'VehicleID':vehicleID, 'CommandID':commandID ,'PortID':portID}), handler=handler)
 
+class EqShiftCheckTimeoutWarning(MyException):# kelvinng 2024/11/04 TrShiftCheck    
+    def __init__(self, vehicleID, commandID, portID, sub_code='TSC036', handler=None):
+        MyException.__init__(self, 'Error', 10016, sub_code, 'Safty check, Eq port check fail')
+        self.notify({'Tsc':'Tsc'}, collections.OrderedDict({'VehicleID':vehicleID, 'CommandID':commandID ,'PortID':portID}), handler=handler)
 class EqCheckTimeoutWarning(MyException):    
     def __init__(self, vehicleID, commandID, portID, sub_code='TSC003', handler=None):
         MyException.__init__(self, 'Error', 10016, sub_code, 'Safety check, Eq port check fail')

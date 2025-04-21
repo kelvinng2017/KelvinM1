@@ -164,6 +164,7 @@
     "ECF004": "Charge GO off.", 
     "ECF005": "Charge timeout.", 
     "ECF006": "Discharge timeout.(Please check charger HP signal)", 
+    "ECFEEB": "PS off before try to unload.", 
     "ECFFF7": "Serial port error.(Please check USB hub)", 
     "ECFFF8": "Controller response timeout.", 
     "ECFFF9": "EQ not in auto mode.", 
