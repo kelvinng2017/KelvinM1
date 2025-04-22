@@ -381,6 +381,13 @@ def generate_routes():
         print(e)
         pass
 
+    try:
+        with open('port_table.txt', 'w') as outFile:
+            json.dump(PortsTable.mapping, outFile)
+    except Exception as e:
+        print(e)
+        pass
+
     '''for vertex in global_junction_neighbor: # Mike: 2021/08/13
         t=Route.h.get_neighbor(vertex)
         collect=[]
