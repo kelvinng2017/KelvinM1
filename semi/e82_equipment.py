@@ -172,6 +172,8 @@ SV_TransferCompleteInfo=501 # [TransferInfo, CarrierLoc]*n
 SV_TransferPort=502
 SV_TransferInfo=503
 SV_TransferInfoList=504
+SV_FromPort=525 #kelvin 202504/23
+
 ''' tmp sv, for events, not available '''
 SV_CommandID=601
 SV_VehicleInfo=602 # VehicleID, VehicleState
@@ -422,8 +424,8 @@ EventTable={
     VehicleSwapCompleted: {'report':[SV_VehicleID, SV_TransferPort, SV_ResultCode]},
 
     VehicleDepositCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
-    VehicleShiftCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
-    VehicleShiftStarted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
+    VehicleShiftCompleted: {'report':[SV_VehicleID,SV_FromPort, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
+    VehicleShiftStarted: {'report':[SV_VehicleID, SV_FromPort, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
     VehicleExchangeStarted: {'report':[SV_VehicleID]},
     VehicleExchangeCompleted: {'report':[SV_VehicleID]},
     VehicleChargeStarted: {'report':[SV_VehicleID]},
@@ -671,6 +673,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
         self.TransferPortList=[]
         self.CurrentPortStates=[]
         self.TransferPort=''
+        self.FromPort=''#kelvinng202504/23
 
         ### example: self.CarrierIDList=["123456", "654321"]
         self.CarrierIDList=[]
@@ -791,6 +794,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
             SV_TransferCompleteInfo: secsgem.StatusVariable(SV_TransferCompleteInfo, "SV_TransferCompleteInfo", "", secsgem.SecsVarArray, True),
             #SV_TransferPortList: secsgem.StatusVariable(SV_TransferPortList, "SV_TransferPortList", "", secsgem.SecsVarArray, True),
             SV_TransferPort: secsgem.StatusVariable(SV_TransferPort, "SV_TransferPort", "", secsgem.SecsVarString, True),
+            SV_FromPort: secsgem.StatusVariable(SV_FromPort, "SV_FromPort", "", secsgem.SecsVarString, True),# kelvinng 20250423
             SV_TransferInfo: secsgem.StatusVariable(SV_TransferInfo, "SV_TransferInfo", "", secsgem.SecsVarList, True), # Mike: 2021/08/10
             SV_TransferInfoList: secsgem.StatusVariable(SV_TransferInfoList, "SV_TransferInfoList", "", secsgem.SecsVarArray, True), # Mike: 2021/11/1
             #for internal use
@@ -1111,6 +1115,10 @@ class E82Equipment(secsgem.GemEquipmentHandler):
         
         elif sv.svid == SV_DoorState:#peter 240705
             ret=self.DoorState
+            return ret
+        elif sv.svid == SV_FromPort:
+            #ret=self.transferPort
+            ret=self.FromPort #chocp fix
             return ret
         elif sv.svid == SV_TransferPort:
             #ret=self.transferPort

@@ -36,6 +36,7 @@ SV_TransferCompleteInfo=74 # [TransferInfo, CarrierLoc]*n
 SV_TransferPort=68
 SV_TransferInfo=67
 SV_TransferInfoList=69
+SV_FromPort=525 #kelvin 202504/23
 
 ''' tmp sv, for events, not available '''
 SV_CommandID=58
@@ -224,8 +225,8 @@ EventTable={
     VehicleDepositStarted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID]},
 
     VehicleDepositCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
-    VehicleShiftCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_CarrierLoc,SV_TransferPort, SV_CarrierID, SV_ResultCode]},
-    VehicleShiftStarted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
+    VehicleShiftCompleted: {'report':[SV_VehicleID, SV_FromPort,SV_CommandID, SV_CarrierLoc,SV_TransferPort, SV_CarrierID, SV_ResultCode]},
+    VehicleShiftStarted: {'report':[SV_VehicleID, SV_FromPort,SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
 
     VehicleStateChange: {'report':[SV_VehicleID, SV_VehicleState, SV_VehicleLastState]},
     VehicleChargeStarted: {'report':[SV_VehicleID]},
