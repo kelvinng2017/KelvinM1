@@ -1549,42 +1549,42 @@ class TransferWaitQueue():
 
                 # tr_wq_lib_logger.debug("matched_buf:{}".format(matched_buf))
                 
-                if host_tr_cmd.get("zoneID") == "zone_1F_AMR_CRR":
-                    # tr_wq_lib_logger.debug("h_vehicle.id:{}".format(h_vehicle.id))
-                    # tr_wq_lib_logger.debug("zoneID:{}".format(host_tr_cmd.get("zoneID")))
-                    if first_tr_cmd_equipmentID == "":
-                        if len(h_vehicle.tr_cmds)>0:
+                # if host_tr_cmd.get("zoneID") == "zone_1F_AMR_CRR":
+                #     # tr_wq_lib_logger.debug("h_vehicle.id:{}".format(h_vehicle.id))
+                #     # tr_wq_lib_logger.debug("zoneID:{}".format(host_tr_cmd.get("zoneID")))
+                #     if first_tr_cmd_equipmentID == "":
+                #         if len(h_vehicle.tr_cmds)>0:
                             
-                            for tr_cmds_index in h_vehicle.tr_cmds:
+                #             for tr_cmds_index in h_vehicle.tr_cmds:
                                 
-                                first_tr_cmd_equipmentID=tr_cmds_index.get("host_tr_cmd",{}).get("equipmentID","")
-                                # tr_wq_lib_logger.debug("first_tr_cmd_equipmentID:{}".format(first_tr_cmd_equipmentID))
-                                break
+                #                 first_tr_cmd_equipmentID=tr_cmds_index.get("host_tr_cmd",{}).get("equipmentID","")
+                #                 # tr_wq_lib_logger.debug("first_tr_cmd_equipmentID:{}".format(first_tr_cmd_equipmentID))
+                #                 break
                         
                     
                     
                     
-                    if host_tr_cmd.get("equipmentID","") != first_tr_cmd_equipmentID and first_tr_cmd_equipmentID != "":
-                        perpaid_to_send_equipmentID=host_tr_cmd.get("equipmentID","")
-                        if len(self.queue):
-                            for queue_index in self.queue:
+                #     if host_tr_cmd.get("equipmentID","") != first_tr_cmd_equipmentID and first_tr_cmd_equipmentID != "":
+                #         perpaid_to_send_equipmentID=host_tr_cmd.get("equipmentID","")
+                #         if len(self.queue):
+                #             for queue_index in self.queue:
                                 
-                                check_equipmentID=queue_index.get("equipmentID","")
-                                # tr_wq_lib_logger.debug("check_equipmentID:{}".format(check_equipmentID))
-                                if perpaid_to_send_equipmentID == check_equipmentID:
-                                    same_equipmentID_count +=1
-                                    # if perpaid_to_send_equipmentID not in same_AMR_MGZ_equipmentID_dict.keys():
+                #                 check_equipmentID=queue_index.get("equipmentID","")
+                #                 # tr_wq_lib_logger.debug("check_equipmentID:{}".format(check_equipmentID))
+                #                 if perpaid_to_send_equipmentID == check_equipmentID:
+                #                     same_equipmentID_count +=1
+                #                     # if perpaid_to_send_equipmentID not in same_AMR_MGZ_equipmentID_dict.keys():
                                     
-                            # tr_wq_lib_logger.debug("same_equipmentID_count:{}".format(same_equipmentID_count))
-                            # tr_wq_lib_logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
+                #             # tr_wq_lib_logger.debug("same_equipmentID_count:{}".format(same_equipmentID_count))
+                #             # tr_wq_lib_logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
                     
                         
-                        if len(buf_available_list_sorted)<same_equipmentID_count:
-                            tr_wq_lib_logger.error("can not send{}".format(perpaid_to_send_equipmentID))
+                #         if len(buf_available_list_sorted)<same_equipmentID_count:
+                #             tr_wq_lib_logger.error("can not send{}".format(perpaid_to_send_equipmentID))
                             
-                        else:
-                            # tr_wq_lib_logger.debug("change first_tr_cmd_equipmentID from:{} to:{}".format(first_tr_cmd_equipmentID,perpaid_to_send_equipmentID))
-                            first_tr_cmd_equipmentID=perpaid_to_send_equipmentID
+                #         else:
+                #             # tr_wq_lib_logger.debug("change first_tr_cmd_equipmentID from:{} to:{}".format(first_tr_cmd_equipmentID,perpaid_to_send_equipmentID))
+                #             first_tr_cmd_equipmentID=perpaid_to_send_equipmentID
                             
 
                             

@@ -765,12 +765,12 @@ class TSC(threading.Thread):
                     else:
                         # print("\n ASECL OVEN ASRS & PLASMA NOT SOURCE")
                         host_tr_cmd['equipmentID']=h_workstation.equipmentID
-                if  global_variables.RackNaming == 36:
-                    if "Erack" in h_workstation.workstation_type:
-                        hh_workstation=EqMgr.getInstance().workstations.get(host_tr_cmd['dest'])
-                        host_tr_cmd['equipmentID']=hh_workstation.equipmentID
-                    else:
-                        host_tr_cmd['equipmentID']=h_workstation.equipmentID  #2022/12/09        
+                # if  global_variables.RackNaming == 36:
+                #     if "Erack" in h_workstation.workstation_type:
+                #         hh_workstation=EqMgr.getInstance().workstations.get(host_tr_cmd['dest'])
+                #         host_tr_cmd['equipmentID']=hh_workstation.equipmentID
+                #     else:
+                #         host_tr_cmd['equipmentID']=h_workstation.equipmentID  #2022/12/09        
                 else:
                     host_tr_cmd['equipmentID']=h_workstation.equipmentID  #2022/12/09
         else: #Hshuo 240829 

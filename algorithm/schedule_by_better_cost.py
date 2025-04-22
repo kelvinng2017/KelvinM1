@@ -66,6 +66,8 @@ def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq
             
             actions_in_order.extend(eq_has_acquire_action[station])
 
+            if station in eq_has_null_action:
+                actions_in_order.extend(eq_has_null_action[station])
 
         if station in eq_has_shift_action:
             actions_in_order.extend(eq_has_shift_action[station])
@@ -233,7 +235,7 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 point=tools.find_point(source_port) #DestPort MRXXXBUF00
             except:
                 point=init_point
-
+            only_shift=False
             action={
                 'type':'NULL',
                 'target':source_port,
@@ -249,6 +251,10 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation:
                     eq_has_null_action[h_workstation.equipmentID]=action
+            if global_variables.RackNaming in [36]:
+                h_workstation=EqMgr.getInstance().workstations.get(action['target'])
+                if h_workstation and  h_workstation.workstation_type != "ErackPort":
+                    add_to_list_dict(eq_has_null_action,h_workstation.equipmentID,action)
             else:
                 end_seq_list.append([action])
 
