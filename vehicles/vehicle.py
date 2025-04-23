@@ -4082,101 +4082,56 @@ class Vehicle(threading.Thread):
             first_target_is_eq=False
             first_target_eqID=""
             
-                
-            num, buf_list=self.buf_available()
-            self.adapter.logger.debug("buf_list1:{}".format(buf_list))
+            num, buf_list=self.buf_available2()
+            self.adapter.logger.debug("in append_transfer_allowed_for_TI_Baguio buf_list:{}".format(buf_list))
             
-            
-            
-            for action in  actions:
-                if action.get('type') == 'ACQUIRE':
-                    action_is_ACQUIR_count+=1
-                #tsc_logger.debug("source:{}".format(action))
-            
-            buf_list=buf_list[action_is_ACQUIR_count:]
-            self.adapter.logger.debug("buf_list2:{}".format(buf_list))
             
             if actions[0].get('type') == 'DEPOSIT': #8.21K
                 
-                target=actions[0].get('target', '')
-                h_workstation=EqMgr.getInstance().workstations.get(target)
+                target=actions[0].get('target', '')#
+                h_workstation=EqMgr.getInstance().workstations.get(target)#Use the first action target to determine if it belongs to the workstation.
                 
                 if h_workstation:
-                    
-                    if global_variables.RackNaming != 46:
-                        if 'Stock' in h_workstation.workstation_type:
-                            try_append_transfer=True
-                    else:
-                        target_is_eq=True
-                        first_target_eqID=h_workstation.equipmentID
-                        try_append_transfer=True
-                        
-                        
-                    
+                    '''
+                    in h_workstation 
+                    '''
+                    target_is_eq=True 
+                    first_target_eqID=h_workstation.equipmentID
+                    try_append_transfer=True            
                 else:
-                    # if "EWB0" in self.adapter.last_point:
-                    #     try_append_transfer=False
-                    # else:
-                    #     try_append_transfer=True
-                    try_append_transfer=False
-                    # back_erack_do_desposit=True
+                    try_append_transfer=False                
                     
-                    
-
                 target_point=tools.find_point(target) #8.21-5
                 if target_point == self.adapter.last_point: #when MR in erack don't try_append_transfer
                     try_append_transfer=False
                     
-                        
-                        
                 elif actions[0].get('type') == 'SHIFT': #8.21K
                     
                     target=actions[0].get('target', '')
                     h_workstation=EqMgr.getInstance().workstations.get(target)
                     
                     if h_workstation:
-                        
-                        if global_variables.RackNaming != 46:
-                            if 'Stock' in h_workstation.workstation_type:
-                                try_append_transfer=True
-                        else:
-                            target_is_eq=True
-                            first_target_eqID=h_workstation.equipmentID
-                            try_append_transfer=True
-                            
-                            
-                        
+                        target_is_eq=True
+                        first_target_eqID=h_workstation.equipmentID
+                        try_append_transfer=True
                     else:
                         try_append_transfer=False
                         
-                        
-
                     target_point=tools.find_point(target) #8.21-5
                     if target_point == self.adapter.last_point: #when MR in erack don't try_append_transfer
                         try_append_transfer=False
-                        
-                        
+
                 elif actions[0].get('type') == 'ACQUIRE': #8.21K
                     
                     target=actions[0].get('target', '')
                     h_workstation=EqMgr.getInstance().workstations.get(target) 
                     
                     if h_workstation:
-                        
-                        if global_variables.RackNaming != 46:
-                            if 'Stock' in h_workstation.workstation_type:
-                                try_append_transfer=True
-                        else:
-                            target_is_eq=True
-                            first_target_eqID=h_workstation.equipmentID
-                            try_append_transfer=True
-                            
-                            
-                        
+                        target_is_eq=True
+                        first_target_eqID=h_workstation.equipmentID
+                        try_append_transfer=True
                     else:
                         try_append_transfer=False
-                        
-                        
 
                     target_point=tools.find_point(target) #8.21-5
                     if target_point == self.adapter.last_point: #when MR in erack don't try_append_transfer
@@ -4186,73 +4141,145 @@ class Vehicle(threading.Thread):
             
             TransferAllowed=True
             if try_append_transfer and vehicle_wq:
-                # if global_variables.RackNaming != 46:
-                vehicle_wq.wq_lock.acquire()
-                try:
-                    major_candidates=[]
-                    swap_commandID=[]
-                    num, buf_list=self.buf_available()
-                    if num and len(vehicle_wq.queue):
-                        for idx, host_tr_cmd in enumerate(vehicle_wq.queue):
-                            if host_tr_cmd.get('link'):
-                                swap_commandID.append( host_tr_cmd.get('link').get('uuid'))
-                        for idx, host_tr_cmd in enumerate(vehicle_wq.queue):
-                            if self.id  in host_tr_cmd.get('dest') or '*' in host_tr_cmd['dest']:
-                                continue
-                            if host_tr_cmd.get('link'):
-                                source_port=host_tr_cmd['source']
-                                distance=tools.calculate_distance(self.adapter.last_point, source_port)
-                                major_candidates.append([idx,host_tr_cmd,distance])
-                            elif not host_tr_cmd.get('link') and host_tr_cmd.get('uuid') not in swap_commandID:
-                                dest_port=host_tr_cmd['dest']
-                                distance=tools.calculate_distance(self.adapter.last_point, dest_port)
-                                major_candidates.append([idx,host_tr_cmd,distance])
+                if tools.acquire_lock_with_timeout(vehicle_wq.wq_lock,3):
+                    #vehicle_wq.wq_lock.acquire()
+                    try:
+                        major_candidates=[]
+                        swap_commandID=[]
+                        num, buf_list=self.buf_available()
+                        if num and len(vehicle_wq.queue):
+                            for idx, host_tr_cmd in enumerate(vehicle_wq.queue):
+                                if host_tr_cmd.get('link'):
+                                    swap_commandID.append( host_tr_cmd.get('link').get('uuid'))
+                            for idx, host_tr_cmd in enumerate(vehicle_wq.queue):
+                                if self.id  in host_tr_cmd.get('dest') or '*' in host_tr_cmd['dest']:
+                                    continue
+                                if host_tr_cmd.get('link'):
+                                    source_port=host_tr_cmd['source']
+                                    distance=tools.calculate_distance(self.adapter.last_point, source_port)
+                                    major_candidates.append([idx,host_tr_cmd,distance])
+                                elif not host_tr_cmd.get('link') and host_tr_cmd.get('uuid') not in swap_commandID:
+                                    dest_port=host_tr_cmd['dest']
+                                    distance=tools.calculate_distance(self.adapter.last_point, dest_port)
+                                    major_candidates.append([idx,host_tr_cmd,distance])
 
-                        temp_major_candidates=sorted(major_candidates, key=lambda h: h[2])
-                        if temp_major_candidates:
-                            for host_tr_cmd in temp_major_candidates:
-                                if self.check_carrier_type == 'yes':
-                                    if host_tr_cmd.get('HostSpecifyMR',''):
-                                        continue
-                                    vaildcarriertype={buf: self.carriertypedict[buf] for buf in buf_list}
-                                    bufID=self.find_buf_idx_by_carrierID(host_tr_cmd[1]['carrierID'])
-                                    carriertype=host_tr_cmd[1]['TransferInfoList'][0].get('CarrierType', '')
-                                    linkcarriertype=''
-                                    bufID_carriertype=''
-                                    bufID_linkcarriertype=''
-                                    if host_tr_cmd[1].get('link'):
-                                        linkcarriertype=host_tr_cmd[1].get('link')['TransferInfoList'][0].get('CarrierType', '')
-                                    print(vaildcarriertype,bufID,carriertype,linkcarriertype)
+                            temp_major_candidates=sorted(major_candidates, key=lambda h: h[2])
+                            if temp_major_candidates:
+                                for host_tr_cmd in temp_major_candidates:
+                                    if self.check_carrier_type == 'yes':
+                                        if host_tr_cmd.get('HostSpecifyMR',''):
+                                            continue
+                                        vaildcarriertype={buf: self.carriertypedict[buf] for buf in buf_list}
+                                        bufID=self.find_buf_idx_by_carrierID(host_tr_cmd[1]['carrierID'])
+                                        carriertype=host_tr_cmd[1]['TransferInfoList'][0].get('CarrierType', '')
+                                        linkcarriertype=''
+                                        bufID_carriertype=''
+                                        bufID_linkcarriertype=''
+                                        if host_tr_cmd[1].get('link'):
+                                            linkcarriertype=host_tr_cmd[1].get('link')['TransferInfoList'][0].get('CarrierType', '')
+                                        print(vaildcarriertype,bufID,carriertype,linkcarriertype)
 
-                                    if (not bufID and not carriertype) or \
-                                    (not bufID and all(carriertype not in v and 'All' not in v for v in vaildcarriertype.values())) or \
-                                    (linkcarriertype and all(linkcarriertype not in v and 'All' not in v for v in vaildcarriertype.values())):
-                                        continue
+                                        if (not bufID and not carriertype) or \
+                                        (not bufID and all(carriertype not in v and 'All' not in v for v in vaildcarriertype.values())) or \
+                                        (linkcarriertype and all(linkcarriertype not in v and 'All' not in v for v in vaildcarriertype.values())):
+                                            continue
 
-                                    for buf, v_carriertype_list in vaildcarriertype.items():
-                                        if carriertype in v_carriertype_list or 'All' in v_carriertype_list and not bufID_carriertype:
-                                            bufID_carriertype=buf
-                                        elif linkcarriertype in v_carriertype_list or 'All' in v_carriertype_list and not bufID_linkcarriertype:
-                                            if buf != bufID_carriertype:
-                                                bufID_linkcarriertype=buf
-                                        if bufID_carriertype and bufID_linkcarriertype:
+                                        for buf, v_carriertype_list in vaildcarriertype.items():
+                                            if carriertype in v_carriertype_list or 'All' in v_carriertype_list and not bufID_carriertype:
+                                                bufID_carriertype=buf
+                                            elif linkcarriertype in v_carriertype_list or 'All' in v_carriertype_list and not bufID_linkcarriertype:
+                                                if buf != bufID_carriertype:
+                                                    bufID_linkcarriertype=buf
+                                            if bufID_carriertype and bufID_linkcarriertype:
+                                                break
+
+                                        if linkcarriertype and not bufID_linkcarriertype:
+                                            continue
+
+                                        if bufID_carriertype:
+                                            vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
+                                            self.append_transfer(host_tr_cmd[1], bufID_carriertype )
+                                            self.adapter.logger.info("vehicle_wq with check_carrier_type get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
+                                            TransferAllowed=False
+                                            if linkcarriertype:
+                                                for idx, host_tr_cmd_1 in enumerate(vehicle_wq.queue):
+                                                    if host_tr_cmd[1].get('link').get('uuid','') == host_tr_cmd_1.get('uuid'): 
+                                                        vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd_1, idx)                                    
+                                                        self.append_transfer(host_tr_cmd_1, bufID_linkcarriertype, fromvehicle=True)
+                                                        self.adapter.logger.info("vehicle_wq link with check_carrier_type get appendTransferAllowed by {}".format(host_tr_cmd_1.get('uuid')))
+                                                        self.CommandIDList.append(host_tr_cmd_1['uuid'])
+                                            self.CommandIDList.append(host_tr_cmd[1]['uuid'])
+                                            E82.report_event(self.secsgem_e82_h,
+                                                                E82.VehicleAssigned,{
+                                                                'VehicleID':self.id,
+                                                                'CommandIDList':self.CommandIDList,
+                                                                'CommandID':self.CommandIDList[0] if self.CommandIDList else '',
+                                                                'BatteryValue':self.adapter.battery['percentage']})
+
+                                            output('VehicleAssigned',{
+                                                    'Battery':self.adapter.battery['percentage'],
+                                                    'Charge':self.adapter.battery['charge'], #chocp 2022/5/20
+                                                    'Connected':self.adapter.online['connected'],
+                                                    'Health':self.adapter.battery['SOH'],
+                                                    'MoveStatus':self.adapter.move['status'],
+                                                    'RobotStatus':self.adapter.robot['status'],
+                                                    'RobotAtHome':self.adapter.robot['at_home'],
+                                                    'VehicleID':self.id,
+                                                    'VehicleState':self.AgvState,
+                                                    'Message':self.message,
+                                                    'ForceCharge':self.force_charge, #???
+                                                    'CommandIDList':self.CommandIDList}, True)
                                             break
+    
+                                    else:
+                                        if host_tr_cmd[1].get('replace'):#Yuri 2024/10/11
+                                            bufID=self.find_buf_idx_by_carrierID(host_tr_cmd[1]['carrierID'])
+                                            vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
+                                            self.adapter.logger.info("vehicle_wq get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
+                                            TransferAllowed=False
+                                            local_tr_cmd_1={
+                                                    'uuid':host_tr_cmd[1]['uuid']+'-UNLOAD',
+                                                    'carrierID':host_tr_cmd[1]['TransferInfoList'][1].get('CarrierID', ''),
+                                                    'carrierLoc':host_tr_cmd[1]['dest'],
+                                                    'source':host_tr_cmd[1]['dest'],
+                                                    'priority':host_tr_cmd[1]['priority'],
+                                                    'dest':host_tr_cmd[1].get('back', '*'), #chocp 9/3
+                                                    'first':False,
+                                                    'last':True,
+                                                    'TransferInfo':host_tr_cmd[1]['TransferInfoList'][1],
+                                                    'OriginalTransferInfo':host_tr_cmd[1]['OriginalTransferInfoList'][1],
+                                                    'host_tr_cmd':host_tr_cmd[1]
+                                                    }
+                                            self.append_transfer(local_tr_cmd_1, buf_list[0],swp=1)
 
-                                    if linkcarriertype and not bufID_linkcarriertype:
-                                        continue
+                                            local_tr_cmd_2={
+                                                    'uuid':host_tr_cmd[1]['uuid']+'-LOAD',
+                                                    'carrierID':host_tr_cmd[1]['carrierID'],
+                                                    'carrierLoc':host_tr_cmd[1]['source'],
+                                                    'source':host_tr_cmd[1]['source'],
+                                                    'dest':host_tr_cmd[1]['dest'],
+                                                    'priority':host_tr_cmd[1]['priority'],
+                                                    'first':True,
+                                                    'last':False,
+                                                    'TransferInfo':host_tr_cmd[1]['TransferInfoList'][0],
+                                                    'OriginalTransferInfo':host_tr_cmd[1]['OriginalTransferInfoList'][0],
+                                                    'host_tr_cmd':host_tr_cmd[1]
+                                                    }
+                                            self.append_transfer(local_tr_cmd_2, bufID ,fromvehicle=True,swp=1)
+                                        else:
+                                            bufID=self.find_buf_idx_by_carrierID(host_tr_cmd[1]['carrierID'])
+                                            vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
+                                            self.append_transfer(host_tr_cmd[1], buf_list[0] )
+                                            self.adapter.logger.info("vehicle_wq get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
+                                            TransferAllowed=False
+                                            if host_tr_cmd[1].get('link'):
+                                                for idx, host_tr_cmd_1 in enumerate(vehicle_wq.queue):
+                                                    if host_tr_cmd[1].get('link').get('uuid','') == host_tr_cmd_1.get('uuid'): 
+                                                        vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd_1, idx)                                    
+                                                        self.append_transfer(host_tr_cmd_1, bufID, fromvehicle=True)
+                                                        self.adapter.logger.info("vehicle_wq link get appendTransferAllowed by {}".format(host_tr_cmd_1.get('uuid')))
+                                                        self.CommandIDList.append(host_tr_cmd_1['uuid'])
 
-                                    if bufID_carriertype:
-                                        vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
-                                        self.append_transfer(host_tr_cmd[1], bufID_carriertype )
-                                        self.adapter.logger.info("vehicle_wq with check_carrier_type get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
-                                        TransferAllowed=False
-                                        if linkcarriertype:
-                                            for idx, host_tr_cmd_1 in enumerate(vehicle_wq.queue):
-                                                if host_tr_cmd[1].get('link').get('uuid','') == host_tr_cmd_1.get('uuid'): 
-                                                    vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd_1, idx)                                    
-                                                    self.append_transfer(host_tr_cmd_1, bufID_linkcarriertype, fromvehicle=True)
-                                                    self.adapter.logger.info("vehicle_wq link with check_carrier_type get appendTransferAllowed by {}".format(host_tr_cmd_1.get('uuid')))
-                                                    self.CommandIDList.append(host_tr_cmd_1['uuid'])
                                         self.CommandIDList.append(host_tr_cmd[1]['uuid'])
                                         E82.report_event(self.secsgem_e82_h,
                                                             E82.VehicleAssigned,{
@@ -4276,320 +4303,133 @@ class Vehicle(threading.Thread):
                                                 'CommandIDList':self.CommandIDList}, True)
                                         break
 
-                                else:
-                                    if host_tr_cmd[1].get('replace'):#Yuri 2024/10/11
-                                        bufID=self.find_buf_idx_by_carrierID(host_tr_cmd[1]['carrierID'])
-                                        vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
-                                        self.adapter.logger.info("vehicle_wq get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
-                                        TransferAllowed=False
-                                        local_tr_cmd_1={
-                                                'uuid':host_tr_cmd[1]['uuid']+'-UNLOAD',
-                                                'carrierID':host_tr_cmd[1]['TransferInfoList'][1].get('CarrierID', ''),
-                                                'carrierLoc':host_tr_cmd[1]['dest'],
-                                                'source':host_tr_cmd[1]['dest'],
-                                                'priority':host_tr_cmd[1]['priority'],
-                                                'dest':host_tr_cmd[1].get('back', '*'), #chocp 9/3
-                                                'first':False,
-                                                'last':True,
-                                                'TransferInfo':host_tr_cmd[1]['TransferInfoList'][1],
-                                                'OriginalTransferInfo':host_tr_cmd[1]['OriginalTransferInfoList'][1],
-                                                'host_tr_cmd':host_tr_cmd[1]
-                                                }
-                                        self.append_transfer(local_tr_cmd_1, buf_list[0],swp=1)
-
-                                        local_tr_cmd_2={
-                                                'uuid':host_tr_cmd[1]['uuid']+'-LOAD',
-                                                'carrierID':host_tr_cmd[1]['carrierID'],
-                                                'carrierLoc':host_tr_cmd[1]['source'],
-                                                'source':host_tr_cmd[1]['source'],
-                                                'dest':host_tr_cmd[1]['dest'],
-                                                'priority':host_tr_cmd[1]['priority'],
-                                                'first':True,
-                                                'last':False,
-                                                'TransferInfo':host_tr_cmd[1]['TransferInfoList'][0],
-                                                'OriginalTransferInfo':host_tr_cmd[1]['OriginalTransferInfoList'][0],
-                                                'host_tr_cmd':host_tr_cmd[1]
-                                                }
-                                        self.append_transfer(local_tr_cmd_2, bufID ,fromvehicle=True,swp=1)
-                                    else:
-                                        bufID=self.find_buf_idx_by_carrierID(host_tr_cmd[1]['carrierID'])
-                                        vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
-                                        self.append_transfer(host_tr_cmd[1], buf_list[0] )
-                                        self.adapter.logger.info("vehicle_wq get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
-                                        TransferAllowed=False
-                                        if host_tr_cmd[1].get('link'):
-                                            for idx, host_tr_cmd_1 in enumerate(vehicle_wq.queue):
-                                                if host_tr_cmd[1].get('link').get('uuid','') == host_tr_cmd_1.get('uuid'): 
-                                                    vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd_1, idx)                                    
-                                                    self.append_transfer(host_tr_cmd_1, bufID, fromvehicle=True)
-                                                    self.adapter.logger.info("vehicle_wq link get appendTransferAllowed by {}".format(host_tr_cmd_1.get('uuid')))
-                                                    self.CommandIDList.append(host_tr_cmd_1['uuid'])
-
-                                    self.CommandIDList.append(host_tr_cmd[1]['uuid'])
-                                    E82.report_event(self.secsgem_e82_h,
-                                                        E82.VehicleAssigned,{
-                                                        'VehicleID':self.id,
-                                                        'CommandIDList':self.CommandIDList,
-                                                        'CommandID':self.CommandIDList[0] if self.CommandIDList else '',
-                                                        'BatteryValue':self.adapter.battery['percentage']})
-
-                                    output('VehicleAssigned',{
-                                            'Battery':self.adapter.battery['percentage'],
-                                            'Charge':self.adapter.battery['charge'], #chocp 2022/5/20
-                                            'Connected':self.adapter.online['connected'],
-                                            'Health':self.adapter.battery['SOH'],
-                                            'MoveStatus':self.adapter.move['status'],
-                                            'RobotStatus':self.adapter.robot['status'],
-                                            'RobotAtHome':self.adapter.robot['at_home'],
-                                            'VehicleID':self.id,
-                                            'VehicleState':self.AgvState,
-                                            'Message':self.message,
-                                            'ForceCharge':self.force_charge, #???
-                                            'CommandIDList':self.CommandIDList}, True)
-                                    break
-
-                    vehicle_wq.wq_lock.release()
-                except:
-                    vehicle_wq.wq_lock.release()
-                    msg=traceback.format_exc()
-                    self.adapter.logger.info('Handling queue:{} in append transfer code with a exception:\n {}'.format(self.wq.queueID, msg))
+                        vehicle_wq.wq_lock.release()
+                    except:
+                        vehicle_wq.wq_lock.release()
+                        msg=traceback.format_exc()
+                        self.adapter.logger.info('Handling queue:{} in append transfer code with a exception:\n {}'.format(self.wq.queueID, msg))
 
             if try_append_transfer and self.wq and TransferAllowed:
                 self.wq.wq_lock.acquire()
                 try:
                     major_candidates=[]
-                    num, buf_list=self.buf_available()
-                    buf_list=buf_list[action_is_ACQUIR_count:]
-                    need_change_zone_search=False
-                    if self.wq.queueID == "zone3" and global_variables.RackNaming == 46:
-                        no_zone1_wq=TransferWaitQueue.getInstance("zone2")
-                        need_change_zone_search=True
-                        self.wq.wq_lock.release()
-                    if need_change_zone_search == False:
-                        if num and len(self.wq.queue):
-                            for idx, host_tr_cmd in enumerate(self.wq.queue):
-                                source_port=host_tr_cmd['source']
-                                TransferAllowe_dest_port=host_tr_cmd['dest']
-                                
-                                h_workstation=EqMgr.getInstance().workstations.get(source_port)
-                                distance=tools.calculate_distance(self.adapter.last_point, source_port)
-                                if not host_tr_cmd.get('link') and h_workstation and 'Stock' not in h_workstation.workstation_type: #8.21K
-                                    
-                                    
-                                    
-                                        
-                                    if first_target_eqID == h_workstation.equipmentID:
-                                        major_candidates.append([idx,host_tr_cmd,distance])
-
-                                    else:
-                                        if first_target_eqID=="":
-                                            if distance<=5000:
-                                                
-                                                h_workstation_TransferAllowe_source_port=EqMgr.getInstance().workstations.get(host_tr_cmd['source'])
-                                                self.adapter.logger.info("first_target_eqID:{}".format(first_target_eqID))
-                                                self.adapter.logger.info("***host_tr_cmd['source']:{}".format(host_tr_cmd['source']))
-                                                if h_workstation_TransferAllowe_source_port:
-                                                    h_workstation_TransferAllowe_equipmentID=h_workstation_TransferAllowe_source_port.equipmentID
-                                                    
-
-                                                    can_add_major_candidates=True
-                                                    check_Transfer_allowed_destport="{}-L-1".format(h_workstation_TransferAllowe_equipmentID)
-                                                    self.adapter.logger.info("***check_Transfer_allowed_destport:{}".format(check_Transfer_allowed_destport))
-                                                    for idx_check, host_tr_cmd_check in enumerate(self.wq.queue):
-                                                        self.adapter.logger.info("***host_tr_cmd_check['dest']:{}".format(host_tr_cmd_check['dest']))
-                                                        
-                                                        if check_Transfer_allowed_destport==host_tr_cmd_check['dest']:
-                                                            can_add_major_candidates = False
-                                                            break
-                                                        
-                                                    if can_add_major_candidates:
-                                                        major_candidates.append([idx,host_tr_cmd,distance])
-                                                else:
-                                                    continue
-
-
-
-
-                                        
-                                        # if self.last_action_eqID in source_port:
-                                        #     major_candidates.append([idx,host_tr_cmd,distance])
-                                            
-
-                                else:
-                                        
+                    num, buf_list=self.buf_available2()
+                    
+                    
+                    if num and len(self.wq.queue):
+                        for idx, host_tr_cmd in enumerate(self.wq.queue):
+                            source_port=host_tr_cmd['source']
+                            TransferAllowe_dest_port=host_tr_cmd['dest']
+                            
+                            h_workstation=EqMgr.getInstance().workstations.get(source_port)
+                            distance=tools.calculate_distance(self.adapter.last_point, source_port)
+                            if not host_tr_cmd.get('link') and h_workstation and 'Stock' not in h_workstation.workstation_type: #8.21K
+                                if first_target_eqID == h_workstation.equipmentID:
                                     major_candidates.append([idx,host_tr_cmd,distance])
-                                if idx>10: #only search 10 cmds  #8.21K
-                                    break
-                            #temp_major_candidates=major_candidates_vehicle if major_candidates_vehicle else major_candidates
-                            temp_major_candidates=sorted(major_candidates, key=lambda h: h[2])
-                            
-                            i=0
-                            length_of_temp_major_candidates=len(temp_major_candidates)
-                            can_use_buffer_list=buf_list
-                            while TransferAllowed and temp_major_candidates:
-                                
-                                
-                                host_tr_cmd_1 =temp_major_candidates[i]
-                                
-                                self.adapter.logger.debug("can_use_buffer_list:{}".format(can_use_buffer_list))
 
-
-                                
-
-                                for bufID in can_use_buffer_list:
-                                    if host_tr_cmd_1[1].get('BufConstrain'):
-                                        bufferAllowedDirections=host_tr_cmd.get('bufferAllowedDirections','')
-                                        if bufferAllowedDirections and bufferAllowedDirections != 'All':
-                                            if bufID not in self.bufferDirection[bufferAllowedDirections]:
-                                                continue
-                                        else:
-                                            if bufID not in self.vehicle_onTopBufs:
-                                                continue
-                                        if self.check_carrier_type == 'yes':
-                                            if carriertype not in self.carriertypedict[bufID] and 'All' not in self.carriertypedict[bufID]:
-                                                continue
-                                    else:
-                                        self.wq.remove_waiting_transfer_by_idx(host_tr_cmd_1[1], host_tr_cmd_1[0])
-                                       
-
-                                        
-                                            
-                                        self.append_transfer(host_tr_cmd_1[1], bufID)
-
-
-                                        
-
-                                        #if host_tr_cmd_1[1].get("CommandInfo").get("CommandID")!="":
-                                        if host_tr_cmd_1[1].get('uuid'):
-                                            #self.CommandIDList=[host_tr_cmd_1[1].get("CommandInfo").get("CommandID")]
-                                            self.CommandIDList.append(host_tr_cmd_1[1]['uuid'])
-                                            #IN appendTransferAllowed add VehicleAssigned
-                                            self.adapter.logger.info("appendTransferAllowed by {}".format(host_tr_cmd_1[1].get("CommandInfo").get("CommandID")))
-                                            E82.report_event(self.secsgem_e82_h,
-                                                                E82.VehicleAssigned,{
-                                                                'VehicleID':self.id,
-                                                                'CommandIDList':self.CommandIDList,
-                                                                'CommandID':self.CommandIDList[0] if self.CommandIDList else '',
-                                                                'BatteryValue':self.adapter.battery['percentage']})
-
-                                            output('VehicleAssigned',{
-                                                    'Battery':self.adapter.battery['percentage'],
-                                                    'Charge':self.adapter.battery['charge'], #chocp 2022/5/20
-                                                    'Connected':self.adapter.online['connected'],
-                                                    'Health':self.adapter.battery['SOH'],
-                                                    'MoveStatus':self.adapter.move['status'],
-                                                    'RobotStatus':self.adapter.robot['status'],
-                                                    'RobotAtHome':self.adapter.robot['at_home'],
-                                                    'VehicleID':self.id,
-                                                    'VehicleState':self.AgvState,
-                                                    'Message':self.message,
-                                                    'ForceCharge':self.force_charge, #???
-                                                    'CommandIDList':self.CommandIDList})
-                                        
-                                        can_use_buffer_list.pop(0)
-                                        i+=1
-                                        if i<length_of_temp_major_candidates:
-                                            TransferAllowed=True
-                                        else:
-                                            TransferAllowed=False
-                                            
-                                        
-                                        break
                                 else:
-                                    i+=1
-                                    continue
-                
-                        self.wq.wq_lock.release()
-                    else:
+                                    if first_target_eqID=="":
+                                        if distance<=5000:
+                                            
+                                            h_workstation_TransferAllowe_source_port=EqMgr.getInstance().workstations.get(host_tr_cmd['source'])
+                                            self.adapter.logger.info("first_target_eqID:{}".format(first_target_eqID))
+                                            self.adapter.logger.info("***host_tr_cmd['source']:{}".format(host_tr_cmd['source']))
+                                            if h_workstation_TransferAllowe_source_port: # h_workstation_TransferAllowe_source_port is
+                                                h_workstation_TransferAllowe_equipmentID=h_workstation_TransferAllowe_source_port.equipmentID
+                                                
+
+                                                can_add_major_candidates=True
+                                                check_Transfer_allowed_destport="{}-L-1".format(h_workstation_TransferAllowe_equipmentID)
+                                                self.adapter.logger.info("***check_Transfer_allowed_destport:{}".format(check_Transfer_allowed_destport))
+                                                for idx_check, host_tr_cmd_check in enumerate(self.wq.queue):
+                                                    self.adapter.logger.info("***host_tr_cmd_check['dest']:{}".format(host_tr_cmd_check['dest']))
+                                                    
+                                                    if check_Transfer_allowed_destport==host_tr_cmd_check['dest']:
+                                                        can_add_major_candidates = False
+                                                        break
+                                                    
+                                                if can_add_major_candidates:
+                                                    major_candidates.append([idx,host_tr_cmd,distance])
+                                            else:
+                                                continue
+                                    
+                            else:  
+                                major_candidates.append([idx,host_tr_cmd,distance])
+                            if idx>10:
+                                break
                         
-                        if num and len(no_zone1_wq.queue):
-                            no_zone1_wq.wq_lock.acquire()
-                            for idx, host_tr_cmd in enumerate(no_zone1_wq.queue):
-                                
-                                source_port=host_tr_cmd['source']
-                                TransferAllowe_dest_port=host_tr_cmd['dest']
-                                
-                                h_workstation=EqMgr.getInstance().workstations.get(source_port)
-                                distance=tools.calculate_distance(self.adapter.last_point, source_port)
-                                if not host_tr_cmd.get('link') and h_workstation and 'Stock' not in h_workstation.workstation_type: #8.21K
-                                    
-                                    self.adapter.logger.debug("last_point:{},sourceport:{},distance:{}".format(self.adapter.last_point,source_port,distance))
-                                    
-                                 
-                                    if first_target_eqID == h_workstation.equipmentID:
-                                        major_candidates.append([idx,host_tr_cmd,distance])
-                                        
-                                        # if self.last_action_eqID in source_port:
-                                        #     major_candidates.append([idx,host_tr_cmd,distance])
-                                            
-                                            
+                        temp_major_candidates=sorted(major_candidates, key=lambda h: h[2])
+                        
+                        i=0
+                        length_of_temp_major_candidates=len(temp_major_candidates)
+                        can_use_buffer_list=buf_list
+                        while TransferAllowed and temp_major_candidates:
+                            host_tr_cmd_1 =temp_major_candidates[i]
+                            self.adapter.ogger.debug("can_use_buffer_list:{}".format(can_use_buffer_list))
 
-                                   
-                                if idx>10: #only search 10 cmds  #8.21K
-                                    break
-                            #temp_major_candidates=major_candidates_vehicle if major_candidates_vehicle else major_candidates
-                            temp_major_candidates=sorted(major_candidates, key=lambda h: h[2])
-                            i=0
-                           
-                            while TransferAllowed and temp_major_candidates:
-                                
-                                host_tr_cmd_1 =temp_major_candidates[i]
-                                for bufID in buf_list:
-                                    if host_tr_cmd_1[1].get('BufConstrain'):
-                                        bufferAllowedDirections=host_tr_cmd.get('bufferAllowedDirections','')
-                                        if bufferAllowedDirections and bufferAllowedDirections != 'All':
-                                            if bufID not in self.bufferDirection[bufferAllowedDirections]:
-                                                continue
-                                        else:
-                                            if bufID not in self.vehicle_onTopBufs:
-                                                continue
-                                        if self.check_carrier_type == 'yes':
-                                            if carriertype not in self.carriertypedict[bufID] and 'All' not in self.carriertypedict[bufID]:
-                                                continue
+                            for bufID in buf_list:
+                                if host_tr_cmd_1[1].get('BufConstrain'):
+                                    bufferAllowedDirections=host_tr_cmd.get('bufferAllowedDirections','')
+                                    if bufferAllowedDirections and bufferAllowedDirections != 'All':
+                                        if bufID not in self.bufferDirection[bufferAllowedDirections]:
+                                            continue
                                     else:
-                                        
-                                        no_zone1_wq.remove_waiting_transfer_by_idx(host_tr_cmd_1[1], host_tr_cmd_1[0])
-                                        self.append_transfer(host_tr_cmd_1[1], bufID)
-                                        
-
-                                        #if host_tr_cmd_1[1].get("CommandInfo").get("CommandID")!="":
-                                        if host_tr_cmd_1[1].get('uuid'):
-                                            #self.CommandIDList=[host_tr_cmd_1[1].get("CommandInfo").get("CommandID")]
-                                            self.CommandIDList.append(host_tr_cmd_1[1]['uuid'])
-                                            #IN appendTransferAllowed add VehicleAssigned
-                                            self.adapter.logger.info("appendTransferAllowed by {}".format(host_tr_cmd_1[1].get("CommandInfo").get("CommandID")))
-                                            E82.report_event(self.secsgem_e82_h,
-                                                                E82.VehicleAssigned,{
-                                                                'VehicleID':self.id,
-                                                                'CommandIDList':self.CommandIDList,
-                                                                'CommandID':self.CommandIDList[0] if self.CommandIDList else '',
-                                                                'BatteryValue':self.adapter.battery['percentage']})
-
-                                            output('VehicleAssigned',{
-                                                    'Battery':self.adapter.battery['percentage'],
-                                                    'Charge':self.adapter.battery['charge'], #chocp 2022/5/20
-                                                    'Connected':self.adapter.online['connected'],
-                                                    'Health':self.adapter.battery['SOH'],
-                                                    'MoveStatus':self.adapter.move['status'],
-                                                    'RobotStatus':self.adapter.robot['status'],
-                                                    'RobotAtHome':self.adapter.robot['at_home'],
-                                                    'VehicleID':self.id,
-                                                    'VehicleState':self.AgvState,
-                                                    'Message':self.message,
-                                                    'ForceCharge':self.force_charge, #???
-                                                    'CommandIDList':self.CommandIDList})
-                                        TransferAllowed=False
-                                        break
+                                        if bufID not in self.vehicle_onTopBufs:
+                                            continue
+                                    if self.check_carrier_type == 'yes':
+                                        if carriertype not in self.carriertypedict[bufID] and 'All' not in self.carriertypedict[bufID]:
+                                            continue
+                                    self.adapter.logger.info("before insert")
+                                    for action in self.actions:
+                                        self.adapter.logger.info(action)
+                                    self.wq.remove_waiting_transfer_by_idx(host_tr_cmd_1[1], host_tr_cmd_1[0])
+                                    self.append_transfer(host_tr_cmd_1[1], bufID)
+                                    TransferAllowed=False
+                                    break
                                 else:
+                                    if self.check_carrier_type == 'yes':
+                                        if carriertype not in self.carriertypedict[bufID] and 'All' not in self.carriertypedict[bufID]:
+                                            continue
+                                    
+                                    if host_tr_cmd_1[1].get('uuid'):
+                                        
+                                        self.CommandIDList.append(host_tr_cmd_1[1]['uuid'])
+                                        self.adapter.logger.info("appendTransferAllowed by {}".format(host_tr_cmd_1[1].get("CommandInfo").get("CommandID")))
+                                        E82.report_event(self.secsgem_e82_h,
+                                                            E82.VehicleAssigned,{
+                                                            'VehicleID':self.id,
+                                                            'CommandIDList':self.CommandIDList,
+                                                            'CommandID':self.CommandIDList[0] if self.CommandIDList else '',
+                                                            'BatteryValue':self.adapter.battery['percentage']})
+
+                                        output('VehicleAssigned',{
+                                                'Battery':self.adapter.battery['percentage'],
+                                                'Charge':self.adapter.battery['charge'], #chocp 2022/5/20
+                                                'Connected':self.adapter.online['connected'],
+                                                'Health':self.adapter.battery['SOH'],
+                                                'MoveStatus':self.adapter.move['status'],
+                                                'RobotStatus':self.adapter.robot['status'],
+                                                'RobotAtHome':self.adapter.robot['at_home'],
+                                                'VehicleID':self.id,
+                                                'VehicleState':self.AgvState,
+                                                'Message':self.message,
+                                                'ForceCharge':self.force_charge, #???
+                                                'CommandIDList':self.CommandIDList})
+                                    
+                                    can_use_buffer_list.pop(0)
                                     i+=1
-                                    continue
-                            
-                            no_zone1_wq.wq_lock.release()
+                                    if i<length_of_temp_major_candidates:
+                                        TransferAllowed=True
+                                    else:
+                                        TransferAllowed=False
+                                    break
+                            else:
+                                i+=1
+                                continue
+            
+                    self.wq.wq_lock.release()
                 except:
-                    if need_change_zone_search:
-                        no_zone1_wq.wq_lock.release()
-                    else:
-                        self.wq.wq_lock.release()
+                    self.wq.wq_lock.release()
                     msg=traceback.format_exc()
                     self.adapter.logger.info('Handling queue:{} in append transfer code with a exception:\n {}'.format(self.wq.queueID, msg))
                     pass
@@ -6361,6 +6201,8 @@ class Vehicle(threading.Thread):
                                 self.append_transfer_allowed_for_Renesas(self.actions)
                             elif global_variables.RackNaming in [36]:
                                 self.append_transfer_allowed_for_ASE_K11(self.actions)
+                            elif global_variables.RackNaming in [46]:
+                                self.append_transfer_allowed_for_TI_Baguio(self.actions)
                             else:
                                 self.append_transfer_allowed(self.actions)
 
