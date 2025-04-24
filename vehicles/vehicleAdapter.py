@@ -1054,7 +1054,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':True
         }
         # self.cmd_queue.append(cmd_obj)
@@ -1084,7 +1084,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':True
         }
         # self.cmd_queue.append(cmd_obj)
@@ -1128,7 +1128,7 @@ class Adapter(threading.Thread):
             cmd='P45<{}><{}><{}><{}><{}><{}><{}><{}><{}>'.format(
                 e84, cs, cont, ct,
                 from_port, fpn, to_port, tpn, json.dumps(kwargs))
-            self.logger.info("P45 info:{}".format(cmd))
+            
         elif self.version_check(self.mr_spec_ver, '4.0') and global_variables.TSCSettings.get('Other',{}).get('DisablePort2AddrTable', 'no') == 'yes':
             carrierTypeList=global_variables.TSCSettings.get('CassetteTypeSensitive', {}).get('CassetteTypePrefix').split(',')
             cmd='P45{}{}{}{}<{}>{}<{}>{}<{}>'.format(
@@ -1152,7 +1152,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':True
         }
         self.cmd_queue.append(cmd_obj)
@@ -1168,7 +1168,7 @@ class Adapter(threading.Thread):
             cmd_obj={
                 'cmd':cmd,
                 'systemId':sysID,
-                'timeout':10,
+                'timeout':20,
                 'sync':True
             }
             self.cmd_queue.append(cmd_obj)
@@ -1185,7 +1185,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':True
         }
         self.cmd_queue.append(cmd_obj)
@@ -1202,7 +1202,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':True
         }
         self.cmd_queue.append(cmd_obj)
@@ -1218,7 +1218,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':True
         }
         self.cmd_queue.append(cmd_obj)
@@ -1233,7 +1233,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -1247,7 +1247,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -1262,7 +1262,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -1276,7 +1276,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':3,
+            'timeout':20,
             'sync':True
         }
         self.cmd_queue.append(cmd_obj)
@@ -1293,7 +1293,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -1310,7 +1310,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -1327,7 +1327,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -1344,7 +1344,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -1978,7 +1978,7 @@ class Adapter(threading.Thread):
         cmd_obj={
             'cmd':cmd,
             'systemId':sysID,
-            'timeout':10,
+            'timeout':20,
             'sync':False
         }
         self.cmd_queue.append(cmd_obj)
@@ -2085,6 +2085,16 @@ class Adapter(threading.Thread):
         size=len(cmd) if len(cmd) else 255
         systemBytes=bytearray('%04d'%systemId, encoding='utf-8')
         string=bytearray([size])+bytearray(cmd, encoding='utf-8')+systemBytes
+        
+        if sync:
+            cmd_obj={
+                'cmd':cmd,
+                'systemId':systemId,
+                'timeout':timeout,
+                'sync':sync
+            }
+            # self.cmd_queue.append(cmd_obj)
+            self.cmd_ack_queue[cmd_obj['systemId']]=cmd_obj
 
         # Mike: 2021/03/26 # Mike: 2021/04/20
         try:
@@ -2286,6 +2296,9 @@ class Adapter(threading.Thread):
 
             except:
                 traceback.print_exc()
+                if not self.online['connected'] and not self.online['sync']:
+                    time.sleep(2)
+                    continue
 
                 if disconnect_count == 0:
                     alarms.BaseOffLineNotifyWarning(self.id, '', handler=self.secsgem_e82_h)

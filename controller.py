@@ -1176,7 +1176,7 @@ def cpu_monitor(interval_A=30, process_check_interval=30):
 
             cpulogger.debug("CPU usage: {}%, RAM usage: {:.2f}%, RAM used: {:08x}".format(
                     cpu_per_core_usage, ram_usage, ram_used))
-
+            cpulogger.debug("CPU load average: {}".format(os.getloadavg()))
 
             now = time.time()
             if now - last_process_check >= process_check_interval:

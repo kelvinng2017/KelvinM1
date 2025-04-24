@@ -1014,7 +1014,7 @@ class GyroErackAdapter(threading.Thread):
                             elif global_variables.RackNaming == 26: #TI CBUMP
                                 erack_data_item=global_variables.global_erack_item['TI'].erack_data
 
-                            elif global_variables.RackNaming == 27: #SkyworksSG
+                            elif global_variables.RackNaming == 24: #SkyworksSG
                                 erack_data_item=global_variables.global_erack_item['SKYWORKSSG'].erack_data
 
                             else:

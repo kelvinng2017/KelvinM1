@@ -1,3 +1,20 @@
+8.36.18(2025/04/23) 
+add:
+1.add more cpu logger
+2.add functionality to detect polygons.
+mod:
+1.modify vehicle adapter wait MR respond timeout to 20s
+fix:
+1.fix wrong erack adapter racknaming
+2.fix vehicle adapter send_cmd_wait_ack no wait bug 
+3.fix vehicle sync bug
+
+8.36.17(2025/04/22) by kelvinng
+add:
+1. add new alarm 
+mod:
+fix:
+
 8.36.16(2025/04/21)
 add:
 1. preDispatch_tr_cmd_to_vehicle can now support replace cmd
