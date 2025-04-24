@@ -745,7 +745,7 @@ class TransferWaitQueue():
                     if host_tr_cmd['link']:
                         link_index=idx+1
                         link_tr_cmd=host_tr_cmd['link']
-                    if last_waiting_tr_cmd.get('link', None):
+                    if last_waiting_tr_cmd.get('link', {}) == host_tr_cmd:
                         link_index=idx-1
                         link_tr_cmd=last_waiting_tr_cmd
                     if link_tr_cmd:
@@ -775,6 +775,10 @@ class TransferWaitQueue():
                 if link_tr_cmd:
                     self.remove_transfer_from_queue_directly(host_tr_cmd)
                     self.remove_transfer_from_queue_directly(link_tr_cmd)
+                    host_tr_cmd['link']=None
+                    host_tr_cmd['primary']=1
+                    link_tr_cmd['link']=None
+                    link_tr_cmd['primary']=1
                     if global_variables.RackNaming in [16,23,34, 54]:
                         idx=self.add_transfer_into_queue_with_check_sj_new(host_tr_cmd)
                         idx=self.add_transfer_into_queue_with_check_sj_new(link_tr_cmd)
@@ -1253,8 +1257,9 @@ class TransferWaitQueue():
         h_vehicle.one_buf_for_swap=False #8.27.8 if swap from MR need one buf
 
         host_tr_cmd=self.queue[0]
+        check = self.queue[0].get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort'] or self.queue[0].get('link') and self.queue[0].get('link', {}).get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort']
         #if global_variables.TSCSettings.get('Other', {}).get('PreDispatch','') == 'yes' and (self.queue[0].get('sourceType', '') == 'StockOut' or self.queue[0].get('sourceType', '') == 'ErackOut'): #K25 
-        if (global_variables.TSCSettings.get('Other', {}).get('PreDispatch','') == 'yes' or global_variables.TSCSettings.get('Other', {}).get('StageEnable','no') == 'yes') and not host_tr_cmd.get('preTransfer') and (self.queue[0].get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort']): #K25 
+        if (global_variables.TSCSettings.get('Other', {}).get('PreDispatch','') == 'yes' or global_variables.TSCSettings.get('Other', {}).get('StageEnable','no') == 'yes') and not host_tr_cmd.get('preTransfer') and check: #K25 
 
             print("#########################################################")
             print('do preDispatch StouckOut or ErackOut and preTransfer:{}', host_tr_cmd.get('preTransfer'))
@@ -1263,10 +1268,14 @@ class TransferWaitQueue():
             schedule_algo=''
             if host_tr_cmd.get('preTransfer'):
                 schedule_algo=self.schedule_algo
+            if host_tr_cmd.get('link'):
+                res, primary_cmd_count, single_cmd_count, buf_reserved, buf_assigned, unload_buf_assigned=tools.buf_allocate_test(h_vehicle, host_tr_cmd['link'], buf_available_list_sorted, False, schedule_algo)
             else:
                 schedule_algo='by_fix_order'
 
             res, primary_cmd_count, single_cmd_count, buf_reserved, buf_assigned, unload_buf_assigned=tools.buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, False, schedule_algo)
+            if host_tr_cmd.get('link'):
+                res, primary_cmd_count, single_cmd_count, buf_reserved, buf_assigned, unload_buf_assigned=tools.buf_allocate_test(h_vehicle, host_tr_cmd['link'], buf_available_list_sorted, False, schedule_algo)
             if res:
                 if buf_assigned: #2022/7/13 bufseq 4321
                     with_buf_contrain_batch=True
@@ -1691,58 +1700,68 @@ class TransferWaitQueue():
 
     #for StockOut
     def preDispatch_tr_cmd_to_vehicle(self, host_tr_cmd, h_vehicle, buf_assigned):
-        self.remove_waiting_transfer_by_idx(host_tr_cmd, 0)
+        do_pre_tr_cmd=host_tr_cmd
+        idx=0
+        if host_tr_cmd.get('link'):
+            do_pre_tr_cmd = host_tr_cmd['link']
+            idx=1
+        self.remove_waiting_transfer_by_idx(do_pre_tr_cmd, idx)
 
         self.preferVehicle=h_vehicle.id #add executing queue first, add waiting queue later
-        tmp_source=host_tr_cmd['source']
-        tmp_sourceType=host_tr_cmd['sourceType']
-        tmp_priority=host_tr_cmd['priority'] if global_variables.RackNaming == 8 else 100  #Chi 2022/12/29
+        tmp_source=do_pre_tr_cmd['source']
+        tmp_sourceType=do_pre_tr_cmd['sourceType']
+        tmp_priority=do_pre_tr_cmd['priority'] if global_variables.RackNaming == 8 else 100  #Chi 2022/12/29
 
-        host_tr_cmd['source']='{}BUF00'.format(h_vehicle.id)
-        host_tr_cmd['TransferInfoList'][0]['SourcePort']='{}BUF00'.format(h_vehicle.id)
-        host_tr_cmd['sourceType']='FromVehicle'
-        host_tr_cmd['priority']=int(host_tr_cmd['CommandInfo']['Priority'])
-        host_tr_cmd['original_priority']=int(host_tr_cmd['CommandInfo']['Priority'])
+        do_pre_tr_cmd['source']='{}BUF00'.format(h_vehicle.id)
+        do_pre_tr_cmd['TransferInfoList'][0]['SourcePort']='{}BUF00'.format(h_vehicle.id)
+        do_pre_tr_cmd['sourceType']='FromVehicle'
+        do_pre_tr_cmd['priority']=int(do_pre_tr_cmd['CommandInfo']['Priority'])
+        do_pre_tr_cmd['original_priority']=int(do_pre_tr_cmd['CommandInfo']['Priority'])
 
 
         vehicle_wq=TransferWaitQueue.getInstance(h_vehicle.id)
 
-        #search waiting unload transfer in all queue and change zone
-        for queueID, zone_wq in TransferWaitQueue.getAllInstance().items():
-            for waiting_tr_cmd in zone_wq.queue: #have lock or race condition problem???
-                if (waiting_tr_cmd['source'] == host_tr_cmd['dest'] and not host_tr_cmd['replace'] and not waiting_tr_cmd.get('link')) or waiting_tr_cmd.get('link') == host_tr_cmd:
-                    zone_wq.remove_transfer_from_queue_directly(waiting_tr_cmd)
-                    vehicle_wq.add_transfer_into_queue_directly(waiting_tr_cmd)
-                    waiting_tr_cmd['link']=host_tr_cmd
-                    host_tr_cmd['primary']=0
-                    print('add {} to zone {}'.format(waiting_tr_cmd['uuid'], h_vehicle.id))
-                    break
-            else:
-                continue
-            break
+        if idx == 1:
+            self.remove_transfer_from_queue_directly(host_tr_cmd)
+            vehicle_wq.add_transfer_into_queue_directly(host_tr_cmd)
+            print('add {} to zone {}'.format(host_tr_cmd['uuid'], h_vehicle.id))
+        else:
+            #search waiting unload transfer in all queue and change zone
+            for queueID, zone_wq in TransferWaitQueue.getAllInstance().items():
+                for waiting_tr_cmd in zone_wq.queue: #have lock or race condition problem???
+                    if (waiting_tr_cmd['source'] == do_pre_tr_cmd['dest'] and not do_pre_tr_cmd['replace'] and not waiting_tr_cmd.get('link')) or waiting_tr_cmd.get('link') == do_pre_tr_cmd:
+                        zone_wq.remove_transfer_from_queue_directly(waiting_tr_cmd)
+                        vehicle_wq.add_transfer_into_queue_directly(waiting_tr_cmd)
+                        waiting_tr_cmd['link']=do_pre_tr_cmd
+                        do_pre_tr_cmd['primary']=0
+                        print('add {} to zone {}'.format(waiting_tr_cmd['uuid'], h_vehicle.id))
+                        break
+                else:
+                    continue
+                break
         #vehicle_wq.add_transfer_into_queue_with_check(host_tr_cmd)
-        vehicle_wq.add_transfer_into_queue_directly(host_tr_cmd) #2023/10/27 chocp rewrite
+        vehicle_wq.add_transfer_into_queue_directly(do_pre_tr_cmd) #2023/10/27 chocp rewrite
         output('TransferWaitQueueAdd', {
-                    'Channel':host_tr_cmd.get('channel', 'Internal'), #chocp 2022/6/13
+                    'Channel':do_pre_tr_cmd.get('channel', 'Internal'), #chocp 2022/6/13
                     'Idx':-1,
-                    'CarrierID':host_tr_cmd['carrierID'],
-                    'CarrierType':host_tr_cmd['TransferInfoList'][0].get('CarrierType', ''), #chocp 2022/2/9
+                    'CarrierID':do_pre_tr_cmd['carrierID'],
+                    'CarrierType':do_pre_tr_cmd['TransferInfoList'][0].get('CarrierType', ''), #chocp 2022/2/9
                     # 'ZoneID':h_vehicle.id,  #chocp 9/14
-                    'TransferInfoList':host_tr_cmd['TransferInfoList'],
-                    'ZoneID':host_tr_cmd['zoneID'],  #chocp 9/14
-                    'Source':host_tr_cmd['source'],
-                    'Dest':host_tr_cmd['dest'],
-                    'CommandID':host_tr_cmd["uuid"],
-                    'Priority':host_tr_cmd["priority"],
-                    'Replace':host_tr_cmd['replace'],
-                    'Back':host_tr_cmd['back'],
-                    'OperatorID':host_tr_cmd.get('operatorID', '')
+                    'TransferInfoList':do_pre_tr_cmd['TransferInfoList'],
+                    'ZoneID':do_pre_tr_cmd['zoneID'],  #chocp 9/14
+                    'Source':do_pre_tr_cmd['source'],
+                    'Dest':do_pre_tr_cmd['dest'],
+                    'CommandID':do_pre_tr_cmd["uuid"],
+                    'Priority':do_pre_tr_cmd["priority"],
+                    'Replace':do_pre_tr_cmd['replace'],
+                    'Back':do_pre_tr_cmd['back'],
+                    'OperatorID':do_pre_tr_cmd.get('operatorID', '')
                     }, True)
 
         vehicle_wq.relation_links.append(self) #for FST, for stockout 2022/12/21 chocp fix
 
-        tools.book_slot(host_tr_cmd['dest'], h_vehicle.id, host_tr_cmd['source'])   #chi 05/19
-        tools.indicate_slot(host_tr_cmd['source'], host_tr_cmd['dest'], h_vehicle.id)
+        tools.book_slot(do_pre_tr_cmd['dest'], h_vehicle.id, do_pre_tr_cmd['source'])   #chi 05/19
+        tools.indicate_slot(do_pre_tr_cmd['source'], do_pre_tr_cmd['dest'], h_vehicle.id)
 
         print("###################################################")
         print('preDispatch_tr_cmd_to_vehicle:{}...'.format(h_vehicle))
@@ -1753,22 +1772,22 @@ class TransferWaitQueue():
         #%=1000000000000
         #CommandID='PRE%.12d'%uuid
         bufloc=''
-        CommandID='PRE-{}'.format(host_tr_cmd['uuid'])
-        CommandInfo=dict(host_tr_cmd['CommandInfo'])
+        CommandID='PRE-{}'.format(do_pre_tr_cmd['uuid'])
+        CommandInfo=dict(do_pre_tr_cmd['CommandInfo'])
         CommandInfo.update({'CommandID':CommandID, 'Priority':0, 'Replace':0})
-        TransferInfo={'CarrierID':host_tr_cmd['carrierID'], 'SourcePort':tmp_source, 'DestPort':'{}BUF00'.format(h_vehicle.id), 'CarrierType': host_tr_cmd['TransferInfoList'][0].get('CarrierType', '')}
+        TransferInfo={'CarrierID':do_pre_tr_cmd['carrierID'], 'SourcePort':tmp_source, 'DestPort':'{}BUF00'.format(h_vehicle.id), 'CarrierType': do_pre_tr_cmd['TransferInfoList'][0].get('CarrierType', '')}
         
         if buf_assigned: #for BufConstrain
             bufloc=buf_assigned.pop()
             TransferInfo['DestPort']= h_vehicle.id+bufloc
             
         new_host_tr_cmd={
-                        'stage':host_tr_cmd['stage'],
+                        'stage':do_pre_tr_cmd['stage'],
                         'primary':1,
                         'received_time':time.time(),
                         'uuid':CommandInfo['CommandID'],
                         'carrierID':TransferInfo['CarrierID'],
-                        'original_source':host_tr_cmd['original_source'],
+                        'original_source':do_pre_tr_cmd['original_source'],
                         'source':TransferInfo['SourcePort'],
                         'dest':TransferInfo['DestPort'],
                         'zoneID':h_vehicle.id, #9/14
@@ -1781,9 +1800,9 @@ class TransferWaitQueue():
                         'TransferInfoList':[TransferInfo],
                         'OriginalTransferInfoList':[TransferInfo],
                         'credit':1,
-                        'link':host_tr_cmd,  #2022/12/09
+                        'link':do_pre_tr_cmd,  #2022/12/09
                         'sourceType':tmp_sourceType, #chocp 2022/12/23
-                        'preTransfer':False
+                        'preTransfer':True
                     }
 
         local_tr_cmd={

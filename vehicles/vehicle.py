@@ -6040,6 +6040,14 @@ class Vehicle(threading.Thread):
                                     self.AgvSubState='InWaitCmdStatus' #chocp fix 2022/1/21
                                     self.token.release()
 
+                        if self.doPreDispatchCmd:
+                            self.force_charge=False
+                            vehicle_wq=TransferWaitQueue.getInstance(self.id)
+                            if not len(vehicle_wq.queue):
+                                if time.time() - self.enter_unassigned_state_time > vehicle_wq.collect_timeout:
+                                    self.doPreDispatchCmd=False
+                                    print('Release doPreDispatchCmd flag')
+
                     #Parked
                     elif self.AgvState == 'Parked':
                         if self.emergency_evacuation_cmd:

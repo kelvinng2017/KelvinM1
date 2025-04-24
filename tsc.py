@@ -2278,7 +2278,10 @@ class TSC(threading.Thread):
                                             major_candidates=[]
 
                                             # print('???', wq.queueID, h_vehicle.doPreDispatchCmd, wq.queue[0].get('sourceType') not in ['StockOut', 'ErackOut', 'StockIn&StockOut'], self.vehicle_dispatch_delay.get(h_vehicle.id, 0))
-                                            if h_vehicle.doPreDispatchCmd and wq.queue[0].get('sourceType') not in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort'] and self.vehicle_dispatch_delay.get(h_vehicle.id, 0) < 2:
+                                            check=wq.queue[0].get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort'] or wq.queue[0].get('link') and wq.queue[0].get('link', {}).get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort']
+                                            # print('???', wq.queueID, h_vehicle.doPreDispatchCmd, wq.queue[0].get('sourceType') in ['StockOut', 'ErackOut', 'StockIn&StockOut'], wq.queue[0].get('link') and wq.queue[0].get('link', {}).get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort'], self.vehicle_dispatch_delay.get(h_vehicle.id, 0))
+                                            # if h_vehicle.doPreDispatchCmd and wq.queue[0].get('sourceType') not in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort'] and self.vehicle_dispatch_delay.get(h_vehicle.id, 0) < 2:
+                                            if h_vehicle.doPreDispatchCmd and not check and self.vehicle_dispatch_delay.get(h_vehicle.id, 0) < 2:
                                                 can_assign=False
 
                                             if can_assign:
@@ -2290,6 +2293,8 @@ class TSC(threading.Thread):
                                                         print(wq.queue[0]['zoneID'], vehicle_wq.queue[0]['zoneID'])
                                                         print("----------------------------------------------------")
                                                         if wq.queue[0]['zoneID'] == vehicle_wq.queue[0]['zoneID']:
+                                                            major_candidates=[{h_vehicle:0}]
+                                                        elif vehicle_wq.queue[0]['link'] and vehicle_wq.queue[0]['link'].get('zoneID', '') == wq.queue[0]['zoneID']:
                                                             major_candidates=[{h_vehicle:0}]
                                                     else: # Why???
                                                         print("----------------------------------------------------")

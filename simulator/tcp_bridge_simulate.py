@@ -799,7 +799,7 @@ class tcp_bridge:
                             "loading": False
                         } for i in range(self.buffer_num)
                     ]
-
+                    self.jsonstatus["state"]="standby"
                 self.keepThreadAlive=True
                 #get cmd into in_queue
                 self.client_handler=threading.Thread(

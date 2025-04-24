@@ -500,7 +500,43 @@ class RoutePlanner(threading.Thread):
                 else:
                     return
                 print('> yes!')
-            
+            elif process == 'open_door':#peter 240705
+                self.logger.info("open_door:{}".format(self.adapter.last_point))
+                self.adapter.DoorState="OPEN"
+                E82.report_event(self.adapter.secsgem_e82_h,
+                                        E82.OpenDoorAcquire,{
+                                        'VehicleID':self.id,
+                                        'TransferPort':self.adapter.last_point,
+                                        'DoorState':self.adapter.DoorState})
+                for i in range(60):
+                    time.sleep(1)
+                    if self.adapter.DoorState == "OPENED":
+                        self.logger.info("door_opened:{}".format(self.adapter.last_point))
+                        break
+                else:
+                    self.logger.error("DOORSTATE:{}".self.adapter.DoorState)
+                    return
+            elif process == 'close_door':#peter 240705
+                if self.adapter.DoorState == "OPENED":
+                    self.logger.info("close_door:{}".format(self.adapter.last_point))
+                    self.adapter.DoorState="CLOSE"
+                    E82.report_event(self.adapter.secsgem_e82_h,
+                                            E82.OpenDoorAcquire,{
+                                            'VehicleID':self.id,
+                                            'TransferPort':self.adapter.last_point,
+                                            'DoorState':self.adapter.DoorState})
+                    for i in range(60):
+                        time.sleep(1)
+                        if self.adapter.DoorState == "CLOSED":
+                            self.logger.info("door_closed:{}".format(self.adapter.last_point))
+                            self.adapter.DoorState=""
+                            break
+                    else:
+                        self.logger.error("DOORSTATE:{}".self.adapter.DoorState)
+                        return
+                else:
+                    self.logger.error("DOORSTATE:{}".self.adapter.DoorState)
+                    return
             elif process == "is_gate_opened": #YUCHUN
                 gate_name = params['DeviceID']
                 print('> Query gate status {}!, param {}'.format(gate_name, params))
@@ -1114,6 +1150,8 @@ class RoutePlanner(threading.Thread):
                     th2.setDaemon(True)
                     th2.start()'''
                     self.is_moving=True
+                    if is_junction_avoid == 1:
+                        is_junction_avoid=2
                     self.adapter.move_cmd(path, go_list)
                     # self.move_cmd(path, go_list)
                     # self.logger.debug(''.format('[{}] '.format(self.id), 'current_route: ', self.occupied_route)

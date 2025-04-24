@@ -1,3 +1,15 @@
+8.36.16(2025/04/21)
+add:
+1. preDispatch_tr_cmd_to_vehicle can now support replace cmd
+mod:
+fix:
+1. fix is_junction_avoid not work issue
+2. fix cancel/abort predispatch cmd cannot go to charge bug
+3. fix predispatch will assign more than available buffer bug
+4. fix cmd in vehicle queue with different zone cannot be assign bug
+5. fix bug that when change replace command's priority will break the order
+6. add initial value for tcp_bridge_simulator's state so that when reconnected tsc will not raise status error
+
 8.36.15(2025/04/17)
 add:
 mod:
