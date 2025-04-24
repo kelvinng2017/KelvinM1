@@ -1783,7 +1783,7 @@ class TransferWaitQueue():
                         'credit':1,
                         'link':host_tr_cmd,  #2022/12/09
                         'sourceType':tmp_sourceType, #chocp 2022/12/23
-                        'preTransfer':True
+                        'preTransfer':False
                     }
 
         local_tr_cmd={

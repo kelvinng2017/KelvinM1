@@ -1006,8 +1006,7 @@ class Vehicle(threading.Thread):
                                     'DestPort':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                     #'CarrierLoc':self.action_in_run['loc'],
                                     'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
-                                    'ResultCode':result_code,
-                                    'ResultSubCode':self.error_sub_code})
+                                    'ResultCode':result_code})
                     self.secsgem_e82_h.rm_transfer_cmd(local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''))
                 else:
                     #E82 cancel complete
@@ -6238,8 +6237,7 @@ class Vehicle(threading.Thread):
                                                 'DestPort':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                                 #'CarrierLoc':self.action_in_run['loc'],
                                                 'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
-                                                'ResultCode':0,
-                                                'ResultSubCode':'' })
+                                                'ResultCode':0})
 
                                 output('TransferCompleted', {
                                         'VehicleID':self.id,
@@ -7093,8 +7091,7 @@ class Vehicle(threading.Thread):
                                             'DestPort':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                             #'CarrierLoc':self.action_in_run['loc'],
                                             'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
-                                            'ResultCode':0,
-                                            'ResultSubCode':'' })
+                                            'ResultCode':0})
 
                             self.secsgem_e82_h.rm_transfer_cmd(local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''))
 
@@ -7287,8 +7284,7 @@ class Vehicle(threading.Thread):
                                                 'DestPort':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                                 #'CarrierLoc':self.action_in_run['loc'],
                                                 'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
-                                                'ResultCode':0,
-                                                'ResultSubCode':'' })
+                                                'ResultCode':0 })
 
                                 self.secsgem_e82_h.rm_transfer_cmd(local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''))
 
@@ -7474,8 +7470,7 @@ class Vehicle(threading.Thread):
                                                 'DestPort':link_local_tr_cmd['dest']if link_local_tr_cmd else local_tr_cmd['host_tr_cmd'].get('dest', 0), #chocp fix for tfme 2021/10/23
                                                 #'CarrierLoc':self.action_in_run['loc'],
                                                 'CarrierLoc':link_local_tr_cmd['dest']if link_local_tr_cmd else local_tr_cmd['host_tr_cmd'].get('dest', 0), #chocp fix for tfme 2021/10/23
-                                                'ResultCode':0,
-                                                'ResultSubCode':'' })
+                                                'ResultCode':0 })
 
                                 self.secsgem_e82_h.rm_transfer_cmd(link_local_tr_cmd['CommandInfo'].get('CommandID', '') if link_local_tr_cmd else local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''))
 

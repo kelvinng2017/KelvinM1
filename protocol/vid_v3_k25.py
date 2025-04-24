@@ -207,7 +207,7 @@ EventTable={
     TransferCancelCompleted: {'report':[SV_CommandID, SV_TransferCompleteInfo]},
     TransferCancelFailed: {'report':[SV_CommandID]},
     TransferCancelInitiated: {'report':[SV_CommandID]},
-    TransferCompleted: {'report':[SV_CommandInfo,SV_VehicleID, SV_TransferCompleteInfo, SV_ResultCode ,SV_ResultSubCode]},
+    TransferCompleted: {'report':[SV_CommandInfo,SV_VehicleID, SV_TransferCompleteInfo, SV_ResultCode]},
     TransferInitiated: {'report':[SV_CommandID]},
     TransferPaused: {'report':[SV_CommandID]},
     TransferResumed: {'report':[SV_CommandID]},

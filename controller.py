@@ -870,8 +870,7 @@ def mount_socketio_func(sio):
                     'TransferCompleteInfo':[{'TransferInfo':{'CarrierID':cmd.get('CarrierID', '') , 'SourcePort':cmd['Source'], 'DestPort':cmd['Dest']}, 'CarrierLoc':''}],
                     'TransferInfo':{'CarrierID':cmd.get('CarrierID', '') , 'SourcePort':cmd['Source'], 'DestPort':cmd['Dest']},
                     'VehicleID':'',
-                    'ResultCode': 10001,
-                    'ResultSubCode':'' }) #tsc internal error
+                    'ResultCode': 10001}) #tsc internal error
 
                 output('TransferCompleted', {
                         'VehicleID':cmd.get('VehicleID', ''),
