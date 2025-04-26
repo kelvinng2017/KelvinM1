@@ -1,3 +1,10 @@
+8.36.19(2025/04/24) 
+add:
+mod:
+1. now will re-assign location when loc is BUF00
+2. do faulty recovery will now check the dest of local command instead of check pretransfer flag
+fix:
+1. fix bug that when back is * cannot do shift+replace
 8.36.18(2025/04/23) 
 add:
 1.add more cpu logger

@@ -1572,73 +1572,11 @@ class Vehicle(threading.Thread):
                     raise alarms.CommandSourceErackCarrierTypefailWarning(uuid, carrierID, carrierType, target, h_eRack.validSlotType)
 
 
-        if not self.action_in_run['loc']: #for not Buf prefer
+        if not self.action_in_run['loc'] or self.action_in_run['loc']=='BUF00': #for not Buf prefer
             self.adapter.logger.info("why also me1111111111")
             self.action_loc_assign(self.action_in_run)
 
-            """available_buffer_list=range(self.bufNum)
-            if self.with_buf_contrain_batch:
-                available_buffer_list=range(self.bufNum)[::-1]
-                tmp=available_buffer_list[1] # need to check if can modify at begin
-                available_buffer_list[1]=available_buffer_list[2]
-                available_buffer_list[2]=tmp
-                
-            if global_variables.RackNaming == 30: #for BOE fixed order
-                available_buffer_list=[1,3,0,2]
-                
-            if global_variables.RackNaming == 42: 
-                available_buffer_list.pop(0)     
-
-            if global_variables.RackNaming == 15: # JWO 2023/09/20 for GF
-                # Check if 'DestPort' contains "BUF" for GF
-                dest_port=local_tr_cmd.get('TransferInfo', {}).get('DestPort', '')
-                if "BUF" in dest_port :
-                    # Extract the buffer number
-                    try:
-                        buf_number=int(dest_port[-2:])  # Assuming the format is always "BUFXX"
-                        print('MRBUF_NUM',  buf_number)
-                    except:
-                        #raise ValueError("Invalid DestPort format: {}".format(dest_port))
-                        raise alarms.BufferAcquireCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID)
-
-
-                    # Check if the buffer number is in available_buffer_list
-                    print("***BUFFER_LIS***T:",self.adapter.carriers, '***dest_buf_number***', self.adapter.carriers[buf_number])
-                    if self.enableBuffer[buf_number-1] == 'yes' and self.adapter.carriers[buf_number-1]['status'] == 'None':
-                        print("Buffer number {} is available.".format(buf_number), '+++++++++++++',self.adapter.carriers[buf_number-1]['status'], '++++', self.adapter.carriers )
-                        self.action_in_run['loc']="BUF0" + str(buf_number)
-                        local_tr_cmd["start_time"]=time.time()#2024/9/12 Yuri
-                        self.bufs_status[buf_number]['local_tr_cmd']=local_tr_cmd
-                        self.bufs_status[buf_number]['local_tr_cmd_mem']=local_tr_cmd
-                        print('***add_MRBUF_cmd', local_tr_cmd)
-                    else:
-                        print("Buffer number {} is not available.".format(buf_number))
-                        raise alarms.BufferAcquireCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID)
-
-                else:
-                    for idx in available_buffer_list: #select a buffer form last buffer
-                        if self.enableBuffer[idx] == 'yes' and self.adapter.carriers[idx]['status'] == 'None':
-
-                            self.action_in_run['loc']=self.vehicle_bufID[idx]
-                            local_tr_cmd["start_time"]=time.time()#2024/9/12 Yuri
-                            self.bufs_status[idx]['local_tr_cmd']=local_tr_cmd
-                            self.bufs_status[idx]['local_tr_cmd_mem']=local_tr_cmd
-
-                            break
-                    else:
-                        raise alarms.BufferAcquireCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID)
-
-            else:
-                for idx in available_buffer_list: #select a buffer form last buffer
-                    if self.enableBuffer[idx] == 'yes' and self.adapter.carriers[idx]['status'] == 'None':
-
-                        self.action_in_run['loc']=self.vehicle_bufID[idx]
-                        local_tr_cmd["start_time"]=time.time()#2024/9/12 Yuri
-                        self.bufs_status[idx]['local_tr_cmd']=local_tr_cmd
-                        self.bufs_status[idx]['local_tr_cmd_mem']=local_tr_cmd                        
-                        break
-                else: #chocp fix
-                    raise alarms.BufferAcquireCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID)"""
+            
 
         else: #for Buf prefer
             try:
@@ -2806,7 +2744,10 @@ class Vehicle(threading.Thread):
 
         for i in range(self.bufNum):
             if self.enableBuffer[i] == 'yes' and self.adapter.carriers[i]['status']!='None' and self.bufs_status[i]['type']!='CoverTray':
-                if not self.bufs_status[i].get('local_tr_cmd_mem', {}).get('host_tr_cmd', {}).get('preTransfer'): #chocp add for preDispatch and preTansfer
+                local_tr_cmd=self.bufs_status[i].get('local_tr_cmd_mem', {})
+                check=local_tr_cmd.get('dest', '') == '' or local_tr_cmd.get('dest', '') == '*' or local_tr_cmd.get('dest', '')[:-5] == self.id or local_tr_cmd.get('host_tr_cmd', {}).get('preTransfer')
+                # if not self.bufs_status[i].get('local_tr_cmd_mem', {}).get('host_tr_cmd', {}).get('preTransfer'): #chocp add for preDispatch and preTansfer
+                if not check: #chocp add for preDispatch and preTansfer
                     residual+=1
                 elif global_variables.RackNaming == 25:
                     if self.adapter.battery['percentage'] < self.ChargeBelowPower:
@@ -2993,10 +2934,11 @@ class Vehicle(threading.Thread):
             print(idx, 'local_tr_cmd_mem', local_tr_cmd.get('uuid'))
 
             if self.enableBuffer[idx] == 'yes' and self.adapter.carriers[idx]['status'] not in ['None', 'Unknown'] and self.bufs_status[idx]['type']!='CoverTray':
-                if force or not self.bufs_status[idx].get('local_tr_cmd_mem', {}).get('host_tr_cmd', {}).get('preTransfer'):
+                # if force or not self.bufs_status[idx].get('local_tr_cmd_mem', {}).get('host_tr_cmd', {}).get('preTransfer'):
+                check=local_tr_cmd.get('dest', '') == '' or local_tr_cmd.get('dest', '') == '*' or local_tr_cmd.get('dest', '')[:-5] == self.id or local_tr_cmd.get('host_tr_cmd', {}).get('preTransfer')
+                if force or not check: # !!!
                     carrierID=self.adapter.carriers[idx]['status']
                     loc=self.vehicle_bufID[idx]
-                    command_id="R"+local_tr_cmd.get('host_tr_cmd',{}).get('uuid','')
                     break
 
         # if force_recovery:

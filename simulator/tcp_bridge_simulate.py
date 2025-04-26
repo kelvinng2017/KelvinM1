@@ -625,6 +625,7 @@ class tcp_bridge:
                             print('Reset all alarms')
                             self.move_cmd_queue.clear()
                             self.jsonstatus["error"]=False
+                            self.jsonstatus["state"]='standby'
                             self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
 
                         else:
@@ -695,12 +696,11 @@ class tcp_bridge:
                     path.append(obj['move_cmd'])
                     if obj['move_cmd'][5] == 'G':
                         print(path)
-                        self.jsonstatus["state"]='moving'
+                        # self.jsonstatus["state"]='moving'
                         self.move_simulate(path)
-                        time.sleep(self.go_delay) # Mike: 2021/08/25
                         path=[]
-                        if not len(self.move_cmd_queue):
-                            self.jsonstatus["state"]='standby'
+                        # if not len(self.move_cmd_queue):
+                        #     self.jsonstatus["state"]='standby'
                 else:
                     if self.stop_move:
                         self.stop_move=False
@@ -844,6 +844,7 @@ class tcp_bridge:
     def try_auto_request(self):
         total_pos="P11"
         self.automode=True
+        self.jsonstatus["state"]='standby'
         self.output_buffer.appendleft(total_pos)
 
     def set_manual_request(self):
@@ -1090,6 +1091,7 @@ class tcp_bridge:
 
         i=0
         time_interval=1.0
+        self.jsonstatus["state"]='moving'
         while i < len(path):
             if self.jsonstatus["error"]:
                 break
@@ -1100,6 +1102,7 @@ class tcp_bridge:
 
             if self.stop_move:
                 self.stop_move=False
+                self.jsonstatus["state"]='standby'
                 break
 
             is_arrival=True
@@ -1147,6 +1150,9 @@ class tcp_bridge:
                         break
                 else:
                     print('Can not map pointID')
+                time.sleep(self.go_delay) # Mike: 2021/08/25
+                if not len(self.move_cmd_queue):
+                    self.jsonstatus["state"]='standby'    
                 
                 self.move_append_arrival_report(path[i][4] == "1", False, pointID)
                 i += 1

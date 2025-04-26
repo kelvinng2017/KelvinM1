@@ -35,7 +35,7 @@ import alarms
 
 import tr_wq_lib
 from  tr_wq_lib import TransferWaitQueue
-# from web_service_log import tsc
+from web_service_log import *
 
 class TSC(threading.Thread):
     def __init__(self, secsgem_e82_h, secsgem_e88_h, secsgem_e88_stk_h):
@@ -2021,6 +2021,9 @@ class TSC(threading.Thread):
 
                         for wq in sorted(list(TransferWaitQueue.getAllInstance().values()), key=get_weight, reverse=True): #8.21H-2
 
+                            # if len(wq.queue):
+                            #     tsc_logger.info("wq:{}".format(wq.queueID))
+                            #     tsc_logger.info("wq length:{}".format(len(wq.queue)))
                             if not wq.wq_lock.acquire(False):
                                 print('queueID: {} can not lock'.format(wq.queueID))
                                 continue

@@ -98,3 +98,16 @@ LogFileHandler=log_handler.TimedRotatingFileHandler(filename, when='midnight', i
 LogFileHandler.setLevel(logging.DEBUG)
 LogFileHandler.setFormatter(logging.Formatter("%(asctime)s-[%(filename)s]-[%(funcName)s]-[line:%(lineno)d]-[%(levelname)s]-[%(threadName)s]: %(message)s"))
 tr_wq_lib_logger.addHandler(LogFileHandler)
+
+#####################################################################################################################################
+tsc_logger=logging.getLogger("tsc_logger")
+tsc_logger.setLevel(logging.DEBUG)
+streamLogHandler=logging.StreamHandler()
+streamLogHandler.setLevel(logging.DEBUG)
+streamLogHandler.setFormatter(formatter)
+tsc_logger.addHandler(streamLogHandler)
+filename=os.path.join("log", "tsc_logger.log")
+LogFileHandler=log_handler.TimedRotatingFileHandler(filename, when='midnight', interval=1, backupCount=30, encoding="utf-8")
+LogFileHandler.setLevel(logging.DEBUG)
+LogFileHandler.setFormatter(logging.Formatter("%(asctime)s-[%(filename)s]-[%(funcName)s]-[line:%(lineno)d]-[%(levelname)s]-[%(threadName)s]: %(message)s"))
+tsc_logger.addHandler(LogFileHandler)

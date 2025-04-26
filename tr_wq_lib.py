@@ -1244,6 +1244,8 @@ class TransferWaitQueue():
         host_cmd_eqs=[]
         zone=''
         actual_dispatch_cmd_list=[]   
+        delay_send_to_vehicle_equipmentID_count=0
+        block_send_equipmentID=''
 
         buf_available_num, buf_available_list=h_vehicle.buf_available()
 
@@ -1475,7 +1477,9 @@ class TransferWaitQueue():
                 
             while True:
                 try:
+                    
                     host_tr_cmd=self.queue[i]
+                    tr_wq_lib_logger.debug("get uuid:{},source:{},dest:{},carrierID:{}".format(host_tr_cmd.get("uuid",""),host_tr_cmd.get("source",""),host_tr_cmd.get("dest",""),host_tr_cmd.get("carrierID","")))
                     priority=host_tr_cmd.get('priority','')
                     LotID=host_tr_cmd['TransferInfoList'][0].get('LotID','')
                     handlingType=host_tr_cmd.get('handlingType','')
@@ -1556,62 +1560,132 @@ class TransferWaitQueue():
                 else:
                     matched_buf = [buf for buf in buf_available_list_sorted]
 
-                # tr_wq_lib_logger.debug("matched_buf:{}".format(matched_buf))
-                
-                # if host_tr_cmd.get("zoneID") == "zone_1F_AMR_CRR":
-                #     # tr_wq_lib_logger.debug("h_vehicle.id:{}".format(h_vehicle.id))
-                #     # tr_wq_lib_logger.debug("zoneID:{}".format(host_tr_cmd.get("zoneID")))
-                #     if first_tr_cmd_equipmentID == "":
-                #         if len(h_vehicle.tr_cmds)>0:
-                            
-                #             for tr_cmds_index in h_vehicle.tr_cmds:
-                                
-                #                 first_tr_cmd_equipmentID=tr_cmds_index.get("host_tr_cmd",{}).get("equipmentID","")
-                #                 # tr_wq_lib_logger.debug("first_tr_cmd_equipmentID:{}".format(first_tr_cmd_equipmentID))
-                #                 break
+                if global_variables.RackNaming in [46]:
+                    #check_zoneID=""
+                    check_equipmentID=""
+                    count_other_sameEQ_command=0
+                    source_is_buf=False
+                    equipmentID_has_erack_command=False
+                    
+                    h_workstation_dest=EqMgr.getInstance().workstations.get(host_tr_cmd['dest'])
+                    if h_workstation_dest and  h_workstation_dest.workstation_type != "ErackPort":
                         
-                    
-                    
-                    
-                #     if host_tr_cmd.get("equipmentID","") != first_tr_cmd_equipmentID and first_tr_cmd_equipmentID != "":
-                #         perpaid_to_send_equipmentID=host_tr_cmd.get("equipmentID","")
-                #         if len(self.queue):
-                #             for queue_index in self.queue:
+                        check_equipmentID=getattr(h_workstation_dest, 'equipmentID', '')
+                        
+                        tr_wq_lib_logger.debug("check_equipmentID:{}".format(check_equipmentID))
+                    else:
+                        h_workstation_source=EqMgr.getInstance().workstations.get(host_tr_cmd['source'])
+                        if h_workstation_source:
+                            
+                            check_equipmentID=getattr(h_workstation_source, 'equipmentID', '')
+                           
+                            tr_wq_lib_logger.debug("check_equipmentID:{}".format(check_equipmentID))
+                
+                    if check_equipmentID != "":
+                        
+                        other_same_equipmentID=''
+
+                        if block_send_equipmentID != check_equipmentID:
+                        
+                            for queue_index in self.queue:
                                 
-                #                 check_equipmentID=queue_index.get("equipmentID","")
-                #                 # tr_wq_lib_logger.debug("check_equipmentID:{}".format(check_equipmentID))
-                #                 if perpaid_to_send_equipmentID == check_equipmentID:
-                #                     same_equipmentID_count +=1
-                #                     # if perpaid_to_send_equipmentID not in same_AMR_MGZ_equipmentID_dict.keys():
+                                if host_tr_cmd.get("uuid","") != queue_index.get("uuid",""):
                                     
-                #             # tr_wq_lib_logger.debug("same_equipmentID_count:{}".format(same_equipmentID_count))
-                #             # tr_wq_lib_logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
-                    
+                                    check_dest=queue_index.get("dest","")
+                                    check_source=queue_index.get("source","")
+                                    tr_wq_lib_logger.info("check_dest:{}".format(check_dest))
+                                    tr_wq_lib_logger.info("check_source:{}".format(check_source))
+
+                                    h_workstation_check_dest=EqMgr.getInstance().workstations.get(check_dest)
+                                    if h_workstation_check_dest and  h_workstation_check_dest.workstation_type != "ErackPort":
+                                        
+                                        other_same_equipmentID=getattr(h_workstation_check_dest, 'equipmentID', '')
+                                        
+                                        tr_wq_lib_logger.debug("other_same_equipmentID:{}".format(other_same_equipmentID))
+                                    else:
+                                        equipmentID_has_erack_command=True
+                                        h_workstation_check_source=EqMgr.getInstance().workstations.get(check_source)
+                                        if h_workstation_check_source:
+                                            
+                                            other_same_equipmentID=getattr(h_workstation_check_source, 'equipmentID', '')
+                                        
+                                            tr_wq_lib_logger.debug("other_same_equipmentID:{}".format(other_same_equipmentID))
+                                    
+                                    if queue_index.get("shiftTransfer",False) == False:
+                                    
+                                        if other_same_equipmentID == check_equipmentID:
+                                            
+                                            count_other_sameEQ_command += 1
+                        else:
+                            tr_wq_lib_logger.warning("do continue because block_send_equipmentID")
+                            i+=1
+                            j+=1
+                            
+                            continue
+
+
+                    if count_other_sameEQ_command > 0:
+                        tr_wq_lib_logger.debug("other count_other_sameEQ_command:{}".format(count_other_sameEQ_command))
+                        if host_tr_cmd.get("shiftTransfer",False) == False:
+                            count_other_sameEQ_command += 1
+                        tr_wq_lib_logger.debug("with self count_other_sameEQ_command:{}".format(count_other_sameEQ_command))
+                        tr_wq_lib_logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
+                        if len(buf_available_list_sorted) < count_other_sameEQ_command:
+                            tr_wq_lib_logger.warning("do continue because no more buf")
+                            i+=1
+                            j+=1
+                            block_send_equipmentID = check_equipmentID
+                            continue
+                            
+                            # if delay_send_to_vehicle_equipmentID_count <5:
+                            #     delay_send_to_vehicle_equipmentID_count+=1
+                            #     tr_wq_lib_logger.warning("do continue")
+                            #     i+=1
+                            #     j+=1
+                            #     continue
+                            # else:
+
+                            #     host_tr_cmd['dest']=dest_port
+                            #     host_tr_cmd['TransferInfoList'][0]['DestPort']=dest_port
+                            #     if back_port:
+                            #         host_tr_cmd['back']=back_port
+                            #         host_tr_cmd['TransferInfoList'][0]['DestPort']=back_port
+                            #     delay_send_to_vehicle_equipmentID_count=0
+                            #     break
+                        else:
+                            delay_send_to_vehicle_equipmentID_count=0
+
+                #tr_wq_lib_logger.warning("h_vehicle.tr_cmds:{}".format(h_vehicle.tr_cmds))
+
+                check_h_vehicle=h_vehicle.tr_cmds
+                #cbaamr01BUF02
+                for check_h_vehicle_index in check_h_vehicle:
+                    if "BUF" in check_h_vehicle_index.get("source",""):
+                        source_is_buf=True
                         
-                #         if len(buf_available_list_sorted)<same_equipmentID_count:
-                #             tr_wq_lib_logger.error("can not send{}".format(perpaid_to_send_equipmentID))
-                            
-                #         else:
-                #             # tr_wq_lib_logger.debug("change first_tr_cmd_equipmentID from:{} to:{}".format(first_tr_cmd_equipmentID,perpaid_to_send_equipmentID))
-                #             first_tr_cmd_equipmentID=perpaid_to_send_equipmentID
-                            
+                        break
 
-                            
-                                
-                                # break
+                if source_is_buf:
+                    tr_wq_lib_logger.warning("source_is_buf:{}".format(source_is_buf))
+                    break
+                    # if equipmentID_has_erack_command:
+                    #     i+=1
+                    #     j+=1
+                    #     continue
 
+                                        
+
+               
 
                 
-                # tr_wq_lib_logger.info("==>in single_cmds_total:{},primary_cmds_total:{}".format(single_cmds_total,primary_cmds_total))
-                # tr_wq_lib_logger.info("==>in uuid:{},buf_available_list_sorted:{}".format(host_tr_cmd.get("uuid"),buf_available_list_sorted))
+               
                 res, primary_cmd_count, single_cmd_count, buf_reserved, buf_assigned, unload_buf_assigned=tools.buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_reserved, self.schedule_algo)
+                tr_wq_lib_logger.debug("out buf_available_list_sorted:{}".format(buf_available_list_sorted))
                 print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
                 print(res, primary_cmd_count, single_cmd_count, buf_reserved, buf_assigned, unload_buf_assigned, self.merge_max_cmds)
                 print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
                 print(host_tr_cmd)
-                # tr_wq_lib_logger.info("==>out single_cmd_count:{},primary_cmd_count:{}".format(single_cmd_count,primary_cmd_count))
-                # tr_wq_lib_logger.info("==>out uuid:{},buf_available_list_sorted:{}".format(host_tr_cmd.get("uuid"),buf_available_list_sorted))
-                # tr_wq_lib_logger.info("res:{}".format(res))
+                
                 if res and (single_cmds_total+single_cmd_count)<=self.merge_max_cmds:
                     if buf_assigned: #2022/7/13 bufseq 4321
                         with_buf_contrain_batch=True
@@ -1832,7 +1906,9 @@ class TransferWaitQueue():
         if host_tr_cmd.get('shiftTransfer'):
             self.remove_waiting_transfer_by_idx(host_tr_cmd, idx)
             if len(host_tr_cmd['TransferInfoList']) > 1:
-                if host_tr_cmd.get('back')[-5:-2] == 'BUF':
+                is_source_vehicle=host_tr_cmd.get('source')[:-5] in Vehicle.h.vehicles
+                is_back_vehicle=host_tr_cmd.get('back') == '' or host_tr_cmd.get('back') == '*' or host_tr_cmd.get('back')[:-5] in Vehicle.h.vehicles
+                if is_back_vehicle:
                     local_tr_cmd={
                                 'uuid':host_tr_cmd['uuid']+'-UNLOAD',
                                 'carrierID':host_tr_cmd['TransferInfoList'][1].get('CarrierID', ''),
@@ -1876,7 +1952,7 @@ class TransferWaitQueue():
                     local_tr_cmd['source_type']='workstation' if EqMgr.getInstance().workstations.get(local_tr_cmd['source'], '')  else 'other'
                     local_tr_cmd['dest_type']='workstation' if EqMgr.getInstance().workstations.get(local_tr_cmd['dest'], '')  else 'other'
                     h_vehicle.add_executing_transfer_queue(local_tr_cmd)       
-                elif host_tr_cmd.get('source')[-5:-2] == 'BUF':
+                elif is_source_vehicle:
                     local_tr_cmd={
                                 'uuid':host_tr_cmd['uuid']+'-UNLOAD',
                                 'carrierID':host_tr_cmd['TransferInfoList'][1].get('CarrierID', ''),

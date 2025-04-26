@@ -20,7 +20,10 @@ from web_service_log import *
 
 
 
-
+def add_to_list_dict(d, key, value):
+    if key not in d:
+        d[key] = []
+    d[key].append(value)
 
 
 def query_order_by_point(point, order_type='loadOrder'):
@@ -32,15 +35,11 @@ def query_order_by_point(point, order_type='loadOrder'):
         print('query_order:{} fail'.format(point))
         return 0
     
-def add_to_list_dict(d, key, value):
-    if key not in d:
-        d[key] = []
-    d[key].append(value)
-
-def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq_has_desposit_action,eq_has_null_action):# kelvinng 20240927 TI Baguio WB
-    actions_in_order=[]
+def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq_has_desposit_action,eq_has_null_action):
+    actions_in_order = []
     
     #unload -> null -> shift -> load
+
     action_logger.debug("action999")
     if global_variables.RackNaming == 46:
 
@@ -76,25 +75,8 @@ def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq
 
         if station in eq_has_desposit_action:
             actions_in_order.extend(eq_has_desposit_action[station])
-
-        
-        
-
-        
-
-
-        
-
-        
-
-        
-            
-
-                
-
     
 
-    
     
 
     
@@ -103,10 +85,12 @@ def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq
     
     
     return actions_in_order
-def task_generate(transfers, buf_available, init_point='', model=''):
+
+def task_generate(transfers, buf_available, init_point='',model=''):
     print('**********************************')
     print("TASK_GENERATE BY 'BETTER' COST ALGO")
     print('**********************************')
+    
 
 
     fail_tr_cmds_id=[]
@@ -115,9 +99,8 @@ def task_generate(transfers, buf_available, init_point='', model=''):
     from_seq_list=[]
     middle_seq_list=[]
     end_seq_list=[]
-    
-    eq_has_null_action={}# kelvinng 20240927 TI Baguio WB
-
+    eq_has_desposit_action_list=[]
+    eq_has_null_action={}
     last_middle_seq=[]
 
     eq_already_add_action=[]#TIPI WB
@@ -141,7 +124,7 @@ def task_generate(transfers, buf_available, init_point='', model=''):
         dest_port=transfer['dest']
 
         #for shift transfer, not through buf in vehicle, and shift command source_point should equal to dest_point: #chocp 2024/8/21 for shift
-        if transfer.get('transferType') == 'SHIFT':
+        if transfer.get('transferType')=='SHIFT':
             point=tools.find_point(source_port) #chocp 2024/8/21 for shift
             order=query_order_by_point(point)
 
@@ -155,6 +138,7 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 'local_tr_cmd':transfer,
                 'records':[transfer]
                 }
+            
             if global_variables.RackNaming in [46]:
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation:
@@ -164,13 +148,16 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     add_to_list_dict(eq_has_shift_action,h_workstation.equipmentID,action)
-                    
 
             if 'workstation' in transfer['host_tr_cmd'].get('sourceType', '') :
                 from_seq_list.append([action])
+                
+                
+                    
 
             elif 'workstation' in transfer['host_tr_cmd'].get('destType', '') :
                 end_seq_list.append([action])
+                
 
             else:
                 if global_variables.RackNaming != 46:
@@ -195,9 +182,8 @@ def task_generate(transfers, buf_available, init_point='', model=''):
             point=tools.find_point(source_port)
             order=query_order_by_point(point)
             only_shift=False
-            
             action={
-                'type':'ACQUIRE_STANDBY' if transfer.get('host_tr_cmd', {}).get('stage', 0) else 'ACQUIRE',
+                'type':'ACQUIRE',
                 'target':source_port,
                 'point':point,
                 'order':order,
@@ -207,7 +193,6 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 }
 
             h_workstation=EqMgr.getInstance().workstations.get(source_port)
-            
             if global_variables.RackNaming in [46]:
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation:
@@ -221,8 +206,7 @@ def task_generate(transfers, buf_available, init_point='', model=''):
             if not h_workstation or 'ErackPort' in h_workstation.workstation_type or 'Stock' in h_workstation.workstation_type: #from Erack for K25
                 from_seq_list.append([action])
 
-            elif last_middle_action and (last_middle_action.get('target', '').rstrip('AB') == source_port.rstrip('AB')) and global_variables.RackNaming != 36:
-                action_logger.debug("SWAP")
+            elif last_middle_action and (last_middle_action.get('target', '').rstrip('AB')==source_port.rstrip('AB')): #do swap
                 last_middle_action['type']='SWAP'
                 last_middle_action['records'].append(transfer)
                 wait_link=True
@@ -232,8 +216,8 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 wait_link=True
                 print('Source last_middle_seq:', last_middle_seq) #new...
                 
-        #if 'BUF' in dest_port or dest_port == '*' or dest_port == '' or dest_port == 'E0P0': #for StockOut, ErackOut, for preTransfer
-        if 'BUF' in dest_port or dest_port == '*' or dest_port == '' or dest_port == 'E0P0': #............................
+        #if 'BUF' in dest_port or dest_port=='*' or dest_port=='' or dest_port=='E0P0': #for StockOut, ErackOut, for preTransfer
+        if 'BUF' in dest_port or dest_port=='*' or dest_port=='' or dest_port=='E0P0': #............................
             try:
                 point=tools.find_point(source_port) #DestPort MRXXXBUF00
             except:
@@ -284,9 +268,10 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     add_to_list_dict(eq_has_desposit_action,h_workstation.equipmentID,action)
+
             if not h_workstation or 'ErackPort' in h_workstation.workstation_type or 'Stock' in h_workstation.workstation_type:
                 end_seq_list.append([action])
-            #elif last_middle_action and (last_middle_action.get('target', '').rstrip('AB') == source_port.rstrip('AB')): #do swap
+            #elif last_middle_action and (last_middle_action.get('target', '').rstrip('AB')==source_port.rstrip('AB')): #do swap
             #    last_middle_seq.append(action)
             elif wait_link:
                 last_middle_seq.append(action)
@@ -295,7 +280,8 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 middle_seq_list.append([action])
                 last_middle_seq=middle_seq_list[-1]
                 print('Dest last_middle_seq:', last_middle_seq)
-            
+            if h_workstation:
+                eq_has_desposit_action_list.append(h_workstation.equipmentID)
 
 
 
@@ -354,9 +340,12 @@ def task_generate(transfers, buf_available, init_point='', model=''):
         print('last point', end_point_order[-1].get('point', ''))
 
     
+                
+
+
     for task in point_order: 
         if task['type']!='SWAP':
-            action_logger.warning("type:{},target:{}".format(task['type'],task['target']))
+            print(task['type'], task['target'])
             
             if global_variables.RackNaming in [46]:
                 

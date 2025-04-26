@@ -689,9 +689,9 @@ def check_transfer_waiting_queue(check_queueID_name):
 
 
 def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_reserved, schedule_algo='by_fix_order'): #new for Buf Constain
-    # tool_logger.info("host_tr_cmd:{}".format(host_tr_cmd))
-    # tool_logger.info("buf_available_list_sorted:{}".format(buf_available_list_sorted))
-    # tool_logger.info("buf_reserved:{}".format(buf_reserved))
+    tool_logger.info("uuid:{},source:{},dest:{},carrierID:{}".format(host_tr_cmd.get("uuid",""),host_tr_cmd.get("source",""),host_tr_cmd.get("dest",""),host_tr_cmd.get("carrierID","")))
+    tool_logger.info("in buf_available_list_sorted:{}".format(buf_available_list_sorted))
+    tool_logger.info("buf_reserved:{}".format(buf_reserved))
     # tool_logger.info("schedule_algo:{}".format(schedule_algo))
     primary_cmd_count=0
     single_cmd_count=0
@@ -703,6 +703,10 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
     unload_buf_constrain=[]
 
     try:
+        if global_variables.RackNaming in [46]:
+            if host_tr_cmd.get("shiftTransfer",False) == True:
+                tool_logger.debug("is shiftTransfer")
+                return True, 0, 0, False, buf_constrain, unload_buf_constrain
         if global_variables.RackNaming in [33, 58] and buf_available_list_sorted:
             priorityBuf=host_tr_cmd.get('priorityBuf', '')
             if priorityBuf and priorityBuf != 'All':
@@ -921,7 +925,7 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                 tool_logger.debug("h_vehicle.one_buf_for_swap:{}".format(h_vehicle.one_buf_for_swap))
                 #if host_tr_cmd['link'] or host_tr_cmd['replace']>0:
                 if host_tr_cmd['link'] or host_tr_cmd['replace']>0 or host_tr_cmd.get('preTransfer') or h_vehicle.one_buf_for_swap: #v8.24F for reserved one buffer when preTransfer 
-                    if global_variables.RackNaming==36:
+                    if global_variables.RackNaming in [36,46,47,48]:
                         if host_tr_cmd.get('preTransfer')==False:
                             if not buf_reserved:
                                 bufID=buf_available_list_sorted.pop(-1) #reserverd for link cmd from last not important buf
