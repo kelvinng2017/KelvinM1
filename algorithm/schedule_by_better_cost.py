@@ -40,9 +40,9 @@ def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq
     
     #unload -> null -> shift -> load
 
-    action_logger.debug("action999")
+    
     if global_variables.RackNaming == 46:
-
+        action_logger.debug("action999")
         if station in eq_has_acquire_action:
             actions_in_order.append(eq_has_acquire_action[station])
         
@@ -83,7 +83,7 @@ def process_station_actions(station,eq_has_acquire_action,eq_has_shift_action,eq
     
     
     
-    
+    # action_logger.debug("actions_in_order:{}".format(actions_in_order))
     return actions_in_order
 
 def task_generate(transfers, buf_available, init_point='',model=''):
@@ -145,6 +145,7 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                     eq_has_shift_action[h_workstation.equipmentID]=action
 
             if global_variables.RackNaming in [36]:
+                action_logger.debug("action8")
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     add_to_list_dict(eq_has_shift_action,h_workstation.equipmentID,action)
@@ -182,7 +183,6 @@ def task_generate(transfers, buf_available, init_point='',model=''):
             point=tools.find_point(source_port)
             order=query_order_by_point(point)
             only_shift=False
-            
             action={
                 'type':'ACQUIRE_STANDBY' if transfer.get('host_tr_cmd', {}).get('stage', 0) else 'ACQUIRE',
                 'target':source_port,
@@ -194,7 +194,6 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                 }
 
             h_workstation=EqMgr.getInstance().workstations.get(source_port)
-            
             if global_variables.RackNaming in [46]:
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation:
@@ -202,6 +201,7 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                 else:
                     has_erack_acquire_acton=True
             if global_variables.RackNaming in [36]:
+                action_logger.debug("action9")
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     add_to_list_dict(eq_has_acquire_action,h_workstation.equipmentID,action)
@@ -242,6 +242,7 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                 if h_workstation:
                     eq_has_null_action[h_workstation.equipmentID]=action
             if global_variables.RackNaming in [36]:
+                action_logger.debug("actio11s")
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     add_to_list_dict(eq_has_null_action,h_workstation.equipmentID,action)
@@ -268,6 +269,7 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                 if h_workstation:
                     eq_has_desposit_action[h_workstation.equipmentID]=action
             if global_variables.RackNaming in [36]:
+                action_logger.debug("actio12s")
                 h_workstation=EqMgr.getInstance().workstations.get(action['target'])
                 if h_workstation and  h_workstation.workstation_type != "ErackPort":
                     add_to_list_dict(eq_has_desposit_action,h_workstation.equipmentID,action)
@@ -362,7 +364,7 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                         
                         if h_workstation.equipmentID not in eq_already_add_action:
                             print("target_point != IAR_init_point")
-                            
+                            action_logger.debug("target_point != IAR_init_point")
                             actions.extend(process_station_actions(h_workstation.equipmentID,eq_has_acquire_action,eq_has_shift_action,eq_has_desposit_action,eq_has_null_action))
                             eq_already_add_action.append(h_workstation.equipmentID)
                     else:
@@ -372,10 +374,12 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                             
                             if h_workstation.equipmentID in eq_has_desposit_action.keys():
                                 print("target_point == IAR_init_point but has desposit_action")
+                                action_logger.debug("target_point == IAR_init_point but has desposit_action")
                                 actions.extend(process_station_actions(h_workstation.equipmentID,eq_has_acquire_action,eq_has_shift_action,eq_has_desposit_action,eq_has_null_action))
                                 eq_already_add_action.append(h_workstation.equipmentID)
                             else:
                                 print("target_point == IAR_init_point ")
+                                action_logger.debug("target_point == IAR_init_point ")
                                 tmp_init_action.extend(process_station_actions(h_workstation.equipmentID,eq_has_acquire_action,eq_has_shift_action,eq_has_desposit_action,eq_has_null_action))
                                 eq_already_add_action.append(h_workstation.equipmentID)
 
@@ -420,7 +424,9 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                         actions.append(task)
                     
                     # tmp_erack_action.append(task)
-            if global_variables.RackNaming in [36]:
+            elif global_variables.RackNaming in [36]:
+                action_logger.debug("actio13s")
+                pass
                 h_workstation=EqMgr.getInstance().workstations.get(task['target'])
 
                 action_logger.info("task target:{}".format(task['target']))
@@ -443,8 +449,10 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                     action_logger.debug("action12")
                     actions.append(task)
             else:
+                action_logger.debug("......")
                 actions.append(task)
         else:
+            action_logger.debug("/////")
             if model == 'Type_J':
                 swap={
                     'type':'SWAP',
@@ -478,11 +486,14 @@ def task_generate(transfers, buf_available, init_point='',model=''):
                 actions.insert(0,tmp_erack_action_index)
             elif tmp_erack_action_index['type']=='DEPOSIT':
                 if has_erack_acquire_acton:
+                    action_logger.debug("[[[[]]]]")
                     actions.insert(0,tmp_erack_action_index)
                 else:
+                    action_logger.debug("ddd")
                     actions.append(tmp_erack_action_index)
 
         for tmp_init_action_index in tmp_init_action[::-1]:
+            action_logger.debug("dd2")
             actions.insert(0,tmp_init_action_index)
 
     for action_list in actions:
