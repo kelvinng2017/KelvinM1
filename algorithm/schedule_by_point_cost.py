@@ -64,8 +64,7 @@ def find_T_and_point(sorted_points,sx,pass_check_swap):
     closest_point=None
     for point, distance in sorted_points:
         if not T:
-            if point in sx["ACQUIRE"] and (distance == 0 or (point not in sx["DEPOSIT"]) or pass_check_swap or\
-                (point in sx["DEPOSIT"] and all(item in sx["INCAR"] for item in sx["DEPOSIT"][point]))):
+            if point in sx["ACQUIRE"]:
                 T="ACQUIRE"
             elif point in sx["SHIFT"]:
                 T="SHIFT"

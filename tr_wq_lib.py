@@ -1655,23 +1655,23 @@ class TransferWaitQueue():
                         else:
                             delay_send_to_vehicle_equipmentID_count=0
 
-                #tr_wq_lib_logger.warning("h_vehicle.tr_cmds:{}".format(h_vehicle.tr_cmds))
+                    #tr_wq_lib_logger.warning("h_vehicle.tr_cmds:{}".format(h_vehicle.tr_cmds))
 
-                check_h_vehicle=h_vehicle.tr_cmds
-                #cbaamr01BUF02
-                for check_h_vehicle_index in check_h_vehicle:
-                    if "BUF" in check_h_vehicle_index.get("source",""):
-                        source_is_buf=True
-                        
+                    check_h_vehicle=h_vehicle.tr_cmds
+                    #cbaamr01BUF02
+                    for check_h_vehicle_index in check_h_vehicle:
+                        if "BUF" in check_h_vehicle_index.get("source",""):
+                            source_is_buf=True
+                            
+                            break
+
+                    if source_is_buf:
+                        tr_wq_lib_logger.warning("source_is_buf:{}".format(source_is_buf))
                         break
-
-                if source_is_buf:
-                    tr_wq_lib_logger.warning("source_is_buf:{}".format(source_is_buf))
-                    break
-                    # if equipmentID_has_erack_command:
-                    #     i+=1
-                    #     j+=1
-                    #     continue
+                        # if equipmentID_has_erack_command:
+                        #     i+=1
+                        #     j+=1
+                        #     continue
 
                                         
 

@@ -5719,6 +5719,7 @@ class Vehicle(threading.Thread):
                                 elif self.bufNum>=12:
                                     self.adapter.logger.info("self.tr_cmds:{}".format(self.tr_cmds))
                                     fail_tr_cmds_id, actions=schedule_by_point_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point)
+                                    #fail_tr_cmds_id, actions=schedule_by_better_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point, self.model)
                                 else:
                                     fail_tr_cmds_id, actions=schedule_by_better_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point, self.model)
                                 # if global_variables.RackNaming==36:

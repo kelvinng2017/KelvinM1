@@ -1251,7 +1251,11 @@ if __name__ =='__main__':
                 #h.setalarm("MoveFail", True)
                 h.setalarm(cmds[1], True)
                 print("reset alarm")
-
+            
+            elif cmds[0] == 'warning': #error, 100009
+                #h.setalarm("MoveFail", True)
+                h.setwarning(cmds[1], True)
+                print("set alarm")
             elif cmds[0] == 'reset':
                 h.reset_all_alarm_request()
                 print("reset alarm")

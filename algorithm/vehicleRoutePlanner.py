@@ -371,6 +371,7 @@ class RoutePlanner(threading.Thread):
                     self.logger.info("self.adapter.DoorState:{}".format(self.adapter.DoorState))
                     if self.adapter.DoorState == resultDoorState:
                         self.logger.info("DOOR PASS SUCCESS")
+                        self.adapter.DoorState = ""
                         break
                     elif self.adapter.DoorState == "NG":
                         self.logger.error("MCS REPLY DOOR EVENT NG")
@@ -512,6 +513,7 @@ class RoutePlanner(threading.Thread):
                     time.sleep(1)
                     if self.adapter.DoorState == "OPENED":
                         self.logger.info("door_opened:{}".format(self.adapter.last_point))
+                        self.adapter.DoorState=""
                         break
                 else:
                     self.logger.error("DOORSTATE:{}".self.adapter.DoorState)
