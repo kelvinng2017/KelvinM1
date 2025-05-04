@@ -1,3 +1,11 @@
+8.37.1(2025/05/02)
+add:
+1.add the ability to configure the sequence in which the MR places carriers onto the buffer for each port
+mod:
+1.update amr alarm code
+fix:
+1.fix skip trreq bug (for Renesas)
+
 8.36.19(2025/04/24) 
 add:
 mod:

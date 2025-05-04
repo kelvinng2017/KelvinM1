@@ -6,6 +6,7 @@ import time
 import global_variables
 from global_variables import PortsTable
 from global_variables import PoseTable
+from global_variables import PortBufferPriorityTable
 
 from workstation.eq_mgr import EqMgr
 
@@ -703,23 +704,24 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
     unload_buf_constrain=[]
 
     try:
+        buf_available_list_sorted = sort_buffers_bypriority(h_vehicle, host_tr_cmd=host_tr_cmd, buf_available_list_sorted=buf_available_list_sorted)
         if global_variables.RackNaming in [46]:
             if host_tr_cmd.get("shiftTransfer",False) == True:
                 tool_logger.debug("is shiftTransfer")
                 return True, 0, 0, False, buf_constrain, unload_buf_constrain
-        if global_variables.RackNaming in [33, 58] and buf_available_list_sorted:
-            priorityBuf=host_tr_cmd.get('priorityBuf', '')
-            if priorityBuf and priorityBuf != 'All':
-                front_order = [3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8]
-                rear_order = [9, 10, 11, 6, 7, 8, 3, 4, 5, 0, 1, 2]
-                if priorityBuf == "Front":
-                    sort_order = front_order
-                elif priorityBuf == "Rear":
-                    sort_order = rear_order
-                buf_to_index = {}
-                for i in range(12):
-                    buf_to_index["BUF" + str(i + 1).zfill(2)] = i
-                buf_available_list_sorted.sort(key=lambda buf: sort_order[buf_to_index[buf]])
+        # if global_variables.RackNaming in [33, 58] and buf_available_list_sorted:
+        #     priorityBuf=host_tr_cmd.get('priorityBuf', '')
+        #     if priorityBuf and priorityBuf != 'All':
+        #         front_order = [3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8]
+        #         rear_order = [9, 10, 11, 6, 7, 8, 3, 4, 5, 0, 1, 2]
+        #         if priorityBuf == "Front":
+        #             sort_order = front_order
+        #         elif priorityBuf == "Rear":
+        #             sort_order = rear_order
+        #         buf_to_index = {}
+        #         for i in range(12):
+        #             buf_to_index["BUF" + str(i + 1).zfill(2)] = i
+        #         buf_available_list_sorted.sort(key=lambda buf: sort_order[buf_to_index[buf]])
 
         r_dest=re.match(r'(.+)(BUF\d+)', host_tr_cmd['dest'])
         carriertype=host_tr_cmd['TransferInfoList'][0].get('CarrierType', '')
@@ -1235,3 +1237,132 @@ def is_in_poly(p, poly):
             elif x > px:  # if point is on left-side of line
                 is_in = not is_in
     return is_in
+
+def sort_buffers_bypriority(h_vehicle, local_tr_cmd=None, host_tr_cmd=None, from_action_loc_assign=None, buf_available_list_sorted=None):
+    try:
+        if from_action_loc_assign:
+            priorityBuf=local_tr_cmd.get('host_tr_cmd','').get('priorityBuf', '')
+            sourceport=local_tr_cmd.get('source','')
+            destport=local_tr_cmd.get('dest','')
+            uuid=local_tr_cmd.get('uuid', '')
+            print('===========================================')
+            print(sourceport,destport)
+            available_buffer_list=list(range(h_vehicle.bufNum))
+            if h_vehicle.with_buf_contrain_batch:
+                available_buffer_list=list(range(h_vehicle.bufNum))[::-1]
+                tmp=available_buffer_list[1] # need to check if can modify at begin
+                available_buffer_list[1]=available_buffer_list[2]
+                available_buffer_list[2]=tmp
+                
+            if global_variables.RackNaming == 30: #for BOE fixed order
+                available_buffer_list=[1,3,0,2]
+                
+            if global_variables.RackNaming == 42: 
+                available_buffer_list=[1,2,3,4,5]
+                
+            if global_variables.RackNaming in [33, 58] and priorityBuf:
+                if priorityBuf == 'Front':
+                    available_buffer_list=[0,1,2,6,7,8,3,4,5,9,10,11] if global_variables.RackNaming == 58 else [0,1,2,3,4,5,6,7,8,9,10,11]
+                elif priorityBuf == 'Rear': 
+                    available_buffer_list=[6,7,8,0,1,2,9,10,11,3,4,5] if global_variables.RackNaming == 58 else [11,10,9,8,7,6,5,4,3,2,1,0]
+                
+            decide_port_type=decide_output_by_portID(sourceport, destport)
+            if PortBufferPriorityTable:
+                if decide_port_type == 'source':
+                    if sourceport in PortBufferPriorityTable.mapping:
+                        if len(PortBufferPriorityTable.mapping[sourceport]) == len(list(range(h_vehicle.bufNum))):
+                            available_buffer_list = PortBufferPriorityTable.mapping[sourceport]
+
+                elif decide_port_type == 'dest':
+                    if destport in PortBufferPriorityTable.mapping:
+                        if len(PortBufferPriorityTable.mapping[destport]) == len(list(range(h_vehicle.bufNum))):
+                            available_buffer_list = PortBufferPriorityTable.mapping[destport]
+            print('available_buffer_list',available_buffer_list)                   
+            return available_buffer_list
+        else:
+            sourceport=host_tr_cmd.get('source','')
+            destport=host_tr_cmd.get('dest','')
+            uuid=host_tr_cmd.get('uuid', '')
+            sort_order=[]
+            print(sourceport,destport,buf_available_list_sorted)
+            if global_variables.RackNaming in [33, 58] and buf_available_list_sorted:
+                priorityBuf=host_tr_cmd.get('priorityBuf', '')
+                if priorityBuf and priorityBuf != 'All':
+                    front_order = [3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8]
+                    rear_order = [9, 10, 11, 6, 7, 8, 3, 4, 5, 0, 1, 2]
+                    if priorityBuf == "Front":
+                        sort_order = front_order
+                    elif priorityBuf == "Rear":
+                        sort_order = rear_order
+                        
+            decide_port_type=decide_output_by_portID(sourceport, destport)
+            if PortBufferPriorityTable:
+                if decide_port_type == 'source':
+                    if sourceport in PortBufferPriorityTable.mapping:
+                        if len(PortBufferPriorityTable.mapping[sourceport]) == len(list(range(h_vehicle.bufNum))):
+                            sort_order = PortBufferPriorityTable.mapping[sourceport]
+
+                elif decide_port_type == 'dest':
+                    if destport in PortBufferPriorityTable.mapping:
+                        if len(PortBufferPriorityTable.mapping[destport]) == len(list(range(h_vehicle.bufNum))):
+                            sort_order = PortBufferPriorityTable.mapping[destport]
+            # if sort_order:
+            #     print('sort_order',sort_order)            
+            #     buf_to_index = {} 
+            #     for i in range(h_vehicle.bufNum):
+            #         buf_to_index["BUF" + str(i + 1).zfill(2)] = i
+            #     print(buf_to_index)
+            #     buf_available_list_sorted.sort(key=lambda buf: sort_order[buf_to_index[buf]])
+            # print('buf_available_list_sorted',buf_available_list_sorted)
+            if sort_order:
+                print('sort_order', sort_order)
+                buf_to_index = {"BUF" + str(i + 1).zfill(2): i for i in range(h_vehicle.bufNum)}
+                priority_map = {idx: rank for rank, idx in enumerate(sort_order)}
+                print(buf_to_index)
+                buf_available_list_sorted.sort(key=lambda buf: priority_map[buf_to_index[buf]])
+            print(buf_available_list_sorted)        
+            return buf_available_list_sorted
+            
+    except:
+        traceback.print_exc()
+        if h_vehicle:
+            msg=traceback.format_exc()
+            h_vehicle.adapter.logger.error('CommandID :{} in sort_buffers_bypriority code with a exception:\n {}'.format(uuid, msg))
+            
+        if from_action_loc_assign:
+            return range(h_vehicle.bufNum)
+        else:
+            return buf_available_list_sorted
+        
+def decide_output_by_portID(source_portID, dest_portID):
+    def get_port_type(portID):
+        try:
+            if portID in EqMgr.getInstance().workstations:
+                return "EQ"
+        except:
+            pass
+        try:
+            res, rack_id, port_no = rackport_format_parse(portID)
+            if res:
+                return "eRack"
+        except:
+            pass
+        return "Unknown"
+
+    source_type = get_port_type(source_portID)
+    dest_type = get_port_type(dest_portID)
+    DivideMethod = global_variables.TSCSettings.get('CommandDispatch', {}).get('DivideMethod')
+    DivideMethodByMachinePior = global_variables.TSCSettings.get('CommandDispatch', {}).get('DivideMethodByMachinePior')
+
+    if source_type == dest_type:
+        return "source" if DivideMethod == "By Source" else "dest"
+
+    if DivideMethodByMachinePior:
+        if source_type == "EQ":
+            return "source"
+        elif dest_type == "EQ":
+            return "dest"
+        else:
+            return "source" if DivideMethod == "By Source" else "dest"
+    else:
+        return "source" if DivideMethod == "By Source" else "dest"

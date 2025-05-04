@@ -1371,42 +1371,43 @@ class Vehicle(threading.Thread):
         priorityBuf=local_tr_cmd.get('host_tr_cmd','').get('priorityBuf', '')
         self.adapter.logger.info("action['type']6:{}".format(action['type']))
         if action['type'] == 'ACQUIRE':
-            available_buffer_list=range(self.bufNum)
-            if self.with_buf_contrain_batch:
-                available_buffer_list=range(self.bufNum)[::-1]
-                tmp=available_buffer_list[1] # need to check if can modify at begin
-                available_buffer_list[1]=available_buffer_list[2]
-                available_buffer_list[2]=tmp
+            available_buffer_list =tools.sort_buffers_bypriority(self, local_tr_cmd=local_tr_cmd, from_action_loc_assign=True)
+            # available_buffer_list=range(self.bufNum)
+            # if self.with_buf_contrain_batch:
+            #     available_buffer_list=range(self.bufNum)[::-1]
+            #     tmp=available_buffer_list[1] # need to check if can modify at begin
+            #     available_buffer_list[1]=available_buffer_list[2]
+            #     available_buffer_list[2]=tmp
                 
-            if global_variables.RackNaming == 30: #for BOE fixed order
-                available_buffer_list=[1,3,0,2]
+            # if global_variables.RackNaming == 30: #for BOE fixed order
+            #     available_buffer_list=[1,3,0,2]
 
-            if global_variables.RackNaming == 36: #peter 241211
-                pass
-                # if self.model == "Type_A":
-                #     num, buf_list=self.buf_available2()
-                #     self.adapter.logger.debug("buf_list//:{}".format(buf_list))
-                #     #['BUF02', 'BUF03', 'BUF04']
-                #     new_available_buffer_list=[]
-                #     for buf_list_index in buf_list:
-                #         if "BUF02" == buf_list_index:
-                #             new_available_buffer_list.append(1)
-                #         elif "BUF03" == buf_list_index:
-                #             new_available_buffer_list.append(2)
-                #         elif "BUF04" == buf_list_index:
-                #             new_available_buffer_list.append(4)
-                #     available_buffer_list=[0,2,1,3]
-                # if self.model == "Type_G":
-                #     available_buffer_list=[9,10,11,12,13,1,2,3,4,5,6,7]
+            # if global_variables.RackNaming == 36: #peter 241211
+            #     pass
+            #     # if self.model == "Type_A":
+            #     #     num, buf_list=self.buf_available2()
+            #     #     self.adapter.logger.debug("buf_list//:{}".format(buf_list))
+            #     #     #['BUF02', 'BUF03', 'BUF04']
+            #     #     new_available_buffer_list=[]
+            #     #     for buf_list_index in buf_list:
+            #     #         if "BUF02" == buf_list_index:
+            #     #             new_available_buffer_list.append(1)
+            #     #         elif "BUF03" == buf_list_index:
+            #     #             new_available_buffer_list.append(2)
+            #     #         elif "BUF04" == buf_list_index:
+            #     #             new_available_buffer_list.append(4)
+            #     #     available_buffer_list=[0,2,1,3]
+            #     # if self.model == "Type_G":
+            #     #     available_buffer_list=[9,10,11,12,13,1,2,3,4,5,6,7]
                 
-            if global_variables.RackNaming == 42: 
-                available_buffer_list=[1,2,3,4,5]
+            # if global_variables.RackNaming == 42: 
+            #     available_buffer_list=[1,2,3,4,5]
                 
-            if global_variables.RackNaming in [33, 58] and priorityBuf:
-                if priorityBuf == 'Front':
-                    available_buffer_list=[0,1,2,6,7,8,3,4,5,9,10,11] if global_variables.RackNaming == 58 else [0,1,2,3,4,5,6,7,8,9,10,11]
-                elif priorityBuf == 'Rear': 
-                    available_buffer_list=[6,7,8,0,1,2,9,10,11,3,4,5] if global_variables.RackNaming == 58 else [11,10,9,8,7,6,5,4,3,2,1,0]     
+            # if global_variables.RackNaming in [33, 58] and priorityBuf:
+            #     if priorityBuf == 'Front':
+            #         available_buffer_list=[0,1,2,6,7,8,3,4,5,9,10,11] if global_variables.RackNaming == 58 else [0,1,2,3,4,5,6,7,8,9,10,11]
+            #     elif priorityBuf == 'Rear': 
+            #         available_buffer_list=[6,7,8,0,1,2,9,10,11,3,4,5] if global_variables.RackNaming == 58 else [11,10,9,8,7,6,5,4,3,2,1,0]     
 
             if global_variables.RackNaming == 15: # JWO 2023/09/20 for GF
                 # Check if 'DestPort' contains "BUF" for GF
@@ -6331,7 +6332,7 @@ class Vehicle(threading.Thread):
                                 self.wq=None #8.21H-4
                                 self.last_action_is_for_workstation=False #8.21H-4
                                 self.AgvSubState='InWaitCmdStatus'
-                                self.enter_unassigned_state_time=time.time()
+                                self.error_skip_tr_req=False
                                 
                                 if global_variables.RackNaming == 42:
                                     for i in range(self.bufNum):

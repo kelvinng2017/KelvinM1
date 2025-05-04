@@ -34,8 +34,7 @@
     "TSC032": "In shift port",
     "TSC033": "MR executing swap action but can't find tracsfer cmd carrierID in buffer",
     "TSC034": "Preparing to execute the cover tray command, but there is something on Buffer1.",
-    "TSC035":"For Shift",
-    "TSC036":"Timeout for Shift",
-
+    "TSC035": "For Shift",
+    "TSC036": "Timeout for Shift",
     "900001": "GetRouteTimeout"
 }

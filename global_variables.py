@@ -294,6 +294,9 @@ class PortsTable():
 class EdgesTable():
     mapping={}
 
+class PortBufferPriorityTable():
+    mapping={}
+
 global_vehicles_location={} # Mike: 2021/02/18
 global_vehicles_location_index={} # Mike: 2021/04/06
 global_occupied_station={} # Mike: 2021/02/18

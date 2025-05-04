@@ -63,7 +63,7 @@ from global_variables import remotecmd_queue
 from global_variables import PortsTable
 from global_variables import PoseTable
 from global_variables import EdgesTable
-
+from global_variables import PortBufferPriorityTable
 from global_variables import global_junction_neighbor # Mike: 2021/08/09
 
 from pprint import pformat
@@ -96,11 +96,13 @@ def generate_routes():
     #print('edges', edges)#speedration
     routemaps=global_variables.tsc_map.get('routemaps',"")
     #time.sleep(10)
+    portbufferpriority=global_variables.tsc_map.get('portsBufferPriority',"")
     #print('routemaps', routemaps)#speedration
 
     PortsTable.mapping={} #port map to point
     PoseTable.mapping={} #point map to pose
     EdgesTable.mapping={} #edge map to propotery
+    PortBufferPriorityTable.mapping={}
     global_variables.global_disable_nodes=[] # Mike: 2021/04/15
     global_variables.global_disable_edges=[] # Mike: 2021/04/15
     junction_group=[] # Mike: 2021/10/01
@@ -344,6 +346,10 @@ def generate_routes():
             Route.h.add_edge_info(to_node, from_node, **backward_payload)
 
         EdgesTable.mapping[edge[0]]=[group, speed_ratio, from_node, to_node, length, bidirection, road, ReversedOvertakingAllowed]
+
+    if portbufferpriority:  
+        for port in portbufferpriority:
+            PortBufferPriorityTable.mapping[port['portID']] = port['bufferPriority']        
         
     for node in PoseTable.mapping:
         if global_variables.global_auto_group: #use auto group
