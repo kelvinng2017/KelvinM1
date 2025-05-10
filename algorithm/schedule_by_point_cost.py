@@ -26,7 +26,7 @@ def find_point(target): #input: simple station or point, output: point
     try:
         return tools.PortsTable.mapping[target][0]
     except KeyError:
-        raise ValueError(f"no port: {target}")
+        raise ValueError("no port: {}".format(target))
     
 def sort_key_by_port(port, acquire_type=False):
     match=re.match(r"([A-z0-9]+)(_I|_O)", port)
@@ -87,7 +87,7 @@ def record_sx_sequential(point, sx, uuid_order, uuid_priority_map):
         sx["INCAR"].update(sorted_acquire)
         del sx["ACQUIRE"][point]
         action_taken = True
-        by_point_logger.debug(f"Recorded ACQUIRE at {point}: {sorted_acquire}")
+        by_point_logger.debug("Recorded ACQUIRE at {}: {}".format(point,sorted_acquire))
 
     # SHIFT
     if point in sx["SHIFT"]:
@@ -98,7 +98,7 @@ def record_sx_sequential(point, sx, uuid_order, uuid_priority_map):
         sx["ASSIGNLIST"].extend(sorted_shift)
         del sx["SHIFT"][point]
         action_taken = True
-        by_point_logger.debug(f"Recorded SHIFT at {point}: {sorted_shift}")
+        by_point_logger.debug("Recorded SHIFT at {}: {}".format(point,sorted_shift))
 
     # DEPOSIT
     if point in sx["DEPOSIT"]:
@@ -116,7 +116,7 @@ def record_sx_sequential(point, sx, uuid_order, uuid_priority_map):
             if not sx["DEPOSIT"][point]:
                 del sx["DEPOSIT"][point]
             action_taken = True
-            by_point_logger.debug(f"Recorded DEPOSIT at {point}: {sorted_assign}")
+            by_point_logger.debug("Recorded DEPOSIT at {}: {}".format(point,sorted_assign))
 
     return sx, action_taken
 
@@ -285,13 +285,13 @@ def check_by_dist(sx, uuid_order, uuid_priority_map):
                   if point not in high_priority_points_dist:
                     high_priority_points_dist[point] = 0
              else:
-                 by_point_logger.warning(f"Point {point} with high priority task {uuid} (priority {priority}) not found in distances from {last_point}. Skipping.")
+                 by_point_logger.warning("Point {} with high priority task {} (priority {}) not found in distances from {}. Skipping.".format(point,uuid,priority,last_point))
 
     # 3. Select the nearest high-priority point.
     if not high_priority_points_dist:
          # Fallback: If there is no reachable highest priority point, choose the nearest reachable point.
          # Maintain current behavior to avoid deadlock, but high-priority tasks will be delayed.
-         by_point_logger.warning(f"No reachable points found with the current highest priority {max_priority} from {last_point}. Falling back to nearest point with *any* task.")
+         by_point_logger.warning("No reachable points found with the current highest priority {} from {}. Falling back to nearest point with *any* task.".format(max_priority,last_point))
          eligible_points = {}
          for point, distance in distances.items():
              can_acquire = point in sx.get("ACQUIRE", {})
@@ -309,7 +309,7 @@ def check_by_dist(sx, uuid_order, uuid_priority_map):
               eligible_points[point] = 0
 
          if not eligible_points:
-              by_point_logger.error(f"Fallback failed: No reachable points with any actionable tasks from {last_point}.")
+              by_point_logger.error("Fallback failed: No reachable points with any actionable tasks from {}.".format(last_point))
               return sx, False # I'm really stuck.
          sorted_points = sorted(eligible_points.items(), key=lambda item: item[1])
          closest_point, _ = sorted_points[0]
@@ -318,17 +318,17 @@ def check_by_dist(sx, uuid_order, uuid_priority_map):
          # Select the nearest point of highest priority.
          sorted_high_priority_points = sorted(high_priority_points_dist.items(), key=lambda item: item[1])
          closest_point, _ = sorted_high_priority_points[0]
-         current_priority_target = f"Highest ({max_priority})"
+         current_priority_target = "Highest ({})".format(max_priority)
 
 
     # 4. Move to the location (if needed) and perform the action.
     moved = False
     if closest_point != last_point:
-        by_point_logger.info(f"Moving to point: {closest_point} (Targeting Priority: {current_priority_target}) from {last_point}, Distance: {distances.get(closest_point, 0)}")
+        by_point_logger.info("Moving to point: {} (Targeting Priority: {}) from {}, Distance: {}".format(closest_point,current_priority_target,last_point,distances.get(closest_point, 0)))
         sx["POINT"].append(closest_point)
         moved = True
     else:
-         by_point_logger.info(f"Staying at point: {closest_point} (Targeting Priority: {current_priority_target}) to execute tasks.")
+         by_point_logger.info("Staying at point: {} (Targeting Priority: {}) to execute tasks.".format(closest_point,current_priority_target))
 
     # 5. Execute actions in order at designated points (ACQUIRE -> SHIFT -> DEPOSIT), prioritizing high priority tasks.
     sx, action_taken_at_point = record_sx_sequential(closest_point, sx, uuid_order, uuid_priority_map)
@@ -341,13 +341,13 @@ def gen_sx(init_point, s0, uuid_order, uuid_priority_map): # recevid uid_priorit
     Based on the initial position, the list of atomic actions, and the UUID order, simulate the scheduling process and generate the state dictionary sx.
     This version will prioritize tasks with higher priority.
     Args:
-        init_point (str): Initial position of the vehicle.。
+        init_point (str): Initial position of the vehicle.
         s0 (list): A list of atomic actions generated by gen_s0_action.
         uuid_order (dict): A dictionary that maps task UUIDs to their order in the original priority group.
         uuid_priority_map (dict): A dictionary that maps task UUIDs to their priorities.
 
     Returns:
-        dict: dict status sx。
+        dict: dict status sx
     """
     sx = {
         "ACQUIRE": {},
@@ -381,17 +381,17 @@ def gen_sx(init_point, s0, uuid_order, uuid_priority_map): # recevid uid_priorit
     while sx.get("ACQUIRE") or sx.get("DEPOSIT") or sx.get("SHIFT"): # Use .get to avoid key errors.
         loop_count += 1
         if loop_count > max_loops:
-             by_point_logger.error(f"Exceeded max loop count ({max_loops}) in gen_sx. Breaking loop. State: {sx}")
+             by_point_logger.error("Exceeded max loop count ({}) in gen_sx. Breaking loop. State: {}".format(max_loops,sx))
              break
 
-        by_point_logger.info(f"--- Loop {loop_count} ---")
-        by_point_logger.debug(f"Current state before check_by_dist: {sx}")
+        by_point_logger.info("--- Loop {} ---".format(loop_count))
+        by_point_logger.debug("Current state before check_by_dist: {}".format(sx))
 
         # Pass uuid_priority_map
         sx, progress_made = check_by_dist(sx, uuid_order, uuid_priority_map)
 
-        by_point_logger.debug(f"Current state after check_by_dist: {sx}")
-        by_point_logger.info(f"Progress made in loop {loop_count}: {progress_made}")
+        by_point_logger.debug("Current state after check_by_dist: {}".format(sx))
+        by_point_logger.info("Progress made in loop {}: {}".format(loop_count,progress_made))
 
         if not progress_made:
             # If check_by_dist hasn't moved or taken action, it means it's stuck.
@@ -416,7 +416,7 @@ def task_generate(transfers, buf_available, init_point=''):
 
         if not ss: continue # continie empty
         current_priority = ss[0]['priority'] # Get the current group's priority.
-        by_point_logger.warning(f"--- Processing Priority Group: {current_priority} ---")
+        by_point_logger.warning("--- Processing Priority Group: {} ---".format(current_priority))
 
         # Generate s0, uuid_order, and uuid_priority_map for the current priority group.
         s0, uuid_order, uuid_priority_map = gen_s0_action(ss)
@@ -429,15 +429,22 @@ def task_generate(transfers, buf_available, init_point=''):
         s0_sorted, last_point = resort_s0_with_sx(s0, sx) # Update last_point.
         s0_sorted = extra_check_sort(s0_sorted) # Apply special sorting rules.
         # by_point_logger.debug(type(s0_sorted))
-        by_point_logger.debug(f"Sorted actions for priority {current_priority}: {s0_sorted}")
+        by_point_logger.debug("Sorted actions for priority {}: {}".format(current_priority,s0_sorted))
         s0_sorted2.extend(s0_sorted)
 
     # Final output log
     by_point_logger.info("--- Final Generated Task Sequence ---")
     for i, action in enumerate(s0_sorted2):
-        print(f"{i+1}. type:{action.get('type')}, target:{action.get('target')}, point:{action.get('point')}, "
-              f"carrierid:{action.get('carrierid')}, priority:{action.get('local_tr_cmd', {}).get('priority')}, "
-              f"uuid:{action.get('local_tr_cmd', {}).get('uuid')}")
+        print("{}. type:{}, target:{}, point:{}, carrierid:{}, priority:{}, uuid:{}".format(
+            i+1,
+            action.get('type'),
+            action.get('target'),
+            action.get('point'),
+            action.get('carrierid'),
+            action.get('local_tr_cmd', {}).get('priority'),
+            action.get('local_tr_cmd', {}).get('uuid')
+        ))
+
         # More detailed logging if needed
         # by_point_logger.debug(f"Action Details: {action}")
 
