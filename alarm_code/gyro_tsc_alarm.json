@@ -36,5 +36,6 @@
     "TSC034": "Preparing to execute the cover tray command, but there is something on Buffer1.",
     "TSC035": "For Shift",
     "TSC036": "Timeout for Shift",
+    "TSC037": "RFID is emptystring or None",
     "900001": "GetRouteTimeout"
 }

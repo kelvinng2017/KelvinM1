@@ -11,7 +11,7 @@ import json
 import re
 # import alarms
 from datetime import datetime
-#from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.client.sync import ModbusTcpClient
 
 class MyException(Exception):
     pass
@@ -201,6 +201,12 @@ class OVEN(threading.Thread):
         # print(self.oven)
         # print(json.dumps(dict(self.oven[oven_id]), indent=4))
 
+        # if self.oven[oven_id]["Status-Alarm"]:
+        #     msg = "Oven {}: Alarm detected! Aborting door open.".format(oven_id)
+        #     print(msg)
+        #     self.logger.warning("Alarm active on oven {}. Door open aborted.".format(oven_id))
+        #     raise Exception(msg)  # <-- Throw an exception to terminate the process
+
         if not self.check_flag and not self.init(oven_id):  # if initial not pass
             print("Initialization failed for oven {}".format(oven_id))
             return False
@@ -242,6 +248,12 @@ class OVEN(threading.Thread):
     def close_door(self, oven_id):
         print("Attempting to close {} door for oven: ".format(oven_id))
 
+        # if self.oven[oven_id]["Status-Alarm"]:
+        #     msg = "Oven {}: Alarm detected! Aborting door open.".format(oven_id)
+        #     print(msg)
+        #     self.logger.warning("Alarm active on oven {}. Door open aborted.".format(oven_id))
+        #     raise Exception(msg)  # <-- Throw an exception to terminate the process
+
         if not self.check_flag and not self.init(oven_id):   # if initial not pass
             print("Initialization failed for oven {}".format(oven_id))
             return False
@@ -261,7 +273,7 @@ class OVEN(threading.Thread):
             self.logger.info('close door completed for oven {}'.format(oven_id))
             self.client.write_register(
                 address=self.write_address_mapping["Door close"]+ 16 * oven_id, 
-                value=0, 
+                value=0,
                 unit=1
             )
             self.cmd_executing = False
@@ -424,6 +436,8 @@ class OVEN(threading.Thread):
                         ##############-old-###########
                         # self.oven['top']['Ready'] = result.registers[self.read_address_mapping['top']['load/unload port is Ready']] == 1   
                         # self.oven['bottom']['Ready'] = result.registers[self.read_address_mapping['bottom']['load/unload port is Ready']] == 1   
+#OvenStatus-Alarm
+                            self.oven[i]["Status-Alarm"] = results[self.read_address_mapping['Status-Alarm']+16*i] == 1
 #DoorPosition
                         # if (result.registers[self.read_address_mapping['Door open position#1']]+16*i, result.registers[self.read_address_mapping['top']['Door close position']], result.registers[self.read_address_mapping['top']['Auto Door not safety status']]) == (1, 0, 0):    
                         #     self.oven['top']["DoorPosition"] = "Door Opened"
@@ -498,7 +512,7 @@ class OVEN(threading.Thread):
 #192.168.5.71
 if __name__ == '__main__':
     setting = {}
-    setting['ip'] = '192.168.5.71'
+    setting['ip'] = '192.168.1.216'
     setting['port'] = 502
     setting['device_id'] = "OVEN1"
     setting['modbus_timeout'] = 10
@@ -515,7 +529,12 @@ if __name__ == '__main__':
 
     try:
         while True:
-            res=raw_input('please input:') #go,215,300,180
+            try: #richard 250505
+                # Try Python3's input() first
+                res = input('please input:') #go,215,300,180
+            except NameError:
+                # If NameError occurs, it means it is Python 2, use raw_input()
+                res = raw_input('please input:') #go,215,300,18
             if res:
                 cmds=res.split(',')
                 if cmds[0] == 'open': # open,1
@@ -530,7 +549,7 @@ if __name__ == '__main__':
                     h.init(int(cmds[1]))
                 elif cmds[0] == 'check':
                     pass
-            print(json.dumps(dict(h.oven[0]), indent=4))
+            print(json.dumps(dict(h.oven[20]), indent=4))
     except:
         traceback.print_exc()
         pass

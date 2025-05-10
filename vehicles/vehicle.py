@@ -6485,7 +6485,7 @@ class Vehicle(threading.Thread):
                                         self.enter_acquiring_state()
                                         continue
 
-                            elif self.tr_assert['Result'] == 'NG': 
+                            elif self.tr_assert['Result'] in ['NG', 'FAIL']: # richard 250428
                                 if global_variables.RackNaming == 43:
                                     raise alarms.EqUnLoadCheckFailWarning(self.id, uuid, target)
                                 #ASECL OVEN Richard 250220
@@ -6735,7 +6735,10 @@ class Vehicle(threading.Thread):
                                     raise alarms.BaseCarrPosErrWarning(self.id, uuid, self.action_in_run['loc'], carrierID_from_cmd, handler=self.secsgem_e82_h)
                                 
                                 if carrierID_from_cmd and carrierID_from_cmd != carrierID_from_rfid:
-                                    raise alarms.BaseCarrRfiddifferentWarning(self.id, uuid, self.action_in_run['loc'], carrierID_from_rfid, handler=self.secsgem_e82_h)
+                                    if carrierID_from_rfid is None or carrierID_from_rfid == '' : #richard 250430 For trigger rfid is empty or none" 
+                                        raise alarms.BaseCarrRfidEmptyOrNoneWarning(self.id, uuid, self.action_in_run['loc'], carrierID_from_cmd, handler=self.secsgem_e82_h)
+                                    else:
+                                        raise alarms.BaseCarrRfiddifferentWarning(self.id, uuid, self.action_in_run['loc'], carrierID_from_rfid, handler=self.secsgem_e82_h)
 
                             EqMgr.getInstance().trigger(target, 'acquire_complete_evt', {'vehicleID':self.id, 'carrierID':carrierID_from_cmd})
 
@@ -6819,7 +6822,7 @@ class Vehicle(threading.Thread):
                                 continue
                                 
                             #else: #NG or FAIL or PENDING
-                            elif self.tr_assert['Result'] == 'NG' and (self.tr_assert['TransferPort'] in [target,'None']): #for spil, no waiting
+                            elif self.tr_assert['Result'] in ['NG', 'FAIL'] and (self.tr_assert['TransferPort'] in [target,'None']): #for spil, no waiting
                                 raise alarms.EqLoadCheckFailWarning(self.id, uuid, target, handler=self.secsgem_e82_h) #chocp fix 2022/4/14
                                 continue
 

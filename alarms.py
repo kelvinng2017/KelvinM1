@@ -332,6 +332,11 @@ class BaseCarrRfiddifferentWarning(MyException): #8.22-1
         MyException.__init__(self, 'Error', 10019, sub_code, 'Buffer carrier ID read fail')
         self.notify({'Vehicle':vehicleID}, collections.OrderedDict({'VehicleID':vehicleID, 'CommandID':commandID ,'PortID':buffer, 'CarrierID':carrierID}), handler=handler)
 
+class BaseCarrRfidEmptyOrNoneWarning(MyException): #richard 250430 For trigger rfid is None or different 
+    def __init__(self, vehicleID, commandID, buffer, carrierID, sub_code='TSC037', handler=None):
+        MyException.__init__(self, 'Error', 10019, sub_code, 'Buffer carrier ID read None')
+        self.notify({'Vehicle':vehicleID}, collections.OrderedDict({'VehicleID':vehicleID, 'CommandID':commandID ,'PortID':buffer, 'CarrierID':carrierID}), handler=handler)
+        
 class BaseCarrDupWarning(MyException):
     def __init__(self, vehicleID, commandID, buffer, carrierID, sub_code='0', handler=None):
         MyException.__init__(self, 'Error', 10020, sub_code, 'Buffer carrier duplicate error')

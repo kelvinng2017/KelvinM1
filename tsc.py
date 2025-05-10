@@ -585,10 +585,11 @@ class TSC(threading.Thread):
             #chocp add this alarm 2021/1031
             for tr_cmd in h_vehicle.tr_cmds:
                 uuid=tr_cmd['uuid']
-                if uuid.endswith('-LOAD'):
-                    uuid=uuid[:-5]
-                elif uuid.endswith('-UNLOAD'):
-                    uuid=uuid[:-7]
+                if cause=='by host':
+                    if uuid.endswith('-LOAD'):
+                        uuid=uuid[:-5]
+                    elif uuid.endswith('-UNLOAD'):
+                        uuid=uuid[:-7]
                 if uuid == local_command_id:
                     if global_variables.RackNaming== 43 and h_vehicle.AgvState in ['Acquiring', 'Depositing']:
                         break

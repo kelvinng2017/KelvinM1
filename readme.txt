@@ -1,3 +1,11 @@
+8.37.2(2025/05/05) by richard
+add:
+1.add TrloadRq & Trunloadrq recive Result = ["FAIL"] to trigger Alarm EqUnLoadCheckFailWarning and EqLoadCheckFailWarning
+2.add alarm 10019 subcode:307 To distinguish whether the rfid is none or empty
+mod:
+fix:
+1.fix bug:OvenAdapter and OvenHandlerAdapter can run in py2 and py3
+
 8.37.1(2025/05/02)
 add:
 1.add the ability to configure the sequence in which the MR places carriers onto the buffer for each port
