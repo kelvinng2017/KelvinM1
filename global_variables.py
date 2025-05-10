@@ -40,7 +40,7 @@ RackPortFormat=[
     [r'(ER.+)_LP(.+)',                              '%s_LP%.2d',    r'(ER.+)',                              '%s',    r'(.+)_LP(\d+)'], #11 JCET SCS
     [r'(ER\d+)P(\d+)',                              '%sP%d',        r'(ER\d+)',                             '%s',    r'(.+).(\d+)'], #12. HH 3rd factory
     [r'(ER.+)_LP(.+)',                              '%s_LP%.2d',    r'(ER.+)',                              '%s',    r'(.+)_(\d+)'], #13 UTAC USG1
-    [r'(PS.+)_(.+)',                                '%s_%.2d',      r'(PS.+)',                              '%s',    r'(.+)_(\d+)'], #14 KEYC
+    [r'(PS.+)_(.+)',                                '%s_%.2d',      r'(PS.+)',                              '%s',    r'(.+)_(\d+)'], #14 KYEC
     [r'(ER.+)_LP(.+)',                              '%s_LP%.2d',    r'(ER.+)',                              '%s',    r'(.+)_LP(\d+)'], #15 GB, GF
     [r'F(\d+)P(\d+)',                               'F%dP%d',       r'F(\d+)',                              'F%.3d', ''], #16 SJSEMI 2F
     [r'(ER.+)_LP(.+)',                              '%s_LP%.2d',    r'(ER.+)',                              '%s',    ''], #17 JCET eWLB

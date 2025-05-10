@@ -1,3 +1,10 @@
+8.37.3(2025/05/07) 
+add:
+mod:
+1.modify racknamin [1,21,22] TrloadRq & Trunloadrq recive Result = ["FAIL"]
+2.modify requirements.txt mark setproctitle
+fix:
+
 8.37.2(2025/05/05) by richard
 add:
 1.add TrloadRq & Trunloadrq recive Result = ["FAIL"] to trigger Alarm EqUnLoadCheckFailWarning and EqLoadCheckFailWarning

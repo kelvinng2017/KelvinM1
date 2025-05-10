@@ -6478,16 +6478,6 @@ class Vehicle(threading.Thread):
                                     if self.tr_assert['TransferPort'] == 'None' or self.tr_assert['SendBy'] == 'by web': #chocp add 2021/12/21
                                         self.enter_acquiring_state()
                                         continue
-                                else:
-                                    if (not self.tr_assert['Request'] or self.tr_assert['Request'] == 'UnLoad') and\
-                                    (self.tr_assert['TransferPort'] == target or self.tr_assert['SendBy'] == 'by web'): #chocp add 2021/12/21
-                                        self.tr_assert_result=target
-                                        self.enter_acquiring_state()
-                                        continue
-
-                            elif self.tr_assert['Result'] in ['NG', 'FAIL']: # richard 250428
-                                if global_variables.RackNaming == 43:
-                                    raise alarms.EqUnLoadCheckFailWarning(self.id, uuid, target)
                                 #ASECL OVEN Richard 250220
                                 elif global_variables.RackNaming == 22:
                                     pose=tools.get_pose(self.adapter.last_point)
@@ -6506,9 +6496,23 @@ class Vehicle(threading.Thread):
                                             print("h_OVEN  ULD_RequestTransport ULD_ApproveTransport ")
                                 else:
                                     if (not self.tr_assert['Request'] or self.tr_assert['Request'] == 'UnLoad') and\
+                                    (self.tr_assert['TransferPort'] == target or self.tr_assert['SendBy'] == 'by web'): #chocp add 2021/12/21
+                                        self.tr_assert_result=target
+                                        self.enter_acquiring_state()
+                                        continue
+                            elif self.tr_assert['Result'] == 'NG': # richard 250428
+                                if global_variables.RackNaming == 43:
+                                    raise alarms.EqUnLoadCheckFailWarning(self.id, uuid, target) 
+                                else:
+                                    if (not self.tr_assert['Request'] or self.tr_assert['Request'] == 'UnLoad') and\
                                     (self.tr_assert['TransferPort'] == target): #for spil, no waiting
                                         raise alarms.EqUnLoadCheckFailWarning(self.id, uuid, target) #chocp fix 2022/4/14
                                         continue
+                            elif global_variables.RackNaming in [1,21,22] and self.tr_assert['Result'] == 'FAIL'  and (self.tr_assert['TransferPort'] in [target,'None']):
+                                if (not self.tr_assert['Request'] or self.tr_assert['Request'] == 'UnLoad') and\
+                                (self.tr_assert['TransferPort'] == target): #for spil, no waiting
+                                    raise alarms.EqUnLoadCheckFailWarning(self.id, uuid, target) #chocp fix 2022/4/14
+                                    continue
 
                         pending_timeout=local_tr_cmd.get('TransferInfo', {}).get('ExecuteTime', 0)
                         if global_variables.RackNaming == 42:
@@ -6822,8 +6826,13 @@ class Vehicle(threading.Thread):
                                 continue
                                 
                             #else: #NG or FAIL or PENDING
-                            elif self.tr_assert['Result'] in ['NG', 'FAIL'] and (self.tr_assert['TransferPort'] in [target,'None']): #for spil, no waiting
+                            elif self.tr_assert['Result'] == 'NG'  and (self.tr_assert['TransferPort'] in [target,'None']): #for spil, no waiting
                                 raise alarms.EqLoadCheckFailWarning(self.id, uuid, target, handler=self.secsgem_e82_h) #chocp fix 2022/4/14
+                                continue
+                            
+                            #richard for ASECL 250506
+                            elif global_variables.RackNaming in [1,21,22] and self.tr_assert['Result'] == 'FAIL'  and (self.tr_assert['TransferPort'] in [target,'None']):
+                                raise alarms.EqLoadCheckFailWarning(self.id, uuid, target, handler=self.secsgem_e82_h)
                                 continue
 
                             elif global_variables.RackNaming == 18 and self.tr_assert['Result'] == 'PENDING': #8.22J-1 for K25 change load to get cmd

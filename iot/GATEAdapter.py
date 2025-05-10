@@ -189,7 +189,7 @@ class GATE(threading.Thread):
         self.logger.info("Starting iot device {} thread.".format(self.device_id))
         while not self.thread_stop:
             try:
-                self.logger.info("IOT GATE device_id <{}> on {}}:{} is connecting.".format(self.device_id, self.ip, self.port))
+                self.logger.info("IOT GATE device_id <{}> on {}:{} is connecting.".format(self.device_id, self.ip, self.port))
                 self.comm.run()
                 self.logger.info("IOT GATE device_id <{}> on {}:{} disconnected.".format(self.device_id, self.ip, self.port))
             except:

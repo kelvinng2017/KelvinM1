@@ -16,5 +16,5 @@ websocket-client==0.57.0
 pyzmq>=15.4.0
 psutil==6.1.1
 namedthreads==1.0
-setproctitle=1.1.10
+#setproctitle=1.1.10
 pymodbus==2.5.3
