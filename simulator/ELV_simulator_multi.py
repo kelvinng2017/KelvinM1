@@ -3,6 +3,7 @@ import threading
 import time
 import re
 
+import argparse
 
 class ElevatorPLCSimulator(threading.Thread):
     def __init__(self, ip, port):
@@ -12,7 +13,7 @@ class ElevatorPLCSimulator(threading.Thread):
         self.client_socket = None
         self.connected = False
         self.status = {
-            "PM": "In_Service",
+            "PM": "Out_Service",
             "OP": "Auto",
             "CMD": "Door_Close",
             # "Status": "Stopped_DownStair",  # Initial status
@@ -81,6 +82,12 @@ class ElevatorPLCSimulator(threading.Thread):
         # Extract the command and status from the message using regex
         command_match  = re.search(r'\[Command:(.+?)\]', command)
         status_match = re.search(r'\[Status:(.+?)\]', command)
+        pm_match = re.search(r'\[PM_Mode:(.+?)\]', command)
+        if pm_match:
+            pm_mode = pm_match.group(1)
+            if pm_mode == "In_Service":
+                self.status['PM'] = "In_Service"
+                self.status['Status'] = "Stopped_1F"
         if command_match  and status_match:
             command = command_match .group(1)
             status = status_match.group(1)
@@ -177,8 +184,12 @@ class ElevatorPLCSimulator(threading.Thread):
                     self.status['Status'] = "Door_Opened"
                     self.status['CMD'] = "Door_Open"
                 elif command == "Door_Close":
+                    self.status['Status'] = "Door_Closing"
+                    self.status['CMD'] = "Door_Close"
+                    time.sleep(3)
                     self.status['Status'] = "Door_Closed"
                     self.status['CMD'] = "Door_Close"
+
 
 
             # ... add additional command handlers as necessary
@@ -196,8 +207,20 @@ class ElevatorPLCSimulator(threading.Thread):
 
 
 if __name__ == '__main__':
-    ip = '127.0.0.1'  # Server IP address
-    port = 4096  # Server port number
+    parser = argparse.ArgumentParser(description="Elevator PLC Simulator")
+    parser.add_argument('-i', '--ip',
+                        help='Server IP address',
+                        default='127.0.0.1')
+    parser.add_argument('-p', '--port',
+                        help='Server port number',
+                        type=int,
+                        default=4096) 
+    args = parser.parse_args()
+
+    ip = args.ip
+    port = args.port
+    # ip = '127.0.0.1'  # Server IP address
+    # port = 4096  # Server port number
     elevator_plc = ElevatorPLCSimulator(ip, port)
     try:
         while True:

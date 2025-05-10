@@ -1,3 +1,11 @@
+8.37.5(2025/05/09) 
+add:
+mod:
+1.mod ELV_simulator, ELV_adapter for multi floor transfer
+2.mod leave_elevator from PreProcess to PostProcess in vehicleRoutePlanner
+3.mod ELV alarm secs handler to E82_Host, add alarm_code in E82_equipment
+fix:
+
 8.37.4(2025/05/07) 
 add:
 mod:
@@ -7,7 +15,7 @@ fix:
 8.37.3(2025/05/07) 
 add:
 mod:
-1.modify racknamin [1,21,22] TrloadRq & Trunloadrq recive Result = ["FAIL"]
+1.modify racknaming [1,21,22] TrloadRq & Trunloadrq recive Result = ["FAIL"]
 2.modify requirements.txt mark setproctitle
 fix:
 

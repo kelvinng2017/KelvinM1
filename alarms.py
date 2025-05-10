@@ -3,6 +3,7 @@ import time
 import alarms
 from semi.SecsHostMgr import E88_Host
 from semi.SecsHostMgr import E82_Host
+from semi.SecsHostMgr import E88_STK_Host
 from global_variables import output
 import collections
 import json
@@ -661,19 +662,19 @@ class ABCSConnectFailWarning(MyException):
         self.notify({'Iot':ABCSID}, collections.OrderedDict({'DeviceID':ABCSID}), handler=handler)
 
 class ELVWithAlarmWarning(MyException):
-    def __init__(self, ABCSID, sub_code='0', handler=None):
+    def __init__(self, ELVID, sub_code='0', handler=E88_STK_Host):
         MyException.__init__(self, 'Error', 50061, sub_code, 'Elevator with alarms')
-        self.notify({'Iot':ABCSID}, collections.OrderedDict({'DeviceID':ABCSID}), handler=handler)
+        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=None)
 
 class ELVLinkLostWarning(MyException):
-    def __init__(self, ABCSID, sub_code='0', handler=None):
+    def __init__(self, ELVID, sub_code='0', handler=E88_STK_Host):
         MyException.__init__(self, 'Error', 50062, sub_code, 'Elevator linking timeout')
-        self.notify({'Iot':ABCSID}, collections.OrderedDict({'DeviceID':ABCSID}), handler=handler)
+        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=None)
 
 class ELVConnectFailWarning(MyException):
-    def __init__(self, ABCSID, sub_code='0', handler=None):
+    def __init__(self, ELVID, sub_code='0', handler=E88_STK_Host):
         MyException.__init__(self, 'Error', 50063, sub_code, 'Elevator Connect fail')
-        self.notify({'Iot':ABCSID}, collections.OrderedDict({'DeviceID':ABCSID}), handler=handler)
+        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=None)
 
 
 #for temp

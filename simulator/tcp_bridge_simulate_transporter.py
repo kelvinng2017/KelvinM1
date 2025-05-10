@@ -818,6 +818,9 @@ class tcp_bridge:
         port_name=[str(i+1) for i in range(self.buffer_num)]
         for i in range(len(self.jsonstatus["cassette"])):
             #......................................................
+            print('Processing cassette {}: {}'.format(i, self.jsonstatus["cassette"][i]))
+            if self.jsonstatus["cassette"][i]["id"] == 'Unknown':
+                self.jsonstatus["cassette"][i]["id"]='None'
             self.output_buffer.appendleft("P25"+port_name[i]+str(self.jsonstatus["cassette"][i]["port"])+self.jsonstatus["cassette"][i]["id"])
             '''if (self.jsonstatus["cassette"][i]["id"] != ''):
                 if (self.jsonstatus["cassette"][i]["id"] == 'ReadIdFail'):
@@ -1133,11 +1136,17 @@ if __name__ =='__main__':
 
             elif cmds[0] == 'rfid':
                 if len(cmds) == 3:
-                    h.jsonstatus["cassette"][int(cmds[1])-1]["id"]=cmds[2]
-                    h.jsonstatus["cassette"][int(cmds[1])-1]["port"]=5
+                    h.jsonstatus["cassette"][int(cmds[1])-1]["port"] = 3
+                    h.cassette_status_report()
+                    time.sleep(3)
+                    h.jsonstatus["cassette"][int(cmds[1])-1]["id"] = cmds[2]
+                    h.jsonstatus["cassette"][int(cmds[1])-1]["port"] = 5
                     h.cassette_status_report()
                     print('buffer{}: {}'.format(cmds[1], cmds[2]))
                 elif len(cmds) == 2:
+                    h.jsonstatus["cassette"][int(cmds[1])-1]["port"] = 3
+                    h.cassette_status_report()
+                    time.sleep(3)
                     h.jsonstatus["cassette"][int(cmds[1])-1]["id"]=''
                     h.jsonstatus["cassette"][int(cmds[1])-1]["port"]=4
                     h.cassette_status_report()
