@@ -1,3 +1,9 @@
+8.37.4(2025/05/07) 
+add:
+mod:
+1.modify SSL connection logic with VEHICLE for rackNaming 55
+fix:
+
 8.37.3(2025/05/07) 
 add:
 mod:

@@ -2134,15 +2134,29 @@ class Adapter(threading.Thread):
                 if not self.online['connected'] and not self.online['sync']: #step 1 #2022/6/9
                     self.logger.warning('{} {}'.format('[{}] '.format(self.id), 'MR connecting:{},{}...'.format(self.ip, self.port)))
                     try:
-                        if global_variables.RackNaming == 55:
-                            import ssl
+                        settings = {}
+                        if os.path.exists("config.json"):
                             with open("config.json") as file:
-                                settings=json.load(file)
-                            ssl_location=settings.get("ssl_location", "/home/mcsadmin/server.crt")
-                            context=ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-                            context.load_verify_locations(ssl_location)
+                                settings = json.load(file)
+                        use_ssl = settings.get("use_ssl", False)
+                        if global_variables.RackNaming == 55 and use_ssl:
+                            import ssl
+                            auth_mode = settings.get("auth_mode", "server")  # "server", "client", or "both"
+                            server_cert = settings.get("server_cert", "/home/mcsadmin/server.crt")
+                            client_cert = settings.get("client_cert", "/home/mcsadmin/client.crt")
+                            client_key = settings.get("client_key", "/home/mcsadmin/client.key")
+                            context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+                            if auth_mode == "server":
+                                context.load_verify_locations(server_cert)
+                            elif auth_mode == "client":
+                                context.load_cert_chain(certfile=client_cert, keyfile=client_key)
+                            elif auth_mode == "both":
+                                context.load_verify_locations(server_cert)
+                                context.load_cert_chain(certfile=client_cert, keyfile=client_key)  # Assume same file used
+                            else:
+                                raise ValueError("Invalid auth_mode in config.json")
                             client_socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)        
-                            self.sock=context.wrap_socket(client_socket, server_hostname=self.ip)    
+                            self.sock=context.wrap_socket(client_socket, server_hostname=self.ip)     
                         else:
                             self.sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                             
@@ -2326,15 +2340,29 @@ class Adapter(threading.Thread):
                     pass
                 try:
                     time.sleep(1)
-                    if global_variables.RackNaming == 55:
-                        import ssl
+                    settings = {}
+                    if os.path.exists("config.json"):
                         with open("config.json") as file:
                             settings = json.load(file)
-                        ssl_location = settings.get("ssl_location", "/home/mcsadmin/server.crt")
+                    use_ssl = settings.get("use_ssl", False)
+                    if global_variables.RackNaming == 55 and use_ssl:
+                        import ssl
+                        auth_mode = settings.get("auth_mode", "server")  # "server", "client", or "both"
+                        server_cert = settings.get("server_cert", "/home/mcsadmin/server.crt")
+                        client_cert = settings.get("client_cert", "/home/mcsadmin/client.crt")
+                        client_key = settings.get("client_key", "/home/mcsadmin/client.key")
                         context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
-                        context.load_verify_locations(ssl_location)
-                        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                        self.sock=context.wrap_socket(client_socket, server_hostname=self.ip)
+                        if auth_mode == "server":
+                            context.load_verify_locations(server_cert)
+                        elif auth_mode == "client":
+                            context.load_cert_chain(certfile=client_cert, keyfile=client_key)
+                        elif auth_mode == "both":
+                            context.load_verify_locations(server_cert)
+                            context.load_cert_chain(certfile=client_cert, keyfile=client_key)  # Assume same file used
+                        else:
+                            raise ValueError("Invalid auth_mode in config.json")
+                        client_socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)        
+                        self.sock=context.wrap_socket(client_socket, server_hostname=self.ip) 
                     else:
                         self.sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                     self.sock.settimeout(10)

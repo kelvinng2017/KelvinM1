@@ -1,3 +1,7 @@
 {
-  "ssl": "/home/mcsadmin/server.crt"
+  "use_ssl": true,
+  "auth_mode": "both",
+  "server_cert": "/home/mcsadmin/server.crt",
+  "client_cert": "/home/mcsadmin/client.crt",
+  "client_key": "/home/mcsadmin/client.key"
 }
