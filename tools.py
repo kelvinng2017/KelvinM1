@@ -1366,3 +1366,28 @@ def decide_output_by_portID(source_portID, dest_portID):
             return "source" if DivideMethod == "By Source" else "dest"
     else:
         return "source" if DivideMethod == "By Source" else "dest"
+    
+def update_firstEQ(source_portID, dest_portID):
+    h_workstation_source_portID=EqMgr.getInstance().workstations.get(source_portID)
+    if h_workstation_source_portID:
+        if h_workstation_source_portID.workstation_type == "ErackPort":
+            h_workstation_dest_portID=EqMgr.getInstance().workstations.get(dest_portID)
+            if h_workstation_dest_portID:
+                # if h_workstation_dest_portID.workstation_type == "ErackPort":
+                return h_workstation_dest_portID.equipmentID
+
+            else:
+                res, rack_id, port_no = rackport_format_parse(dest_portID)
+                if res:
+                    return rack_id
+        else:
+            return h_workstation_source_portID.equipmentID
+            
+    else:
+        try:
+            res, rack_id, port_no = rackport_format_parse(source_portID)
+            if res:
+                return rack_id
+        except:
+            pass
+

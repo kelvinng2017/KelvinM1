@@ -350,7 +350,8 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                 h_workstation=EqMgr.getInstance().workstations.get(task['target'])
                 target_point=tools.find_point(task['target'])
                 
-                if h_workstation:#h_workstation.equipmentID
+                if h_workstation and  h_workstation.workstation_type != "ErackPort":#h_workstation.equipmentID 
+                    action_logger.debug("hhha")
                     
                     if target_point != IAR_init_point:
                         
@@ -396,12 +397,14 @@ def task_generate(transfers, buf_available, init_point='', model=''):
                                     
                                     original_frist_action_h_workstation=EqMgr.getInstance().workstations.get(actions[0].get('target'))
                                     if original_frist_action_h_workstation:#0<=41849
-                                        
-                                        if original_frist_action_target_and_mr_distance <= new_action_targe_tand_mr_distance:#39738 661
-                                            
-                                            actions.append(task)
+                                        if original_frist_action_h_workstation.workstation_type != "ErackPort":
+                                            if original_frist_action_target_and_mr_distance <= new_action_targe_tand_mr_distance:#39738 661
+                                                
+                                                actions.append(task)
+                                            else:
+                                                
+                                                actions.insert(0,task)
                                         else:
-                                            
                                             actions.insert(0,task)
                                     else:
                                         actions.insert(0,task)

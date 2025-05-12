@@ -186,6 +186,8 @@ class Vehicle(threading.Thread):
         self.adapter=0
         
         self.go_to_vcs=False
+        self.NewEQ=""
+        self.OldEQ=""
 
         output('VehicleInit', {
             'VehicleID':self.id,
@@ -5774,6 +5776,7 @@ class Vehicle(threading.Thread):
                             #vehicle assigned
                             if len(self.actions):
                                 self.CommandIDList=[] #from unassigned
+                                self.NewEQ=""
                                 for local_tr_cmd in self.tr_cmds:
                                     if local_tr_cmd['host_tr_cmd']['uuid'] not in self.CommandIDList:#fix 5
                                         self.CommandIDList.append(local_tr_cmd['host_tr_cmd']['uuid']) #release commandID

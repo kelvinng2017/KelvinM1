@@ -575,6 +575,7 @@ class TransferWaitQueue():
         self.transfer_list={}
         self.dispatchedMRList=[]
         self.lot_list={}
+        
         self.waiting_credit=0
         self.single_transfer_total=0
         self.replace_transfer_total=0
@@ -616,6 +617,7 @@ class TransferWaitQueue():
         self.schedule_algo='by_lowest_cost' #for oven
         self.vehicle_algo='by_lowest_distance' 
         self.enable='yes' #Hshuo 240801
+        # self.carrier_amr={}
 
 
         if setting:
@@ -626,6 +628,8 @@ class TransferWaitQueue():
 
         else:
             self.update_params(self.default_setting)
+        
+        
 
         TransferWaitQueue.__instance[queueID]=self
         print('******************************************************')
@@ -1553,12 +1557,23 @@ class TransferWaitQueue():
 
                 # tr_wq_lib_logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
                 bufferAllowedDirections=host_tr_cmd.get('bufferAllowedDirections', '')
-                # tr_wq_lib_logger.debug("bufferAllowedDirection:{}".format(bufferAllowedDirections))
-                # tr_wq_lib_logger.debug("h_vehicle.bufferDirection:{}".format(h_vehicle.bufferDirection))
-                if bufferAllowedDirections != "All":
-                    matched_buf = [buf for buf in buf_available_list_sorted if buf in h_vehicle.bufferDirection[bufferAllowedDirections]]
-                else:
-                    matched_buf = [buf for buf in buf_available_list_sorted]
+                tr_wq_lib_logger.debug("bufferAllowedDirection:{}".format(bufferAllowedDirections))
+                tr_wq_lib_logger.debug("h_vehicle.bufferDirection:{}".format(h_vehicle.bufferDirection))
+                tr_wq_lib_logger.debug("out buf_available_list_sorted:{}".format(buf_available_list_sorted))
+                h_vehicle.NewEQ=tools.update_firstEQ(host_tr_cmd['source'],host_tr_cmd['dest'])
+                tr_wq_lib_logger.debug("h_vehicle.NewEQ:{}".format(h_vehicle.NewEQ))
+                if h_vehicle.OldEQ != h_vehicle.NewEQ:
+                    tr_wq_lib_logger.debug("h_vehicle.OldEQ:{}".format(h_vehicle.OldEQ))
+                    if h_vehicle.NewEQ != "":
+                        tr_wq_lib_logger.debug("do check")
+                    tr_wq_lib_logger.debug("update h_vehicle.OldEQ")
+                    h_vehicle.OldEQ=h_vehicle.NewEQ
+                    tr_wq_lib_logger.debug("h_vehicle.OldEQ:{}".format(h_vehicle.OldEQ))
+
+                # if bufferAllowedDirections != "All":
+                #     matched_buf = [buf for buf in buf_available_list_sorted if buf in h_vehicle.bufferDirection[bufferAllowedDirections]]
+                # else:
+                #     matched_buf = [buf for buf in buf_available_list_sorted]
 
                 if global_variables.RackNaming in [46]:
                     #check_zoneID=""
@@ -1720,6 +1735,8 @@ class TransferWaitQueue():
                     if global_variables.RackNaming == 40:
                         actual_dispatch_cmd_list.append(host_tr_cmd['uuid'])
                         self.activeHandlingType=host_tr_cmd.get('handlingType','')
+                    
+
                     self.dispatch_tr_cmd_to_vehicle(host_tr_cmd, h_vehicle, buf_assigned, unload_buf_assigned, i)
                     h_vehicle.doPreDispatchCmd=False
                     primary_cmds_total+=primary_cmd_count
