@@ -320,7 +320,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     if 'Stock' in h_workstation_type:
                         SourcePortDuplicatedCheck=False
                 else:
-                    tr_wq_lib_logger.debug("h_workstation.equipmentID in check:{}".format(h_workstation.equipmentID))
+                    self.logger.debug("h_workstation.equipmentID in check:{}".format(h_workstation.equipmentID))
                     if 'Stock' in h_workstation_type:
                         SourcePortDuplicatedCheck=False
                     elif h_workstation.equipmentID in ['EQ_3800_MGZ', 'EQ_3800_CRR']:
@@ -1483,7 +1483,7 @@ class TransferWaitQueue():
                 try:
                     
                     host_tr_cmd=self.queue[i]
-                    tr_wq_lib_logger.debug("get uuid:{},source:{},dest:{},carrierID:{}".format(host_tr_cmd.get("uuid",""),host_tr_cmd.get("source",""),host_tr_cmd.get("dest",""),host_tr_cmd.get("carrierID","")))
+                    self.logger.debug("get uuid:{},source:{},dest:{},carrierID:{}".format(host_tr_cmd.get("uuid",""),host_tr_cmd.get("source",""),host_tr_cmd.get("dest",""),host_tr_cmd.get("carrierID","")))
                     priority=host_tr_cmd.get('priority','')
                     LotID=host_tr_cmd['TransferInfoList'][0].get('LotID','')
                     handlingType=host_tr_cmd.get('handlingType','')
@@ -1555,50 +1555,52 @@ class TransferWaitQueue():
                             j+=1
                             continue
 
-                # tr_wq_lib_logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
+                # self.logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
                 bufferAllowedDirections=host_tr_cmd.get('bufferAllowedDirections', '')
-                tr_wq_lib_logger.debug("bufferAllowedDirection:{}".format(bufferAllowedDirections))
-                tr_wq_lib_logger.debug("h_vehicle.bufferDirection:{}".format(h_vehicle.bufferDirection))
-                tr_wq_lib_logger.debug("out buf_available_list_sorted:{}".format(buf_available_list_sorted))
+                self.logger.debug("bufferAllowedDirection:{}".format(bufferAllowedDirections))
+                self.logger.debug("h_vehicle.bufferDirection:{}".format(h_vehicle.bufferDirection))
+                self.logger.debug("out buf_available_list_sorted:{}".format(buf_available_list_sorted))
                 h_vehicle.NewEQ=tools.update_firstEQ(host_tr_cmd['source'],host_tr_cmd['dest'])
-                tr_wq_lib_logger.debug("h_vehicle.NewEQ:{}".format(h_vehicle.NewEQ))
+                self.logger.debug("h_vehicle.NewEQ:{}".format(h_vehicle.NewEQ))
                 if h_vehicle.OldEQ != h_vehicle.NewEQ:
-                    tr_wq_lib_logger.debug("h_vehicle.OldEQ:{}".format(h_vehicle.OldEQ))
+                    self.logger.debug("h_vehicle.OldEQ:{}".format(h_vehicle.OldEQ))
                     if h_vehicle.NewEQ != "":
-                        tr_wq_lib_logger.debug("do check")
-                    tr_wq_lib_logger.debug("update h_vehicle.OldEQ")
+                        self.logger.debug("do check")
+                    self.logger.debug("update h_vehicle.OldEQ")
                     h_vehicle.OldEQ=h_vehicle.NewEQ
-                    tr_wq_lib_logger.debug("h_vehicle.OldEQ:{}".format(h_vehicle.OldEQ))
+                    self.logger.debug("h_vehicle.OldEQ:{}".format(h_vehicle.OldEQ))
 
                 # if bufferAllowedDirections != "All":
                 #     matched_buf = [buf for buf in buf_available_list_sorted if buf in h_vehicle.bufferDirection[bufferAllowedDirections]]
                 # else:
                 #     matched_buf = [buf for buf in buf_available_list_sorted]
 
+                
                 if global_variables.RackNaming in [46]:
-                    #check_zoneID=""
                     check_equipmentID=""
                     count_other_sameEQ_command=0
                     source_is_buf=False
                     equipmentID_has_erack_command=False
+                    has_erack_to_eq_command=[]
                     
                     h_workstation_dest=EqMgr.getInstance().workstations.get(host_tr_cmd['dest'])
                     if h_workstation_dest and  h_workstation_dest.workstation_type != "ErackPort":
                         
                         check_equipmentID=getattr(h_workstation_dest, 'equipmentID', '')
                         
-                        tr_wq_lib_logger.debug("check_equipmentID:{}".format(check_equipmentID))
+                        self.logger.debug("check_equipmentID:{}".format(check_equipmentID))
                     else:
                         h_workstation_source=EqMgr.getInstance().workstations.get(host_tr_cmd['source'])
                         if h_workstation_source:
                             
                             check_equipmentID=getattr(h_workstation_source, 'equipmentID', '')
                            
-                            tr_wq_lib_logger.debug("check_equipmentID:{}".format(check_equipmentID))
+                            self.logger.debug("check_equipmentID:{}".format(check_equipmentID))
                 
                     if check_equipmentID != "":
                         
                         other_same_equipmentID=''
+                        
 
                         if block_send_equipmentID != check_equipmentID:
                         
@@ -1608,15 +1610,17 @@ class TransferWaitQueue():
                                     
                                     check_dest=queue_index.get("dest","")
                                     check_source=queue_index.get("source","")
-                                    tr_wq_lib_logger.info("check_dest:{}".format(check_dest))
-                                    tr_wq_lib_logger.info("check_source:{}".format(check_source))
+                                    self.logger.info("check_dest:{}".format(check_dest))
+                                    self.logger.info("check_source:{}".format(check_source))
 
                                     h_workstation_check_dest=EqMgr.getInstance().workstations.get(check_dest)
                                     if h_workstation_check_dest and  h_workstation_check_dest.workstation_type != "ErackPort":
                                         
                                         other_same_equipmentID=getattr(h_workstation_check_dest, 'equipmentID', '')
+                                        if "L-1" in other_same_equipmentID:
+                                            has_erack_to_eq_command.append(other_same_equipmentID)
                                         
-                                        tr_wq_lib_logger.debug("other_same_equipmentID:{}".format(other_same_equipmentID))
+                                        self.logger.debug("other_same_equipmentID:{}".format(other_same_equipmentID))
                                     else:
                                         equipmentID_has_erack_command=True
                                         h_workstation_check_source=EqMgr.getInstance().workstations.get(check_source)
@@ -1624,56 +1628,46 @@ class TransferWaitQueue():
                                             
                                             other_same_equipmentID=getattr(h_workstation_check_source, 'equipmentID', '')
                                         
-                                            tr_wq_lib_logger.debug("other_same_equipmentID:{}".format(other_same_equipmentID))
+                                            self.logger.debug("other_same_equipmentID:{}".format(other_same_equipmentID))
                                     
                                     if queue_index.get("shiftTransfer",False) == False:
                                     
                                         if other_same_equipmentID == check_equipmentID:
                                             
                                             count_other_sameEQ_command += 1
+                                if count_other_sameEQ_command >=3:
+                                    break
                         else:
-                            tr_wq_lib_logger.warning("do continue because block_send_equipmentID")
+                            self.logger.warning("do continue because block_send_equipmentID")
                             i+=1
                             j+=1
                             
                             continue
 
+                    
+
 
                     if count_other_sameEQ_command > 0:
-                        tr_wq_lib_logger.debug("other count_other_sameEQ_command:{}".format(count_other_sameEQ_command))
+                        self.logger.debug("other count_other_sameEQ_command:{}".format(count_other_sameEQ_command))
                         if host_tr_cmd.get("shiftTransfer",False) == False:
                             count_other_sameEQ_command += 1
-                        tr_wq_lib_logger.debug("with self count_other_sameEQ_command:{}".format(count_other_sameEQ_command))
-                        tr_wq_lib_logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
+                        self.logger.debug("with self count_other_sameEQ_command:{}".format(count_other_sameEQ_command))
+                        self.logger.debug("buf_available_list_sorted:{}".format(buf_available_list_sorted))
                         if len(buf_available_list_sorted) < count_other_sameEQ_command:
-                            tr_wq_lib_logger.warning("do continue because no more buf")
+                            self.logger.warning("do continue because no more buf")
                             i+=1
                             j+=1
                             block_send_equipmentID = check_equipmentID
                             continue
                             
-                            # if delay_send_to_vehicle_equipmentID_count <5:
-                            #     delay_send_to_vehicle_equipmentID_count+=1
-                            #     tr_wq_lib_logger.warning("do continue")
-                            #     i+=1
-                            #     j+=1
-                            #     continue
-                            # else:
-
-                            #     host_tr_cmd['dest']=dest_port
-                            #     host_tr_cmd['TransferInfoList'][0]['DestPort']=dest_port
-                            #     if back_port:
-                            #         host_tr_cmd['back']=back_port
-                            #         host_tr_cmd['TransferInfoList'][0]['DestPort']=back_port
-                            #     delay_send_to_vehicle_equipmentID_count=0
-                            #     break
+                           
                         else:
                             delay_send_to_vehicle_equipmentID_count=0
 
-                    #tr_wq_lib_logger.warning("h_vehicle.tr_cmds:{}".format(h_vehicle.tr_cmds))
+                    
 
                     check_h_vehicle=h_vehicle.tr_cmds
-                    #cbaamr01BUF02
+                    
                     for check_h_vehicle_index in check_h_vehicle:
                         if "BUF" in check_h_vehicle_index.get("source",""):
                             source_is_buf=True
@@ -1681,12 +1675,14 @@ class TransferWaitQueue():
                             break
 
                     if source_is_buf:
-                        tr_wq_lib_logger.warning("source_is_buf:{}".format(source_is_buf))
-                        break
-                        # if equipmentID_has_erack_command:
-                        #     i+=1
-                        #     j+=1
-                        #     continue
+                        if check_equipmentID not in has_erack_to_eq_command:
+                            pass
+                        else:
+                            self.logger.warning("source_is_buf:{}".format(source_is_buf))
+                            break
+
+                
+                        
 
                                         
 
@@ -1695,7 +1691,7 @@ class TransferWaitQueue():
                 
                
                 res, primary_cmd_count, single_cmd_count, buf_reserved, buf_assigned, unload_buf_assigned=tools.buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_reserved, self.schedule_algo)
-                tr_wq_lib_logger.debug("out buf_available_list_sorted:{}".format(buf_available_list_sorted))
+                self.logger.debug("out buf_available_list_sorted:{}".format(buf_available_list_sorted))
                 print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
                 print(res, primary_cmd_count, single_cmd_count, buf_reserved, buf_assigned, unload_buf_assigned, self.merge_max_cmds)
                 print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')

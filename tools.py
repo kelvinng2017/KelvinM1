@@ -920,11 +920,6 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                         single_cmd_count+=1
 
             elif host_tr_cmd['primary']:#unload or load primary single cmd or replace primary cmd
-                tool_logger.debug("//////")
-                tool_logger.debug("host_tr_cmd['link']:{}".format(host_tr_cmd['link']))
-                tool_logger.debug("host_tr_cmd['replace']>0:{}".format(host_tr_cmd['replace']>0))
-                tool_logger.debug("host_tr_cmd.get('preTransfer'):{}".format(host_tr_cmd.get('preTransfer')))
-                tool_logger.debug("h_vehicle.one_buf_for_swap:{}".format(h_vehicle.one_buf_for_swap))
                 #if host_tr_cmd['link'] or host_tr_cmd['replace']>0:
                 if host_tr_cmd['link'] or host_tr_cmd['replace']>0 or host_tr_cmd.get('preTransfer') or h_vehicle.one_buf_for_swap: #v8.24F for reserved one buffer when preTransfer 
                     if global_variables.RackNaming in [36,46,47,48]:

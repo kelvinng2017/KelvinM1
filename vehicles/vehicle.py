@@ -3859,6 +3859,7 @@ class Vehicle(threading.Thread):
     #    self.exception_deque=alarm
 
     def append_transfer(self, host_tr_cmd, bufID, byTheWay=True,fromvehicle=False,swp=0): #8.21H-4
+        
         if swp:# Yuri 2024/10/11
             local_tr_cmd=host_tr_cmd
         else:
@@ -3932,6 +3933,150 @@ class Vehicle(threading.Thread):
 
         tools.book_slot(local_tr_cmd['dest'], self.id, local_tr_cmd['source'])  #book for MR, may cause delay
         tools.indicate_slot(local_tr_cmd['source'], local_tr_cmd['dest'], self.id)
+
+    def append_transfer_BaguioWB(self, host_tr_cmd, bufID, byTheWay=True,fromvehicle=False,need_sort=False,swp=0):#Baguio WB append_transfer_BaguioWB
+        if swp:# Yuri 2024/10/11
+            local_tr_cmd=host_tr_cmd
+        else:
+            local_tr_cmd={
+                        'uuid':host_tr_cmd['uuid'],
+                        'carrierID':host_tr_cmd['carrierID'],
+                        'carrierLoc':host_tr_cmd['source'],
+                        'source':host_tr_cmd['source'],
+                        'dest':host_tr_cmd['dest'],
+                        'priority':host_tr_cmd['priority'],
+                        'first':True,
+                        'last':True,
+                        'TransferInfo':host_tr_cmd['TransferInfoList'][0],
+                        'OriginalTransferInfo':host_tr_cmd['OriginalTransferInfoList'][0],
+                        'host_tr_cmd':host_tr_cmd
+                    }
+        local_tr_cmd['source_type']='workstation' if EqMgr.getInstance().workstations.get(local_tr_cmd['source'], '')  else 'other'
+        local_tr_cmd['dest_type']='workstation' if EqMgr.getInstance().workstations.get(local_tr_cmd['dest'], '')  else 'other'
+        
+        self.add_executing_transfer_queue(local_tr_cmd)
+
+        source_port=local_tr_cmd['source']
+        dest_port=local_tr_cmd['dest']
+        if host_tr_cmd.get('shiftTransfer'):
+            point=tools.find_point(source_port) #chocp 2024/8/21 for shift
+            
+
+            action={
+                'type':'SHIFT',
+                'target':source_port,
+                'target2':dest_port,
+                'point':point, 
+                'order':0,
+                'loc':'',
+                'local_tr_cmd':local_tr_cmd,
+                
+                }
+            self.actions.appendleft(action)
+        else:
+            if 'BUF'  in source_port:
+                bufID=self.find_buf_idx_by_carrierID(host_tr_cmd['carrierID'])
+
+            if 'BUF' in dest_port or dest_port == '*':
+                action1={
+                        'type':'ACQUIRE',
+                        'target':source_port,
+                        'point':tools.find_point(source_port) if 'BUF' not in source_port else '',
+                        'order':0,
+                        'loc':bufID,
+                        'local_tr_cmd':local_tr_cmd
+                        }
+                try:
+                    point=tools.find_point(source_port) #DestPort MRXXXBUF00
+                except:
+                    point=self.adapter.last_point
+
+                action2={
+                    'type':'NULL',
+                    'target':source_port,
+                    'point':point,
+                    'order':0, #order
+                    'loc':'',
+                    'local_tr_cmd':local_tr_cmd,
+                    
+                    }
+                self.actions.appendleft(action2)
+                self.actions.appendleft(action1)
+            else:
+                action1={
+                        'type':'ACQUIRE',
+                        'target':source_port,
+                        'point':tools.find_point(source_port) if 'BUF' not in source_port else '',
+                        'order':0,
+                        'loc':bufID,
+                        'local_tr_cmd':local_tr_cmd
+                        }
+
+                action2={
+                        'type':'DEPOSIT',
+                        'target':dest_port,
+                        'point':tools.find_point(dest_port),
+                        'order':0,
+                        'loc':bufID,
+                        'local_tr_cmd':local_tr_cmd
+                        }
+                h_workstation=EqMgr.getInstance().workstations.get(dest_port)
+
+                
+                
+
+
+                if local_tr_cmd['dest_type'] == 'workstation' and byTheWay and not fromvehicle:
+                    if h_workstation.workstation_type != "ErackPort":
+                        self.actions.appendleft(action2)
+                    else:
+                        self.actions.append(action2)
+                elif fromvehicle:
+                    self.actions=collections.deque(list(self.actions)[:1] + [action2] + list(self.actions)[1:])
+                else:
+                    self.actions.append(action2)
+                if 'BUF' not in source_port:
+                    self.actions.appendleft(action1)
+
+
+                if need_sort:
+                    self.adapter.logger.debug("wwwwwwwwwwwww")
+                    
+                    tmp_back_to_erack_action=collections.defaultdict(lambda: collections.defaultdict(list))
+                    tmp_naormal_action = collections.deque()
+                    while self.actions:
+                        action=self.actions.popleft()
+                        pt=action.get("point")
+                        action_type=action.get("type")
+                        
+                        if pt and "EWB" in pt and action_type and action_type=="DEPOSIT":
+                            root = pt.rsplit("-", 1)[0]
+                            
+                            tmp_back_to_erack_action[root][pt].append(action)
+                        else:
+                            
+                            tmp_naormal_action.append(action)
+                    
+                    self.actions = tmp_naormal_action
+                    tmp_back_to_erack_action = {k: dict(v) for k, v in tmp_back_to_erack_action.items()}
+
+                    if tmp_back_to_erack_action:
+                        for root, subdict in tmp_back_to_erack_action.items():
+                            print("Root key: {}".format(root))            
+                            for point, action_list in subdict.items():
+                                print("Point: {}".format(point))        
+                            
+                                for action in action_list:
+                                    self.adapter.logger.debug("wwwwwwwwwwwww1")
+                                    self.actions.append(action)
+                                    print("target:{}".format(action.get("target")))
+                            print()
+
+                
+
+                tools.book_slot(local_tr_cmd['dest'], self.id, local_tr_cmd['source'])  #book for MR, may cause delay
+                tools.indicate_slot(local_tr_cmd['source'], local_tr_cmd['dest'], self.id)
+
 
 
     def host_call_move_cmd(self): #8.27.13
@@ -4039,9 +4184,12 @@ class Vehicle(threading.Thread):
                     '''
                     in h_workstation 
                     '''
-                    target_is_eq=True 
-                    first_target_eqID=h_workstation.equipmentID
-                    try_append_transfer=True            
+                    if h_workstation.workstation_type != "ErackPort":
+                        target_is_eq=True 
+                        first_target_eqID=h_workstation.equipmentID
+                        try_append_transfer=True
+                    else:
+                        try_append_transfer=False
                 else:
                     try_append_transfer=False                
                     
@@ -4055,9 +4203,12 @@ class Vehicle(threading.Thread):
                     h_workstation=EqMgr.getInstance().workstations.get(target)
                     
                     if h_workstation:
-                        target_is_eq=True
-                        first_target_eqID=h_workstation.equipmentID
-                        try_append_transfer=True
+                        if h_workstation.workstation_type != "ErackPort":
+                            target_is_eq=True
+                            first_target_eqID=h_workstation.equipmentID
+                            try_append_transfer=True
+                        else:
+                            try_append_transfer=False
                     else:
                         try_append_transfer=False
                         
@@ -4071,9 +4222,12 @@ class Vehicle(threading.Thread):
                     h_workstation=EqMgr.getInstance().workstations.get(target) 
                     
                     if h_workstation:
-                        target_is_eq=True
-                        first_target_eqID=h_workstation.equipmentID
-                        try_append_transfer=True
+                        if h_workstation.workstation_type != "ErackPort":
+                            target_is_eq=True
+                            first_target_eqID=h_workstation.equipmentID
+                            try_append_transfer=True
+                        else:
+                            try_append_transfer=False
                     else:
                         try_append_transfer=False
 
@@ -4142,14 +4296,14 @@ class Vehicle(threading.Thread):
 
                                         if bufID_carriertype:
                                             vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
-                                            self.append_transfer(host_tr_cmd[1], bufID_carriertype )
+                                            self.append_transfer_BaguioWB(host_tr_cmd[1], bufID_carriertype,need_sort=True)
                                             self.adapter.logger.info("vehicle_wq with check_carrier_type get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
                                             TransferAllowed=False
                                             if linkcarriertype:
                                                 for idx, host_tr_cmd_1 in enumerate(vehicle_wq.queue):
                                                     if host_tr_cmd[1].get('link').get('uuid','') == host_tr_cmd_1.get('uuid'): 
                                                         vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd_1, idx)                                    
-                                                        self.append_transfer(host_tr_cmd_1, bufID_linkcarriertype, fromvehicle=True)
+                                                        self.append_transfer_BaguioWB(host_tr_cmd_1, bufID_linkcarriertype, fromvehicle=True)
                                                         self.adapter.logger.info("vehicle_wq link with check_carrier_type get appendTransferAllowed by {}".format(host_tr_cmd_1.get('uuid')))
                                                         self.CommandIDList.append(host_tr_cmd_1['uuid'])
                                             self.CommandIDList.append(host_tr_cmd[1]['uuid'])
@@ -4194,7 +4348,7 @@ class Vehicle(threading.Thread):
                                                     'OriginalTransferInfo':host_tr_cmd[1]['OriginalTransferInfoList'][1],
                                                     'host_tr_cmd':host_tr_cmd[1]
                                                     }
-                                            self.append_transfer(local_tr_cmd_1, buf_list[0],swp=1)
+                                            self.append_transfer_BaguioWB(local_tr_cmd_1, buf_list[0],swp=1)
 
                                             local_tr_cmd_2={
                                                     'uuid':host_tr_cmd[1]['uuid']+'-LOAD',
@@ -4209,18 +4363,18 @@ class Vehicle(threading.Thread):
                                                     'OriginalTransferInfo':host_tr_cmd[1]['OriginalTransferInfoList'][0],
                                                     'host_tr_cmd':host_tr_cmd[1]
                                                     }
-                                            self.append_transfer(local_tr_cmd_2, bufID ,fromvehicle=True,swp=1)
+                                            self.append_transfer_BaguioWB(local_tr_cmd_2, bufID ,fromvehicle=True,swp=1)
                                         else:
                                             bufID=self.find_buf_idx_by_carrierID(host_tr_cmd[1]['carrierID'])
                                             vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd[1], host_tr_cmd[0])
-                                            self.append_transfer(host_tr_cmd[1], buf_list[0] )
+                                            self.append_transfer_BaguioWB(host_tr_cmd[1], buf_list[0] )
                                             self.adapter.logger.info("vehicle_wq get appendTransferAllowed by {}".format(host_tr_cmd[1].get("CommandInfo").get("CommandID")))
                                             TransferAllowed=False
                                             if host_tr_cmd[1].get('link'):
                                                 for idx, host_tr_cmd_1 in enumerate(vehicle_wq.queue):
                                                     if host_tr_cmd[1].get('link').get('uuid','') == host_tr_cmd_1.get('uuid'): 
                                                         vehicle_wq.remove_waiting_transfer_by_idx(host_tr_cmd_1, idx)                                    
-                                                        self.append_transfer(host_tr_cmd_1, bufID, fromvehicle=True)
+                                                        self.append_transfer_BaguioWB(host_tr_cmd_1, bufID, fromvehicle=True)
                                                         self.adapter.logger.info("vehicle_wq link get appendTransferAllowed by {}".format(host_tr_cmd_1.get('uuid')))
                                                         self.CommandIDList.append(host_tr_cmd_1['uuid'])
 
@@ -4327,7 +4481,7 @@ class Vehicle(threading.Thread):
                                     for action in self.actions:
                                         self.adapter.logger.info(action)
                                     self.wq.remove_waiting_transfer_by_idx(host_tr_cmd_1[1], host_tr_cmd_1[0])
-                                    self.append_transfer(host_tr_cmd_1[1], bufID)
+                                    self.append_transfer_BaguioWB(host_tr_cmd_1[1], bufID)
                                     TransferAllowed=False
                                     break
                                 else:

@@ -487,6 +487,31 @@ def task_generate(transfers, buf_available, init_point='', model=''):
         for tmp_init_action_index in tmp_init_action[::-1]:
             actions.insert(0,tmp_init_action_index)
 
+        # Dynamic EWB custom sorting: Process in order of first appearance of EWBxxx.
+        eq_candidates = []
+        for act in actions:
+            if act['type'] in ('DEPOSIT','ACQUIRE') and act['target'].startswith('EWB'):
+                eq_name = act['target'].split('-', 1)[0]
+                if eq_name not in eq_candidates:
+                    eq_candidates.append(eq_name)
+        grouped = []
+        for eq in eq_candidates:
+            # Check if both DEPOSIT and ACQUIRE are present.
+            has_dep = any(act['type']=='DEPOSIT' and act['target'].startswith(eq) for act in actions)
+            has_acq = any(act['type']=='ACQUIRE' and act['target'].startswith(eq) for act in actions)
+            if has_dep and has_acq:
+                # First handle the DEPOSIT.
+                for act in actions[:]:
+                    if act['type']=='DEPOSIT' and act['target'].startswith(eq):
+                        grouped.append(act)
+                        actions.remove(act)
+                # Reprocess ACQUIRE
+                for act in actions[:]:
+                    if act['type']=='ACQUIRE' and act['target'].startswith(eq):
+                        grouped.append(act)
+                        actions.remove(act)
+        actions = grouped + actions
+
     for action_list in actions:
         action_logger.debug("**type:{},target:{}".format(action_list['type'],action_list['target']))
         # print("**type:{},target:{}".format(action_list['type'],action_list['target']))
