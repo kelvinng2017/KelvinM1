@@ -1,3 +1,25 @@
+8.37.7(2025/05/14)
+add:
+1.add point_priority in point param
+2.add carrier ID to P45 robot cmd
+3.modify return_standby_cmd
+mod:
+1.modify E82 transfer cmd if carrier type outside the transferinlist will updata to transferinlist
+2.racknamin [33, 42, 58] no need to cancel cmd with commandLivingTime
+
+fix:
+
+
+8.37.6(2025/05/14) 
+add:
+mod:
+1. update secsgem library
+2. abort link cmd will now send TransferCompleted with error instead of TransferAbortCompleted
+3. if cmd doesn't have cmdid, now will get from MR and report
+fix:
+1. in move cmd nak process, let vehicle stop return both 0 and 1 can continue
+2. stage will now change to transfer's dest and back correctly
+
 8.37.5(2025/05/09) 
 add:
 mod:

@@ -1263,7 +1263,7 @@ class TransferWaitQueue():
         h_vehicle.one_buf_for_swap=False #8.27.8 if swap from MR need one buf
 
         host_tr_cmd=self.queue[0]
-        check = self.queue[0].get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort'] or self.queue[0].get('link') and self.queue[0].get('link', {}).get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort']
+        check = host_tr_cmd.get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort'] or host_tr_cmd.get('link') and host_tr_cmd.get('link', {}).get('sourceType', '') in ['StockOut', 'ErackOut', 'StockIn&StockOut', 'LifterPort']
         #if global_variables.TSCSettings.get('Other', {}).get('PreDispatch','') == 'yes' and (self.queue[0].get('sourceType', '') == 'StockOut' or self.queue[0].get('sourceType', '') == 'ErackOut'): #K25 
         if (global_variables.TSCSettings.get('Other', {}).get('PreDispatch','') == 'yes' or global_variables.TSCSettings.get('Other', {}).get('StageEnable','no') == 'yes') and not host_tr_cmd.get('preTransfer') and check: #K25 
 

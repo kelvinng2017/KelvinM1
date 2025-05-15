@@ -169,6 +169,7 @@ def generate_routes():
                 'loadOrder': node[1].get('loadOrder', 0),\
                 'unloadOrder': node[1].get('unloadOrder', 0),\
                 'priority': node[1].get('priority', 0),\
+                'point_priority': node[1].get('point_priority', 0),\
                 'type': node[1].get('type', ''),\
                 'route': node[1].get('route', 'moveappend_route'),\
                 'park':node[1].get('park', 0) #8.25.14-1

@@ -2256,9 +2256,16 @@ class E82Equipment(secsgem.GemEquipmentHandler):
             obj['ack_params']=ack_params
             obj['handle']=self
             obj['CARRIERTYPE']=kwargs.get('CARRIERTYPE', [])
+            if obj['CARRIERTYPE']:
+                for transfer in self.TransferInfoList:
+                    if transfer.get('CarrierType',''):
+                        continue
+                    else:
+                        transfer['CarrierType']=obj['CARRIERTYPE'][0]
             obj['EXECUTETIME']=kwargs.get('EXECUTETIME', [''])
             obj['VEHICLEID']=kwargs.get('VEHICLEID', [''])
             obj['operatorID']=kwargs.get('OPERATORID', [''])[0]
+            obj['transferinfolist']=self.TransferInfoList # Mike: 2021/07/27
             # print(obj)
             #self.send_response(self.stream_function(2,50)([4]), system) #2021/1/17 chocp add back for ASE MCS layer
             remotecmd_queue.append(obj)

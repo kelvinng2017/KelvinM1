@@ -47,8 +47,10 @@ class tcp_bridge:
         #self.end_delay=4 #for GB real
         self.angular_speed=30
         self.buffer_num=buf_num
-        self.use_readfail_carrier=True
+        
+        self.do_link_test=False
         self.sleep=0
+        self.test=0
 
         self.current_map=''
 
@@ -377,7 +379,8 @@ class tcp_bridge:
 
                             if not self.reject:
                                 total_pos += "1"
-                                self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
+                                if not self.test:
+                                    self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
                                 params=(goal_x, goal_y, goal_w, speed_limit, endpoint, gokeep)
                                 self.move_cmd_queue.appendleft({'move_cmd':params})
                             else:
@@ -451,7 +454,8 @@ class tcp_bridge:
                                     self.move_cmd_queue.clear()
                                     self.stop_move=True
                                     total_pos += "1"
-                                    self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
+                                    if not self.test:
+                                        self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
                                     print('stop moving')
                                 else:
                                     total_pos += "0"
@@ -540,7 +544,8 @@ class tcp_bridge:
                                 #else:
                                 elif 'BUFFER' in to_port: #chocp 2024/8/21 for shift
                                     idx=int(to_port[6:])-1
-                                    self.jsonstatus["cassette"][idx]["id"]='ReadIdFail'
+                                    if not self.jsonstatus["cassette"][idx]["id"]:
+                                        self.jsonstatus["cassette"][idx]["id"]='ReadIdFail'
 
                             total_pos += "0"
                             self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
@@ -596,7 +601,8 @@ class tcp_bridge:
                                         self.jsonstatus["cassette"][idx]["id"]=''
                                     elif 'BUFFER' in to_port:
                                         idx=int(toportnum)
-                                        self.jsonstatus["cassette"][idx]["id"]='ReadIdFail'
+                                        if not self.jsonstatus["cassette"][idx]["id"]:
+                                            self.jsonstatus["cassette"][idx]["id"]='ReadIdFail'
                             total_pos += "0"
                             print("total_pos2:{}".format(total_pos))
                             self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
@@ -676,6 +682,8 @@ class tcp_bridge:
                 if toc-tic > 5:
                     msg = 'P00'
                     # self.sendMessage(msg)
+                    if self.do_link_test:
+                        self.sendMessage(msg)
                     tic = toc
                 time.sleep(0.01)
             except Exception as e:
@@ -1322,6 +1330,10 @@ if __name__ =='__main__':
             elif cmds[0] == 'sleep':
                 print('sleep', cmds[1])
                 h.sleep=int(cmds[1])
+
+            elif cmds[0] == 'test':
+                print('do test', cmds[1])
+                h.test=int(cmds[1])
 
 
     except:

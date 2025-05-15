@@ -877,7 +877,7 @@ class Vehicle(threading.Thread):
                     if check_link:
                         link_uuid=link_local_tr_cmd.get('uuid', '')
                         if local_tr_cmd['host_tr_cmd'].get('sourceType') == 'StockOut' or local_tr_cmd['host_tr_cmd'].get('sourceType') == 'ErackOut': #Chi 2022/12/29
-                            E82.report_event(self.secsgem_e82_h, E82.TransferCancelInitiated, {'CommandID':link_uuid,'CommandInfo':link_local_tr_cmd.get('CommandInfo',''),'TransferCompleteInfo':link_local_tr_cmd.get('OriginalTransferCompleteInfo','')})
+                            #E82.report_event(self.secsgem_e82_h, E82.TransferCancelInitiated, {'CommandID':link_uuid,'CommandInfo':link_local_tr_cmd.get('CommandInfo',''),'TransferCompleteInfo':link_local_tr_cmd.get('OriginalTransferCompleteInfo','')})
                             for queue_id, zone_wq in TransferWaitQueue.getAllInstance().items():
                                 if queue_id == link_local_tr_cmd['zoneID'] or queue_id == local_tr_cmd['source']:
                                     zone_wq.preferVehicle=''
@@ -889,9 +889,10 @@ class Vehicle(threading.Thread):
                                             link_local_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':transferinfo['SourcePort']}) #bug, need check
                                         link_local_tr_cmd['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
 
-                                        E82.report_event(self.secsgem_e82_h, E82.TransferCancelCompleted, {
+                                        E82.report_event(self.secsgem_e82_h,
+                                            E82.TransferCompleted, {
                                             'CommandInfo':link_local_tr_cmd.get('CommandInfo',''),
-                                            'CommandID':link_uuid,
+                                            'VehicleID':self.id,
                                             'TransferCompleteInfo':link_local_tr_cmd.get('OriginalTransferCompleteInfo', []), #9/13
                                             'TransferInfo':link_local_tr_cmd['OriginalTransferInfoList'][0] if link_local_tr_cmd['OriginalTransferInfoList'] else {},
                                             'CommandID':link_local_tr_cmd['CommandInfo'].get('CommandID', ''),
@@ -901,13 +902,26 @@ class Vehicle(threading.Thread):
                                             'SourcePort':link_local_tr_cmd['source'], #chocp fix for tfme 2021/10/23
                                             'DestPort':link_local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                             #'CarrierLoc':self.action_in_run['loc'],
-                                            'CarrierLoc':link_local_tr_cmd['dest']}) #chocp fix for tfme 2021/10/23
+                                            'CarrierLoc':link_local_tr_cmd['source'], #chocp fix for tfme 2021/10/23
+                                            'ResultCode':result_code})
+                                        '''E82.report_event(self.secsgem_e82_h, E82.TransferCancelCompleted, {
+                                            'CommandInfo':link_local_tr_cmd.get('CommandInfo',''),
+                                            'TransferCompleteInfo':link_local_tr_cmd.get('OriginalTransferCompleteInfo', []), #9/13
+                                            'TransferInfo':link_local_tr_cmd['OriginalTransferInfoList'][0] if link_local_tr_cmd['OriginalTransferInfoList'] else {},
+                                            'CommandID':link_local_tr_cmd['CommandInfo'].get('CommandID', ''),
+                                            'Priority':link_local_tr_cmd['CommandInfo'].get('Priority', 0),
+                                            'Replace':link_local_tr_cmd['CommandInfo'].get('Replace', 0),
+                                            'CarrierID':link_local_tr_cmd['carrierID'], #chocp fix for tfme 2021/10/23
+                                            'SourcePort':link_local_tr_cmd['source'], #chocp fix for tfme 2021/10/23
+                                            'DestPort':link_local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                                            #'CarrierLoc':self.action_in_run['loc'],
+                                            'CarrierLoc':link_local_tr_cmd['dest']}) #chocp fix for tfme 2021/10/23'''
                                         output('TransferCancelCompleted', {'CommandID':link_uuid})
                                     else:
                                         E82.report_event(self.secsgem_e82_h, E82.TransferCancelFailed, {'CommandID':link_uuid,'CommandInfo':link_local_tr_cmd.get('CommandInfo',''),'TransferCompleteInfo':link_local_tr_cmd.get('OriginalTransferCompleteInfo','')})
                         else:
                             if global_variables.TSCSettings.get('Safety', {}).get('SkipAbortLoadWhenUnloadAbort', 'no') == 'no':
-                                E82.report_event(self.secsgem_e82_h, E82.TransferAbortInitiated, {'CommandID':link_uuid,'CommandInfo':link_local_tr_cmd.get('CommandInfo',''),'TransferCompleteInfo':link_local_tr_cmd.get('OriginalTransferCompleteInfo','')})
+                                #E82.report_event(self.secsgem_e82_h, E82.TransferAbortInitiated, {'CommandID':link_uuid,'CommandInfo':link_local_tr_cmd.get('CommandInfo',''),'TransferCompleteInfo':link_local_tr_cmd.get('OriginalTransferCompleteInfo','')})
                                 self.abort_tr_cmds_and_actions(link_uuid, 40002, 'Transfer command in exectuing queue be aborted', cause='by link')
                     else:
                         link_local_tr_cmd['last']=True
@@ -1794,6 +1808,9 @@ class Vehicle(threading.Thread):
         cont=0
         payload={}
         carrier_type_index=1
+
+        if global_variables.RackNaming == 33 and carrierID:
+            payload['CarrierID'] = str(carrierID)
         if global_variables.TSCSettings.get('Other',{}).get('DisablePort2AddrTable', 'no') == 'yes' and len(PortsTable.mapping.get(target, [])) >= 7:
             port=PortsTable.mapping[target]
             cont=0
@@ -3153,6 +3170,18 @@ class Vehicle(threading.Thread):
             for route in global_variables.global_plan_route[wait_vehicle]:
                 for group in PoseTable.mapping[route]['group'].split("|"):
                     plan_route_group.append(group)
+                
+            final_point = global_variables.global_plan_route[wait_vehicle][-1]
+            final_point_pose = tools.get_pose(final_point)
+            Route_Lock_Point = final_point_pose.get('RobotRouteLock','')
+            if Route_Lock_Point:
+                Route_Lock_Point = Route_Lock_Point.split(',')
+                for point in Route_Lock_Point:
+                    if point not in PoseTable.mapping:
+                        continue
+                    park_point_pose = tools.get_pose(point)
+                    park_point_group = park_point_pose.get('group', '')
+                    plan_route_group.extend(park_point_group.split("|"))
         
         #optional_standby_station=[]
         sorted_station=[] #Sean 23/3/13
@@ -6287,17 +6316,30 @@ class Vehicle(threading.Thread):
                             tmpPark=True
                             try:
                                 to_point=tools.find_point(self.actions[0]['target'])
+                                last_point = self.adapter.last_point
+                                last_point_pose = tools.get_pose(last_point)
+                                last_point_priority = int(last_point_pose.get('point_priority', 0))
+                                to_point_pose = tools.get_pose(to_point)
+                                to_point_group = to_point_pose.get('group', '')
+                                to_point_groups = [g for g in to_point_group.split('|') if g]
+                                to_group_set = set(to_point_groups)
                                 if to_point != self.adapter.last_point:
                                     #check park cmd
                                     wait_vehicle='' # Mike: 2021/11/12
                                     for vehicle_id, h_vehicle in self.h_vehicleMgr.vehicles.items(): #chocp fix, 2021/10/14
-                                        if h_vehicle.id!=self.id:
-                                            if global_variables.global_moveout_request.get(h_vehicle.id, '') == self.id: #one vehicle wait for me release right
-                                                if global_variables.global_vehicles_priority.get(h_vehicle.id, 0) > self.priority:
-                                                    self.adapter.logger.info('{} {} {}'.format(h_vehicle.id, ' wait ', self.id))
-                                                    go_park=True
-                                                    wait_vehicle=h_vehicle.id # Mike: 2021/11/12
-                                                break
+                                        if h_vehicle.actions:
+                                            h_to_point = tools.find_point(h_vehicle.actions[0]['target'])
+                                            h_to_point_pose = tools.get_pose(h_to_point)
+                                            h_to_point_group = h_to_point_pose.get('group', '')
+                                            h_to_point_groups = [g for g in h_to_point_group.split('|') if g]
+                                            if h_vehicle.id!=self.id:
+                                                if global_variables.global_moveout_request.get(h_vehicle.id, '') == self.id: #one vehicle wait for me release right
+                                                    if to_group_set.isdisjoint(h_to_point_groups):
+                                                        if global_variables.global_vehicles_priority.get(h_vehicle.id, 0) > self.priority + last_point_priority:
+                                                            self.adapter.logger.info('{} {} {}'.format(h_vehicle.id, ' wait ', self.id))
+                                                            go_park=True
+                                                            wait_vehicle=h_vehicle.id # Mike: 2021/11/12
+                                                            break
                             except:
                                 traceback.print_exc()
                                 pass
@@ -6786,6 +6828,9 @@ class Vehicle(threading.Thread):
                             if carrierID_from_cmd == '' or carrierID_from_cmd == 'None': #chocp fix for tfme 2021/10/23
                                 local_tr_cmd['carrierID']=carrierID_from_rfid
                                 local_tr_cmd['TransferInfo']['CarrierID']=carrierID_from_rfid
+                                if carrierID_from_rfid not in ['None', 'ReadFail', 'Unknown']:
+                                    carrierID_from_cmd=carrierID_from_rfid
+                                    local_tr_cmd['carrierID']=carrierID_from_rfid
 
                             '''buf_idx=self.vehicle_bufID.index(self.action_in_run['loc'])
                             # print(global_variables.TSCSettings.get('Safety',{}), self.vehicle_bufID.index(self.action_in_run['loc']), self.bufs_status[buf_idx]['stockID'])

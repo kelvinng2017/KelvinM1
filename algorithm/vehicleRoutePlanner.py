@@ -1212,7 +1212,7 @@ class RoutePlanner(threading.Thread):
                     th.setDaemon(True)
                     th.start()'''
                     if not self.adapter.vehicle_stop(check_stop=0, check_get_right_th=False):
-                        if self.adapter.wait_stop == 1:
+                        if self.adapter.wait_stop in [0, 1]:
                             continue
                         elif self.adapter.wait_stop == 2:
                             self.clean_route()

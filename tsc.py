@@ -370,6 +370,8 @@ class TSC(threading.Thread):
         # check if stage is in waiting queue
         host_command_id=host_tr_cmd['uuid']
         new_host_priority=host_tr_cmd['priority']
+        old_dest = host_tr_cmd['dest']
+        old_back = host_tr_cmd['back']
         for queueID, zone_wq in TransferWaitQueue.getAllInstance().items():
             if stage_id not in zone_wq.transfer_list:
                 continue
@@ -377,10 +379,19 @@ class TSC(threading.Thread):
                 if waiting_command_id == stage_id:
                     print('> find stage id in waiting queue')
 
+                    old_dest = waiting_tr_cmd['dest']
+                    old_back = waiting_tr_cmd['back']
+
                     if waiting_tr_cmd['dest'] != host_tr_cmd['dest']:
                         print('> new dest found!')
                         waiting_tr_cmd['dest']=host_tr_cmd['dest']
                         waiting_tr_cmd['destType']=host_tr_cmd['destType']
+                        waiting_tr_cmd['TransferInfoList']=host_tr_cmd['TransferInfoList']
+                        waiting_tr_cmd['OriginalTransferInfoList']=host_tr_cmd['OriginalTransferInfoList']
+
+                    if waiting_tr_cmd['back'] != host_tr_cmd['back']:
+                        print('> new back found!')
+                        waiting_tr_cmd['back']=host_tr_cmd['back']
                         waiting_tr_cmd['TransferInfoList']=host_tr_cmd['TransferInfoList']
                         waiting_tr_cmd['OriginalTransferInfoList']=host_tr_cmd['OriginalTransferInfoList']
 
@@ -568,14 +579,19 @@ class TSC(threading.Thread):
         # change action type
         for action in h_vehicle.actions:
             # print(action.get('local_tr_cmd', {}).get('uuid'), host_command_id)
-            if action.get('local_tr_cmd', {}).get('uuid') == host_command_id:
+            if host_command_id in action.get('local_tr_cmd', {}).get('uuid'):
                 if action.get('type') == 'ACQUIRE_STANDBY':
                     print('> replace action type with ACQUIRE')
                     action['type']='ACQUIRE'
                 if action.get('type') == 'DEPOSIT':
-                    print('> replace action target with new dest')
-                    action['taget']=host_tr_cmd['dest']
-                    action['point']=tools.find_point(host_tr_cmd['dest'])
+                    if action['taget'] == old_dest:
+                        print('> replace action target with new dest')
+                        action['taget']=host_tr_cmd['dest']
+                        action['point']=tools.find_point(host_tr_cmd['dest'])
+                    elif action['taget'] == old_back:
+                        print('> replace action target with new back')
+                        action['taget']=host_tr_cmd['back']
+                        action['point']=tools.find_point(host_tr_cmd['back'])
                     
     def host_transfer_abort(self, local_command_id, cause='by host'): #'by man', 'by host', 'by replace'
         res=False
