@@ -967,7 +967,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
 
         self.remote_commands.update({
             "ABORT": secsgem.RemoteCommand("ABORT", "abort command", ["COMMANDID"], None),
-            "ASSERT": secsgem.RemoteCommand("ASSERT", "assert command", ["REQUEST", "COMMANDID", "CARRIERID", "DESTPORT", "RESULT"], None, ["LOTID", "QUANTITY", "HEIGHT","WAIT","TYPE","NGPORT"]),
+            "ASSERT": secsgem.RemoteCommand("ASSERT", "assert command", ["REQUEST", "COMMANDID", "CARRIERID", "DESTPORT", "RESULT"], None, ["LOTID", "QUANTITY", "HEIGHT","WAIT","TYPE","NGPORT","TOTAL"]),
             "ASSIGNABLE": secsgem.RemoteCommand("ASSIGNABLE", "assignable command", ["VEHICLEID"], None),
             "ASSGINLOT": secsgem.RemoteCommand("ASSGINLOT", "assginlot command", ["CARRIERID", "DESTPORT"], None),
             "ASSOCIATE": secsgem.RemoteCommand("ASSOCIATE", "associate command", ["RACKID", "PORTID", "CARRIERID", "ASSOCIATEDATA"], None, ["*"]), # Mike: 2020/07/29, chocp need fix

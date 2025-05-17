@@ -379,12 +379,7 @@ class SaveK11_AMR_STATUS():#kelvinng 20250305
 class M1_global_variables():
     vsc_point = ["MGZ_ERACK_01", "CST_Erack_left"]
 
-    AMR_shares_a_charging_station={
-        "TBS01":{
-            "AMR01":"AMR04",
-            "AMR04":"AMR01"
-        }
-    }
+   
 
     need_do_more_times_arm_EQ={
         "EQ_3670_P01_LEFT":3670,

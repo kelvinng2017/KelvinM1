@@ -1205,10 +1205,18 @@ class TSC(threading.Thread):
                                                 self.logger.debug('assert obj:{}'.format(obj))
                                                 if obj.get("RESULT",'') == 'NG':
                                                     global_variables.k11_ng_fault_port[h_vehicle.id]=obj.get("NGPORT",'')
-                                                if obj.get("TYPE",'')!='':
+                                                if obj.get("TYPE",'') != '':
                                                     self.logger.debug('obj.get("TYPE",''):{}'.format(obj.get("TYPE",'')))
                                                     self.logger.debug('h_vehicle.action_in_run:{}'.format(h_vehicle.action_in_run))
-                                                    h_vehicle.action_in_run['local_tr_cmd']['TransferInfo']['CarrierType']=obj["TYPE"]
+                                                    if h_vehicle.action_in_run['local_tr_cmd']['TransferInfo']['CarrierType'] == "":
+                                                        h_vehicle.action_in_run['local_tr_cmd']['TransferInfo']['CarrierType']=obj["TYPE"]
+                                                if obj.get("TOTAL",0) != 0 and h_vehicle.id in ["AMR04"]:
+                                                    self.logger.debug('obj.get("TOTAL",''):{}'.format(obj.get("TOTAL",'')))
+                                                    self.logger.debug('h_vehicle.action_in_run:{}'.format(h_vehicle.action_in_run))
+                                                    if "TOTAL" not in h_vehicle.action_in_run["local_tr_cmd"]["TransferInfo"]:
+                                                        h_vehicle.action_in_run["local_tr_cmd"]["TransferInfo"]["TOTAL"]=obj.get("TOTAL",0)
+                                                
+
                                 except:
                                     pass
 

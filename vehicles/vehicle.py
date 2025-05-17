@@ -1644,7 +1644,7 @@ class Vehicle(threading.Thread):
         port=PortsTable.mapping[target]
         cont=0
         payload={}
-        if global_variables.RackNaming == 36:
+        if global_variables.RackNaming == 36 and self.id in ["AMR04"]:
             check_source_is_or_not_3670=False
             check_dest_is_or_not_3670=False
             check_dest_is_or_not_erack=False
@@ -1701,6 +1701,21 @@ class Vehicle(threading.Thread):
                         
                 else:
                     payload["EQ"]=0
+            
+
+                    
+            transfer_info=local_tr_cmd.get("TransferInfo", {})
+            carrier_ids=transfer_info.get("CarrierID", "")
+            payload['pick']=len(carrier_ids.split(",")) if carrier_ids else 0
+
+            if transfer_info.get("TOTAL"):
+                payload['total']=transfer_info.get("TOTAL",0)
+            else:
+                payload['total']=len(carrier_ids.split(",")) if carrier_ids else 0
+
+            
+            
+            
         self.adapter.logger.info("payload:{}".format(payload))
         carrier_type_index=1
         if global_variables.TSCSettings.get('Other',{}).get('DisablePort2AddrTable', 'no') == 'yes' and len(PortsTable.mapping.get(target, [])) >= 7:
@@ -1808,6 +1823,16 @@ class Vehicle(threading.Thread):
         cont=0
         payload={}
         carrier_type_index=1
+
+        if global_variables.RackNaming == 36 and self.id in ["AMR04"]:
+            transfer_info=local_tr_cmd.get("TransferInfo", {})
+            carrier_ids=transfer_info.get("CarrierID", "")
+            payload['pick']=len(carrier_ids.split(",")) if carrier_ids else 0
+
+            if transfer_info.get("TOTAL"):
+                payload['total']=transfer_info.get("TOTAL",0)
+            else:
+                payload['total']=len(carrier_ids.split(",")) if carrier_ids else 0
 
         if global_variables.RackNaming == 33 and carrierID:
             payload['CarrierID'] = str(carrierID)
@@ -1970,7 +1995,7 @@ class Vehicle(threading.Thread):
         port=PortsTable.mapping[target]
         cont=0
         payload={}
-        if global_variables.RackNaming == 36:
+        if global_variables.RackNaming == 36 and self.id in ["AMR04"]:
 
             h_workstation_target=EqMgr.getInstance().workstations.get(target)
             if h_workstation_target:
@@ -1987,6 +2012,15 @@ class Vehicle(threading.Thread):
                     payload["EQ"]=0
             else:
                 payload["EQ"]=0
+
+            transfer_info=local_tr_cmd.get("TransferInfo", {})
+            carrier_ids=transfer_info.get("CarrierID", "")
+            payload['pick']=len(carrier_ids.split(",")) if carrier_ids else 0
+
+            if transfer_info.get("TOTAL"):
+                payload['total']=transfer_info.get("TOTAL",0)
+            else:
+                payload['total']=len(carrier_ids.split(",")) if carrier_ids else 0
                 
             
 
@@ -3481,54 +3515,8 @@ class Vehicle(threading.Thread):
             cont=False
             for group in PoseTable.mapping[station['point']]['group'].split("|"):
                 if group in block_group_list:
-                    self.adapter.logger.info("find_charge_station: route {} has other vehicles standby".format(station['station']))
-                    if global_variables.RackNaming == 36:
-                        if station['station'] in M1_global_variables.AMR_shares_a_charging_station:
-                            # if self.id == "AMR04":
-                            target_amr=M1_global_variables.AMR_shares_a_charging_station.get(station['station']).get(self.id)
-                            self.adapter.logger.info("use {} find {} status".format(self.id,target_amr))
-                            find_vehicle_small_status=tools.find_other_vehicle_status(target_amr)
-                            if find_vehicle_small_status:
-                                self.adapter.logger.info("find_{}_vehicle_small_status:{}".format(target_amr,find_vehicle_small_status))
-                            
-                                check_force_charge = find_vehicle_small_status.get("ForceCharge", None)
-                                check_alarm_code = find_vehicle_small_status.get("AlarmCode", 0)
-                                check_station = find_vehicle_small_status.get("Station", "")
-                                check_last_point = find_vehicle_small_status.get("Point", "")
-                                self.adapter.logger.info("self.adapter.battery percentage:{}".format(self.adapter.battery['percentage']))
-                                check_battery = find_vehicle_small_status.get("Battery",0)
-                                self.adapter.logger.info("check_battery:{}".format(check_battery))
-                                if find_vehicle_small_status.get("Connected",None) == True:
-                                    if self.adapter.battery['percentage'] - check_battery <-10:
-                                        if check_force_charge is True:
-                                            cont = True
-                                            
-                                        if check_last_point == "C001" and check_alarm_code != 0:
-                                            cont = True
-                                            
-
-                                        if cont is False:
-                                            alerady_find_group_check = True
-                                            self.adapter.logger.info("{} ko {} to find change".format(self.id,target_amr))
-                                            break
-                                        if cont:
-                                            self.adapter.logger.info("{} cannot ko {} to find change".format(self.id,target_amr))
-                                            break
-
-                                    else:
-                                        cont = True
-                                        break
-                                else:
-                                    
-                                    cont = False
-                                    break
-                            else:
-                                cont = False
-                                break
-                        
-                    else:
-                        cont=True
-                        break
+                    cont=True
+                    break
             if cont:
                 continue
             if station['cost'] < 0 or station['cost'] == float('inf'): #fix from <=0 to <0 for temp
@@ -3536,46 +3524,6 @@ class Vehicle(threading.Thread):
                 # self.adapter.logger.info("exec_charge_cmd: can't not route to {}, cost {}".format(station, cost))
                 pass
             else:
-                if global_variables.RackNaming == 36:
-                    
-                    if station['station'] in M1_global_variables.AMR_shares_a_charging_station:
-                        if alerady_find_group_check == False:
-                            go_to_physical_charge_station=True
-                            target_amr=M1_global_variables.AMR_shares_a_charging_station.get(station['station']).get(self.id)
-                            self.adapter.logger.debug("use {} find {} status in last".format(self.id,target_amr))
-                            find_vehicle_small_status=tools.find_other_vehicle_status(target_amr)
-                            if find_vehicle_small_status:
-                                self.adapter.logger.info("find_{}_vehicle_small_status:{}".format(target_amr,find_vehicle_small_status))
-                                
-                                if self.adapter.battery['percentage'] - find_vehicle_small_status.get("Battery") <=-10:
-
-                                    if find_vehicle_small_status.get("ForceCharge") is True:
-                                        go_to_physical_charge_station=False
-                                    if find_vehicle_small_status.get("AlarmCode",0) != 0 and find_vehicle_small_status.get("Point") == "C001":
-                                        go_to_physical_charge_station=False
-
-                            
-                                    if go_to_physical_charge_station:
-                                        self.adapter.logger.info("{} ko {} to find change ".format(self.id,target_amr))
-                                        pass
-                                    else:
-                                        self.adapter.logger.info("{} cannot ko {} to find change ".format(self.id,target_amr))
-                                        continue
-                                else:
-
-                                    if find_vehicle_small_status.get("Point") != "C001":
-                                        if self.adapter.battery['percentage'] - find_vehicle_small_status.get("Battery") > 10:
-                                            continue
-                                        self.adapter.logger.info("force {} ko {} to find change ".format(self.id,target_amr))
-                                        pass         
-                                    else:
-                                        continue
-                                    
-                else:
-                    
-                    pass
-
-
                 self.adapter.logger.info("find_charge_station: select route to {}".format(station['station']))
                 #nearby_cs=station['station']
                 if global_variables.RackNaming == 18:
@@ -6056,49 +6004,7 @@ class Vehicle(threading.Thread):
                             elif res and h_vehicle and self.adapter.battery['percentage']<20:
                                 h_vehicle.force_charge=False
 
-                        if global_variables.RackNaming == 36:#kelvinng 20250316 M1
-                            if self.adapter.battery['charge'] == False and self.force_charge == False:
-                                
-
-                                if self.adapter.last_point in M1_global_variables.vsc_point:
-
-                                    # Initialize time on next entry
-                                    if self.enter_charging_schedule == 0:
-                                        self.enter_charging_schedule = time.time()
-
-                                    # Check if the interval time has been exceeded
-                                    elif (time.time() - self.enter_charging_schedule) > self.charging_schedule:
-                                        to_check_next = True
-
-                                        target_amr = M1_global_variables.AMR_shares_a_charging_station.get("TBS01", {}).get(self.id)
-                                        find_vehicle_small_status = tools.find_other_vehicle_status(target_amr)
-
-                                        if find_vehicle_small_status:
-                                            self.adapter.logger.info("find_{}_vehicle_small_status_in_to_check_next:{}".format(
-                                                target_amr, find_vehicle_small_status))
-
-                                            target_amr_is_connected = find_vehicle_small_status.get("Connected", None)
-                                            target_amr_battery = find_vehicle_small_status.get("Battery", 0)
-
-                                            if target_amr_is_connected is True:
-                                                # If I have more than 10% more than the other party, I won't take the spot.
-                                                if self.adapter.battery['percentage'] - target_amr_battery < -10:
-                                                    to_check_next = True
-                                                else:
-                                                    to_check_next = False
-                                            else:
-                                                to_check_next = True  # If another AMR has no internet connection, it can charge directly.
-                                        else:
-                                            to_check_next = True  # If you can't check the status of another AMR, you can go directly to charge.
-
-                                        if to_check_next:
-                                            self.adapter.logger.debug("self.go_to_vcs:{}".format(self.go_to_vcs))
-                                            self.adapter.logger.debug("self.adapter.relay_on:{}".format(self.adapter.relay_on))
-                                            self.adapter.logger.debug("{} in {} planning charge station every {}".format(self.id, self.adapter.last_point, self.charging_schedule))
-                                            self.go_to_vcs = False  # Turn off the status at the virtual charging station.
-
-                                        # Update schedule time
-                                        self.enter_charging_schedule = time.time()
+                        
                                 
 
 

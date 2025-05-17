@@ -47,7 +47,7 @@ class tcp_bridge:
         #self.end_delay=4 #for GB real
         self.angular_speed=30
         self.buffer_num=buf_num
-        
+        self.use_readfail_carrier=True
         self.do_link_test=False
         self.sleep=0
         self.test=0

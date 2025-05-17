@@ -1107,23 +1107,23 @@ class Adapter(threading.Thread):
                     
             
                     
-                    local_tr_cmd=self.vehicle_instance.action_in_run.get("local_tr_cmd", {})
+                    # local_tr_cmd=self.vehicle_instance.action_in_run.get("local_tr_cmd", {})
 
                     
-                    transfer_info=local_tr_cmd.get("TransferInfo", {})
+                    # transfer_info=local_tr_cmd.get("TransferInfo", {})
 
                     
-                    carrier_ids = transfer_info.get("CarrierID", "")
-                    kwargs['pick']= len(carrier_ids.split(",")) if carrier_ids else 0
+                    # carrier_ids = transfer_info.get("CarrierID", "")
+                    # kwargs['pick']= len(carrier_ids.split(",")) if carrier_ids else 0
 
                     
-                    carrier_type = transfer_info.get("CarrierType", "")
+                    # carrier_type = transfer_info.get("CarrierType", "")
                     
-                    if carrier_type in global_variables.M1_global_variables.MAG_TYPE:
-                        kwargs['total']=(global_variables.M1_global_variables.MAG_TYPE.index(carrier_type) + 1)  
-                    else:
-                        self.logger.info("cannot find carrier_type in MAG_TYPE")
-                        kwargs['total']=len(carrier_ids.split(",")) if carrier_ids else 0
+                    # if carrier_type in global_variables.M1_global_variables.MAG_TYPE:
+                    #     kwargs['total']=(global_variables.M1_global_variables.MAG_TYPE.index(carrier_type) + 1)  
+                    # else:
+                    #     self.logger.info("cannot find carrier_type in MAG_TYPE")
+                    #     kwargs['total']=len(carrier_ids.split(",")) if carrier_ids else 0
             carrierTypeList=global_variables.TSCSettings.get('CassetteTypeSensitive', {}).get('CassetteTypePrefix').split(',')
             cmd='P45<{}><{}><{}><{}><{}><{}><{}><{}><{}>'.format(
                 e84, cs, cont, ct,
