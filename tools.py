@@ -1068,6 +1068,7 @@ def reschedule_to_eq_actions(action_list, initial_point, initial_station, logger
     action_list.clear()
     action_list.extend(initial_actions_in_order)
     action_list.extend(action_in_order[1:])
+    return action_list
 
 
 def reschedule_to_stocker_actions(action_list, initial_point, initial_station, logger=None): 

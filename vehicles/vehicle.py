@@ -185,7 +185,7 @@ class Vehicle(threading.Thread):
 
         self.adapter=0
         
-        self.go_to_vcs=False
+        
         self.NewEQ=""
         self.OldEQ=""
 
@@ -3498,11 +3498,8 @@ class Vehicle(threading.Thread):
                 else (Dict['cost']+10000000))
         #put avalliable ABCS in front order (cost-10000000)
         #put stations cannot arrived(cost:-1) in last order(cost inf)
-        if global_variables.RackNaming != 36:
-            sorted_station.sort(key=sort_key) #sorted by cost and ABCS
-        else:
-            if self.id not in ["AMR01","AMR04"]:# need change tp config
-                sorted_station.sort(key=sort_key) #sorted by cost and ABCS
+        sorted_station.sort(key=sort_key) #sorted by cost and ABCS
+        
                 
 
         print('\nsorted route {}'.format([[station['station'], station['cost']] for station in sorted_station]))
@@ -3668,15 +3665,7 @@ class Vehicle(threading.Thread):
             }
         local_tr_cmd['source_type']='workstation' if EqMgr.getInstance().workstations.get(local_tr_cmd['source'], '')  else 'other'
         local_tr_cmd['dest_type']='workstation' if EqMgr.getInstance().workstations.get(local_tr_cmd['dest'], '')  else 'other'
-        if global_variables.RackNaming != 36:
-            self.actions.append({'type':'CHARGE', 'carrierID':'', 'loc':'', 'order':0, 'target': station, 'local_tr_cmd':local_tr_cmd}) #chocp 2022/4/14 remove uuid
-        else:
-            if "VCS" not in station:
-                self.adapter.logger.info("why station:{}".format(station))
-                self.actions.append({'type':'CHARGE', 'carrierID':'', 'loc':'', 'order':0, 'target': station, 'local_tr_cmd':local_tr_cmd}) #chocp 2022/4/14 remove uuid
-            else:
-                self.force_charge=False
-                self.go_to_vcs=True #vcs
+        self.actions.append({'type':'CHARGE', 'carrierID':'', 'loc':'', 'order':0, 'target': station, 'local_tr_cmd':local_tr_cmd}) #chocp 2022/4/14 remove uuid
 
         self.action_in_run={'type':'GOTO', 'carrierID':'', 'loc':'', 'order':0, 'target': station, 'local_tr_cmd':local_tr_cmd}
 
@@ -5978,17 +5967,11 @@ class Vehicle(threading.Thread):
                                 check=True
 
                         elif not self.adapter.relay_on:
-                            if global_variables.RackNaming != 36:
-                                if self.ChargeWhenIdle == 'yes' and self.adapter.battery['percentage'] <= self.BatteryHighLevel:
-                                    if self.enter_unassigned_state_time and\
-                                        (time.time()-self.enter_unassigned_state_time) > self.IntoIdleTime:
-                                            check=True
-                            else:
-                                if not self.go_to_vcs:
-                                    if self.ChargeWhenIdle == 'yes' and self.adapter.battery['percentage'] <= self.BatteryHighLevel:
-                                        if self.enter_unassigned_state_time and\
-                                            (time.time()-self.enter_unassigned_state_time) > self.IntoIdleTime:
-                                                check=True
+                            
+                            if self.ChargeWhenIdle == 'yes' and self.adapter.battery['percentage'] <= self.BatteryHighLevel:
+                                if self.enter_unassigned_state_time and\
+                                    (time.time()-self.enter_unassigned_state_time) > self.IntoIdleTime:
+                                        check=True
 
                         elif self.adapter.relay_on: # Mike: 2023/11/29
                             if not self.adapter.battery['charge']:
@@ -6197,7 +6180,7 @@ class Vehicle(threading.Thread):
 
                                         if self.input_cmd_open_again and action_inserted: #8.24F chocp
                                             try:
-                                                tools.reschedule_to_eq_actions(self.actions, self.adapter.last_point, self.at_station, self.adapter.logger) #for K25
+                                                self.actions=tools.reschedule_to_eq_actions(self.actions, self.adapter.last_point, self.at_station, self.adapter.logger) #for K25
                                             except:
                                                 traceback.print_exc()
                                                 pass
@@ -6378,13 +6361,7 @@ class Vehicle(threading.Thread):
                                 time.sleep(1) #???
                                 print('To GoUnassigned:')
 
-                                if global_variables.RackNaming == 36:
-
-                                    if "VCS" in self.action_in_run.get('target', ''):
-                                        self.adapter.logger.info("vcs in:{}".format(self.action_in_run.get('target', '')))
-                                        self.go_to_vcs=True
-                                    else:
-                                        self.go_to_vcs=False
+                                
 
                                 self.message='MR_Spec_Ver: <%s>,  MR_Soft_Ver: <%s>'%(self.adapter.mr_spec_ver, self.adapter.mr_soft_ver)
                                 output('VehicleUnassigned',{
@@ -6437,6 +6414,7 @@ class Vehicle(threading.Thread):
                                 self.wq=None #8.21H-4
                                 self.last_action_is_for_workstation=False #8.21H-4
                                 self.AgvSubState='InWaitCmdStatus'
+                                self.enter_unassigned_state_time=time.time()
                                 self.error_skip_tr_req=False
                                 
                                 if global_variables.RackNaming == 42:
@@ -6749,7 +6727,7 @@ class Vehicle(threading.Thread):
                                         break
                                     time.sleep(0.1)
                                 carrierID_from_rfid=self.re_assign_carrierID(self.action_in_run['loc'])'''
-                            self.go_to_vcs=False
+                            
                             E82.report_event(self.secsgem_e82_h,
                                                 E82.VehicleAcquireCompleted, {
                                                 'VehicleID':self.id,
@@ -7147,7 +7125,7 @@ class Vehicle(threading.Thread):
                                     'CarrierLoc':self.action_in_run['loc'],
                                     'ResultCode':0})
 
-                            self.go_to_vcs=False
+                            
 
                             E82.report_event(self.secsgem_e82_h,
                                             E82.TransferCompleted,{
@@ -7303,7 +7281,7 @@ class Vehicle(threading.Thread):
                                 if result and carrierID:
                                     result=h_eRack.close_erack_door(port_no)
 
-                            self.go_to_vcs=False
+                            
 
                             output('VehicleDepositCompleted', {
                                     'Battery':self.adapter.battery['percentage'],
