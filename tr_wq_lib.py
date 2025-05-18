@@ -40,7 +40,7 @@ def transfer_format_check(secsGem_h, commandID, TransferInfoList, is_stage=False
     code=3
     StageList=[]
     
-    print('<start transfer format check>', secsGem_h, commandID, TransferInfoList, is_stage, StageIDList)
+    print('<start transfer format check>')
     print('1.check commandID duplicate?')
     if secsGem_h and secsGem_h.check_transfer_cmd_duplicate(commandID):
         e=alarms.CommandIDDuplicatedWarning(commandID, handler=secsGem_h)
@@ -304,7 +304,7 @@ def transfer_format_check(secsGem_h, commandID, TransferInfoList, is_stage=False
                     ack.append(["CARRIERID", 2])
                     return True, 3, ack, e, StageList
                 
-                if is_stage and new_source_port[:-5] in Vehicle.h.vehicles and self.secs_module!=E88STK:
+                if is_stage and new_source_port[:-5] in Vehicle.h.vehicles and secs_module is not E88STK:
                     e=alarms.CommandSourcePortConflictWarning(commandID, sourcePort, carrierID, handler=secsGem_h) #chocp 2021/11/8
                     ack.append(["SOURCEPORT", 2])
                     return True, 3, ack, e, StageList
