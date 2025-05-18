@@ -196,10 +196,10 @@ SV_BatteryValue=631
 SV_VehicleLastPosition=632
 SV_NearPort=633
 SV_CurrentPortStates=118
+SV_BlockNode=648#peter 241120
 SV_DoorState=649 #peter 240705
 SV_VehiclePose=634
 SV_PointID=635
-SV_ResultSubCode=634 #kelvin 202504/18
 
 SV_ExecuteTime=616 #Kelvin 2022/08/21
 SV_ALID=650
@@ -269,6 +269,10 @@ VehicleDeparted=505
 VehicleDepositStarted=506
 VehicleDepositCompleted=507
 
+VehicleInstalled=508
+VehicleRemoved=509
+VehicleUnassigned=510
+
 VehicleChargeStarted=511
 VehicleChargeCompleted=512
 VehicleExchangeStarted=513
@@ -277,17 +281,15 @@ VehicleSwapStarted=515
 VehicleSwapCompleted=516
 VehicleShiftCompleted=517
 VehicleShiftStarted=518
-
-
-VehicleInstalled=508
-VehicleRemoved=509
-VehicleUnassigned=510
 OpenDoorAcquire=519#peter 240705,test call door for K11
 
 VehicleTrafficBlocking=521
 VehicleTrafficRelease=522
 VehicleObstacleBlocking=523
 VehicleObstacleRelease=524
+
+VehicleWaitGo=525 #peter 240126,vehicle wait go
+NodeStatusChanged=526 #peter 241120
 
 ''' carrier state transition events '''
 CarrierInstalled=601
@@ -334,6 +336,7 @@ EQAutoOffReq=910
 VehicleAssignReq=911
 TrSwapReq=912
 TrShiftReq=914# kelvinng 2024/11/04 TrShiftCheck
+
 
 ''' Alarm '''
 AlarmCleared=51
@@ -408,7 +411,7 @@ EventTable={
     TransferPaused: {'report':[SV_CommandID]},
     TransferResumed: {'report':[SV_CommandID]},
     Transferring: {'report':[SV_CommandID]},
-
+    VehicleWaitGo: {'report':[SV_VehicleID, SV_TransferPort]},#peter 240126,vehicle wait go
     VehicleArrived: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_ResultCode]},
 
     VehicleAcquireStarted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID]},
@@ -479,6 +482,7 @@ EventTable={
     UnitAlarmCleared :{'report':[]},
     RuntimeStatus :{'report':[]},
     OpenDoorAcquire: {'report':[SV_VehicleID, SV_TransferPort,SV_DoorState]},#peter 240705,test call door for K11
+    NodeStatusChanged: {'report':[SV_BlockNode]},#peter 241120
     
     VehicleTrafficBlocking: {'report':[SV_VehicleID]},
     VehicleTrafficRelease: {'report':[SV_VehicleID]},
@@ -566,7 +570,7 @@ AlarmTable={
     50061: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID], 'text':'Elevator with alarmst'},
     50062: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_CarrierID], 'text':'Elevator linking timeout'},
     50063: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_CarrierID], 'text':'Elevator Connect fail'},
-    
+
     60000: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID], 'text':'Host order rtd cmd, workID duplicate in worklist'},
     60001: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_CarrierID], 'text':'Host order rtd cmd, carrier duplicate in worklist'},
     60002: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_CarrierID], 'text':'Host order rtd cmd, can not locate carrier'},
@@ -669,7 +673,6 @@ class E82Equipment(secsgem.GemEquipmentHandler):
         self.TransferState=0
         ### 0: success, 1: canceled, 2: aborted
         self.ResultCode=0
-        self.ResultSubCode=''
 
         self.VehicleID=''
 
@@ -807,7 +810,6 @@ class E82Equipment(secsgem.GemEquipmentHandler):
             SV_VehicleInfo: secsgem.StatusVariable(SV_VehicleInfo, "SV_VehicleInfo", "", secsgem.SecsVarList, True),
             SV_CommandInfo: secsgem.StatusVariable(SV_CommandInfo, "SV_CommandInfo", "", secsgem.SecsVarList, True),
             SV_ResultCode: secsgem.StatusVariable(SV_ResultCode, "SV_ResultCode", "", secsgem.SecsVarU2, True),
-            SV_ResultSubCode: secsgem.StatusVariable(SV_ResultSubCode, "SV_ResultSubCode", "", secsgem.SecsVarString, True),#kelvinng 20250408
             SV_VehicleID: secsgem.StatusVariable(SV_VehicleID, "SV_VehicleID", "", secsgem.SecsVarString, True),
             SV_CarrierID: secsgem.StatusVariable(SV_CarrierID, "SV_CarrierID", "", secsgem.SecsVarString, True),
             SV_CarrierLoc: secsgem.StatusVariable(SV_CarrierLoc, "SV_CarrierLoc", "", secsgem.SecsVarString, True),
@@ -1256,9 +1258,6 @@ class E82Equipment(secsgem.GemEquipmentHandler):
             return sv.value_type(value)
         elif sv.svid == SV_PointID: # 2024/10/02
             value=self.PointID
-            return sv.value_type(value)
-        elif sv.svid == SV_ResultSubCode: # kelvinng 20250408
-            value=self.ResultSubCode
             return sv.value_type(value)
         elif sv.svid == SV_VehicleState: # 2024/08/28
             value=self.VehicleInfo["VehicleState"]
@@ -2250,7 +2249,6 @@ class E82Equipment(secsgem.GemEquipmentHandler):
             obj['remote_cmd']='host_transfer' #chocp fix
             obj['commandinfo']=self.CommandInfo
             # obj['transferinfo']=self.TransferInfo # Mike: 2021/07/27
-            obj['transferinfolist']=self.TransferInfoList # Mike: 2021/07/27
             obj['stageIDlist']=self.stageIDlist
             obj['system']=system
             obj['ack_params']=ack_params
