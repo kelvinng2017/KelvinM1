@@ -688,6 +688,27 @@ class TransferWaitQueue():
         print('TransferWaitQueue', 'init', queueID, self.secsgem_h)
         print('******************************************************')
 
+    def secs_call(self, action, *args, **kwargs):
+        print('debug secs_call', action, args, kwargs)
+        if action == "remove_transfer":
+            if hasattr(self.secsgem_h, 'rm_transfer_cmd'):
+                return self.secsgem_h.rm_transfer_cmd(*args, **kwargs)
+            elif hasattr(self.secsgem_h, 'transfer_cancel'):
+                return self.secsgem_h.transfer_cancel(*args, **kwargs)
+            else:
+                raise AttributeError("No cancel function on {}".format(self.secsgem_h))
+        elif action == "update_transferstate":
+            uuid, new_state=args
+            if not uuid:
+                # self.logger.warning("update_transferstate skipped: empty uuid")
+                return None
+
+            if self.secs_module is E82:
+                active=self.secs_module.get_variables(self.secsgem_h, "ActiveTransfers")
+                active[uuid]["CommandInfo"]["TransferState"] = new_state
+                return self.secs_module.update_variables(self.secsgem_h, {"ActiveTransfers": active})
+            return None
+
     def update_params(self, setting): #chocp add 2022/4/12
         if setting:
             print('<<update batch run params in waiting queue>>:{}, {}'.format(self.queueID, setting))
@@ -1242,7 +1263,7 @@ class TransferWaitQueue():
             if host_tr_cmd['uuid'] == host_command_id:
                 #chocp add 2021/12/9
                 #gen a alarm before cancel
-                alarms.CommandCanceledWarning(cause, host_command_id, sub_code, handler=self.secsgem_e82_h) #chocp add 2022
+                alarms.CommandCanceledWarning(cause, host_command_id, sub_code, handler=self.secsgem_h) #chocp add 2022
 
                 TransferCompleteInfo=[]
                 for TransferInfo in host_tr_cmd['TransferInfoList']:
@@ -2155,8 +2176,23 @@ class TransferWaitQueue():
             if global_variables.RackNaming == 42:
                 if host_tr_cmd.get('priority', 0) == 101:
                     if h_vehicle.bufs_status[0]['stockID'] != 'None':
-                        E82.report_event(self.secsgem_e82_h,
-                                    E82.TransferCompleted, {
+                        # E82.report_event(self.secsgem_e82_h,
+                        #             E82.TransferCompleted, {
+                        #             'CommandInfo':host_tr_cmd['CommandInfo'],
+                        #             'VehicleID':h_vehicle.id,
+                        #             'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo'], #9/13
+                        #             'TransferInfo':host_tr_cmd['OriginalTransferInfoList'][0] if host_tr_cmd['OriginalTransferInfoList'] else {},
+                        #             'CommandID':host_tr_cmd['CommandInfo'].get('CommandID', ''),
+                        #             'Priority':host_tr_cmd['CommandInfo'].get('Priority', 0),
+                        #             'Replace':host_tr_cmd['CommandInfo'].get('Replace', 0),
+                        #             'CarrierID':host_tr_cmd['carrierID'], #chocp fix for tfme 2021/10/23
+                        #             'SourcePort':host_tr_cmd['source'], #chocp fix for tfme 2021/10/23
+                        #             'DestPort':host_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                        #             #'CarrierLoc':self.action_in_run['loc'],
+                        #             'CarrierLoc':host_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                        #             'ResultCode':10018 })
+                        self.secs_module.report_event(self.secsgem_h,
+                                    self.secs_module.TransferCompleted, {
                                     'CommandInfo':host_tr_cmd['CommandInfo'],
                                     'VehicleID':h_vehicle.id,
                                     'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo'], #9/13
@@ -2170,14 +2206,14 @@ class TransferWaitQueue():
                                     #'CarrierLoc':self.action_in_run['loc'],
                                     'CarrierLoc':host_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                     'ResultCode':10018 })
-                        alarms.BaseCovertrayWarning(h_vehicle.id, host_tr_cmd['uuid'], host_tr_cmd['carrierID'], handler=self.secsgem_e82_h)
+                        alarms.BaseCovertrayWarning(h_vehicle.id, host_tr_cmd['uuid'], host_tr_cmd['carrierID'], handler=self.secsgem_h)
                         return
 
             if host_tr_cmd['carrierID']: #chocp 2022/12/29
                 res, new_source_port=tools.re_assign_source_port(host_tr_cmd['carrierID']) #cost all lot
                 if res:
                     if global_variables.TSCSettings.get('Safety', {}).get('SourceLocationMismatchCheck') == 'yes' and host_tr_cmd['source']!=new_source_port:
-                        alarms.CommandSourceLocationMismatchWarning(host_tr_cmd['uuid'], host_tr_cmd['source'], host_tr_cmd['carrierID'], handler=self.secsgem_e82_h)
+                        alarms.CommandSourceLocationMismatchWarning(host_tr_cmd['uuid'], host_tr_cmd['source'], host_tr_cmd['carrierID'], handler=self.secsgem_h)
                         return
                     else:
                         host_tr_cmd['source']=new_source_port #re-assigned again for tfme, may the carrier move to Erack #2022/6/8

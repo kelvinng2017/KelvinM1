@@ -1084,6 +1084,18 @@ class TSC(threading.Thread):
 
         print('=>zoneID: ', zoneID, isVehicleZone, host_tr_cmd)
 
+        # if obj: # DeanJwo for ActiveTransfers TransferState 20250/05/15
+        if obj and obj.get('system'): #from secs
+            if hasattr(obj['handle'], 'add_transfer_cmd'):
+                obj['handle'].add_transfer_cmd(CommandInfo['CommandID'], {'CommandInfo': CommandInfo, 'TransferInfo': host_tr_cmd['OriginalTransferInfoList']}) # Mike: 2021/09/22
+            if hasattr(obj['handle'], 'Transfers'):
+                obj['handle'].transfer_cmd(CommandInfo['CommandID'], CommandInfo['Priority'], TransferInfoList[0]['CarrierID'], TransferInfoList[0]['SourcePort'], TransferInfoList[0]['DestPort'])
+            #self.secsgem_e82_default_h.send_response(self.secsgem_e82_default_h.stream_function(2,50)([4]), obj['system'])
+            obj['handle'].send_response(obj['handle'].stream_function(2,50)([4]), obj['system'])
+        else:
+            if hasattr(self.secsgem_e82_default_h, 'add_transfer_cmd'):
+                self.secsgem_e82_default_h.add_transfer_cmd(CommandInfo['CommandID'], {'CommandInfo': CommandInfo, 'TransferInfo': host_tr_cmd['OriginalTransferInfoList']}) # Mike: 2021/09/22
+
         specifyMR=''
         waiting_tr_cmd={}
         for vehicle_id, h_vehicle in Vehicle.h.vehicles.items(): # find preDispatch cmd in vehicle zone to link
@@ -1143,17 +1155,17 @@ class TSC(threading.Thread):
             tools.book_slot(host_tr_cmd['dest'])
             tools.book_slot(host_tr_cmd['back'])
 
-        # if obj:
-        if obj and obj.get('system'): #from secs
-            if hasattr(obj['handle'], 'add_transfer_cmd'):
-                obj['handle'].add_transfer_cmd(CommandInfo['CommandID'], {'CommandInfo': CommandInfo, 'TransferInfo': host_tr_cmd['OriginalTransferInfoList']}) # Mike: 2021/09/22
-            if hasattr(obj['handle'], 'Transfers'):
-                obj['handle'].transfer_cmd(CommandInfo['CommandID'], CommandInfo['Priority'], TransferInfoList[0]['CarrierID'], TransferInfoList[0]['SourcePort'], TransferInfoList[0]['DestPort'])
-            #self.secsgem_e82_default_h.send_response(self.secsgem_e82_default_h.stream_function(2,50)([4]), obj['system'])
-            obj['handle'].send_response(obj['handle'].stream_function(2,50)([4]), obj['system'])
-        else:
-            if hasattr(self.secsgem_e82_default_h, 'add_transfer_cmd'):
-                self.secsgem_e82_default_h.add_transfer_cmd(CommandInfo['CommandID'], {'CommandInfo': CommandInfo, 'TransferInfo': host_tr_cmd['OriginalTransferInfoList']}) # Mike: 2021/09/22
+        # # if obj:
+        # if obj and obj.get('system'): #from secs
+        #     if hasattr(obj['handle'], 'add_transfer_cmd'):
+        #         obj['handle'].add_transfer_cmd(CommandInfo['CommandID'], {'CommandInfo': CommandInfo, 'TransferInfo': host_tr_cmd['OriginalTransferInfoList']}) # Mike: 2021/09/22
+        #     if hasattr(obj['handle'], 'Transfers'):
+        #         obj['handle'].transfer_cmd(CommandInfo['CommandID'], CommandInfo['Priority'], TransferInfoList[0]['CarrierID'], TransferInfoList[0]['SourcePort'], TransferInfoList[0]['DestPort'])
+        #     #self.secsgem_e82_default_h.send_response(self.secsgem_e82_default_h.stream_function(2,50)([4]), obj['system'])
+        #     obj['handle'].send_response(obj['handle'].stream_function(2,50)([4]), obj['system'])
+        # else:
+        #     if hasattr(self.secsgem_e82_default_h, 'add_transfer_cmd'):
+        #         self.secsgem_e82_default_h.add_transfer_cmd(CommandInfo['CommandID'], {'CommandInfo': CommandInfo, 'TransferInfo': host_tr_cmd['OriginalTransferInfoList']}) # Mike: 2021/09/22
 
         return
 
