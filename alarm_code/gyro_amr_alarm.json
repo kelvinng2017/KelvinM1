@@ -1841,7 +1841,6 @@
     "TM5FCC": "The Z index signal is missing", 
     "TM5FCD": "Encoder connection failed", 
     "TM5FCE": "The compensation of encoder signal is too high", 
-    "TM5FCF": "The protection is on for motor hold (type 2)", 
     "TM5FD0": "The UVW signal of encoder is NG", 
     "TM5FD1": "The data is abnormal when reading magnetic encoder.", 
     "TM5FD2": "The magnet is NG judged by magnetic encoder", 

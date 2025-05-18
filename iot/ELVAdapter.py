@@ -42,10 +42,10 @@ alarm_list={
 
 class ELV(threading.Thread):
 
-    def __init__(self, setting, callback=None):
+    def __init__(self, secsgem_e88_stk_h, setting, callback=None):
 
         self.listeners=[]
-
+        self.secsgem_e88_stk_h=secsgem_e88_stk_h
         self.retry_time=setting.get('retry_time', 5)
         self.socket_timeout=setting.get('socket_timeout', 2)
 

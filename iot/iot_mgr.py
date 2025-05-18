@@ -9,6 +9,7 @@ import traceback
 import logging
 import semi.e82_equipment as E82
 from semi.SecsHostMgr import E88_Host
+from semi.SecsHostMgr import E88_STK_Host
 from semi.SecsHostMgr import E82_Host
 from global_variables import remotecmd_queue
 from global_variables import Equipment
@@ -118,6 +119,7 @@ class IotMgr(threading.Thread):
                 self.tsclogger.info('{} '.format('<<< get IOTSettings >>>'))
                 for idx, setting in enumerate(obj['config']):
 
+                    device_model=setting['device_model']
                     device_id=setting['device_id']
                     try:
                         h_device=self.devices.pop(device_id)
@@ -150,7 +152,11 @@ class IotMgr(threading.Thread):
                             h_device.thread_stop=True
 
                     #no obj or no thread alive
-                    h_device=module_list[setting['controller']](setting)
+                    if device_model=='ELV':
+                        secsgem_e88_stk_h=E88_STK_Host.getInstance(device_id)
+                        h_device=module_list[setting['controller']](secsgem_e88_stk_h, setting)
+                    else:
+                        h_device=module_list[setting['controller']](setting)
                     h_device.add_listener(IotView.getInstance())
                     if setting['enable']:
                         print("<<< new: {} >>>".format(device_id))

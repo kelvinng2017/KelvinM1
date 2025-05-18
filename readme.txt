@@ -1,11 +1,23 @@
+9.0.0(2025/05/14)
+add:
+1.add stage_complete_e88 function in tsc for e88STK(transporter)
+mod:
+1.mod ELV_simulator_multi into py2 format
+2.mod ELV_adapter alarm secs handler to E88_STK_Host, add alarm_code in E88_stk_equipment
+3.mod iot_mgr initialization for ELV model using E88_STK_Host
+4.mod transfer_format_check to support E88_STK_Host
+5.mod TransferWaitQueue to support E88_STK_Host
+fix:
+1.fix vehicleRoutePlanner leave_elevator get pose bug
+
 8.37.7(2025/05/14)
 add:
 1.add point_priority in point param
 2.add carrier ID to P45 robot cmd
 3.modify return_standby_cmd
 mod:
-1.modify E82 transfer cmd if carrier type outside the transferinlist will updata to transferinlist
-2.racknamin [33, 42, 58] no need to cancel cmd with commandLivingTime
+1.modify E82 transfer cmd if carrier type outside the transferinfolist will update to transferinfolist
+2.racknaming [33, 42, 58] no need to cancel cmd with commandLivingTime
 
 fix:
 

@@ -47,22 +47,25 @@ class ElevatorPLCSimulator(threading.Thread):
                 socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((self.ip, self.port))
             self.connected = True
-            print(f"Connected to server at {self.ip}:{self.port}")
+            print("Connected to server at {}:{}".format(self.ip, self.port))
         except Exception as e:
-            print(f"Failed to connect to server: {e}")
+            print("Failed to connect to server: {}".format(e))
             self.connected = False
             time.sleep(5)  # Wait before trying to reconnect
 
     def send_status_update(self):
         if self.connected:
-            message = f"[PM_Mode:{self.status['PM']}][Operation_Mode:{self.status['OP']}]" \
-                      f"[Status:{self.status['Status']}][Command:{self.status['CMD']}]" \
-                        f"[Location:{self.status['Location']}]"
+            # message = f"[PM_Mode:{self.status['PM']}][Operation_Mode:{self.status['OP']}]" \
+            #           f"[Status:{self.status['Status']}][Command:{self.status['CMD']}]" \
+            #             f"[Location:{self.status['Location']}]"
+            message = ("[PM_Mode:{PM}][Operation_Mode:{OP}]"
+                   "[Status:{Status}][Command:{CMD}]"
+                   "[Location:{Location}]").format(**self.status)
             try:
                 self.client_socket.send(message.encode('utf-8'))
-                print(f"Sent: {message}")
+                print("Sent: {}".format(message))
             except Exception as e:
-                print(f"Failed to send message: {e}")
+                print("Failed to send message: {}".format(e))
                 self.connected = False
                 self.client_socket.close()
 
@@ -70,10 +73,10 @@ class ElevatorPLCSimulator(threading.Thread):
         try:
             data = self.client_socket.recv(1024).decode('utf-8')
             if data:
-                print(f"Received: {data}")
+                print("Received: {}".format(data))
                 self.handle_command(data)
         except Exception as e:
-            print(f"Error receiving data: {e}")
+            print("Error receiving data: {}".format(e))
             self.connected = False
             self.client_socket.close()
 
@@ -99,7 +102,7 @@ class ElevatorPLCSimulator(threading.Thread):
                     if current_floor != target_floor:
                         self.status['Status'] = f"Moving_{target_floor}F"
                         self.send_status_update()
-                        print(f"Simulating elevator moving from {self.status['Location']} to {target_floor}F...")
+                        print("Simulating elevator moving from {} to {}F...".format(self.status['Location'], target_floor))
                     time.sleep(3)  # 模擬移動延遲
                     self.status['Status'] = f"Stopped_{target_floor}F"
                     self.status['Location'] = f"{target_floor}F"
@@ -162,7 +165,7 @@ class ElevatorPLCSimulator(threading.Thread):
                         if current_floor != target_floor:
                             self.status['Status'] = f"Moving_{target_floor}F"
                             self.status['CMD'] = "Move_In"
-                            print(f"Simulating elevator moving from {self.status['Location']} to {target_floor}F...")
+                            print("Simulating elevator moving from {} to {}F...".format(self.status['Location'], target_floor))
                             self.send_status_update()
                         # self.status['Status'] = f"Moving_{target_floor}F"
 
@@ -202,7 +205,7 @@ class ElevatorPLCSimulator(threading.Thread):
             try:
                 self.client_socket.close()
             except Exception as e:
-                print(f"Error closing socket: {e}")
+                print("Error closing socket: {}".format(e))
         print("Client stopped.")
 
 
@@ -214,7 +217,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port',
                         help='Server port number',
                         type=int,
-                        default=4096) 
+                        default=4096)
     args = parser.parse_args()
 
     ip = args.ip

@@ -592,6 +592,245 @@ class TSC(threading.Thread):
                         print('> replace action target with new back')
                         action['taget']=host_tr_cmd['back']
                         action['point']=tools.find_point(host_tr_cmd['back'])
+    
+    def stage_completed_e88(self, stage_id, host_tr_cmd, obj):
+        print('> in stage_completed_e88', host_tr_cmd)
+        # check if stage is in waiting queue
+        host_command_id=host_tr_cmd['uuid']
+        new_host_priority=host_tr_cmd['priority']
+        for queueID, zone_wq in TransferWaitQueue.getAllInstance().items():
+            if stage_id not in zone_wq.transfer_list:
+                continue
+            for waiting_command_id, waiting_tr_cmd in zone_wq.transfer_list.items(): #have lock or race condition problem???
+                if waiting_command_id == stage_id:
+                    print('> find stage id in waiting queue')
+
+                    if waiting_tr_cmd['dest'] != host_tr_cmd['dest']:
+                        print('> new dest found!')
+                        waiting_tr_cmd['dest']=host_tr_cmd['dest']
+                        waiting_tr_cmd['destType']=host_tr_cmd['destType']
+                        waiting_tr_cmd['TransferInfoList']=host_tr_cmd['TransferInfoList']
+                        waiting_tr_cmd['OriginalTransferInfoList']=host_tr_cmd['OriginalTransferInfoList']
+
+                    # replace tr_cmd uuid
+                    zone_wq.my_lock.acquire()
+                    try:
+                        waiting_tr_cmd['uuid']=host_command_id
+                        waiting_tr_cmd['stage']=False
+                        print(waiting_tr_cmd)
+                        zone_wq.transfer_list[host_command_id]=zone_wq.transfer_list[stage_id]
+                        del zone_wq.transfer_list[stage_id]
+                        if stage_id in zone_wq.linked_list:
+                            zone_wq.linked_list.remove(stage_id)
+                            zone_wq.linked_list.append(host_command_id)
+
+                        try:
+                            # if obj:
+                            if obj and obj.get('system'): #from secs
+                                # if hasattr(obj['handle'], 'add_transfer_cmd'):
+                                    # ActiveTransfers=E82.get_variables(obj['handle'], 'ActiveTransfers')
+                                    # ActiveTransfers[host_command_id]=ActiveTransfers[stage_id]
+                                    # ActiveTransfers[host_command_id]['CommandInfo']['CommandID']=host_command_id
+                                    # ActiveTransfers[host_command_id]['TransferInfo']=host_tr_cmd['TransferInfoList']
+                                    # del ActiveTransfers[stage_id]
+                                    # E82.update_variables(obj['handle'], {'ActiveTransfers': ActiveTransfers})
+                                if hasattr(obj['handle'], 'Transfers'):
+                                    print('>debug mod stage id1',stage_id, host_command_id)
+                                    obj['handle'].Transfers.mod(stage_id, host_command_id)
+                                    obj['handle'].Transfers.set(host_command_id, {'Dest':host_tr_cmd['dest']})
+                            else:
+                                print('>not secs')
+                                pass
+                                # if hasattr(self.secsgem_e82_default_h, 'add_transfer_cmd'):
+                                    # ActiveTransfers=E82.get_variables(self.secsgem_e82_default_h, 'ActiveTransfers')
+                                    # ActiveTransfers[host_command_id]=ActiveTransfers[stage_id]
+                                    # ActiveTransfers[host_command_id]['CommandInfo']['CommandID']=host_command_id
+                                    # ActiveTransfers[host_command_id]['TransferInfo']=host_tr_cmd['TransferInfoList']
+                                    # del ActiveTransfers[stage_id]
+                                    # E82.update_variables(self.secsgem_e82_default_h, {'ActiveTransfers': ActiveTransfers})
+
+                        except:
+                            print('except debug')
+                            traceback.print_exc()
+                            pass
+
+                        print('> replace stage id by real transfer id')
+                    except:
+                        pass
+                    zone_wq.my_lock.release()
+
+                    # remove stage cmd from waiting queue
+                    output('TransferWaitQueueRemove', {'CommandID':stage_id}, True)
+
+                    # add real transfer cmd into waiting queue
+                    output('TransferWaitQueueAdd', {
+                            'Channel':waiting_tr_cmd.get('channel', 'Internal'), #chocp 2022/6/13
+                            'Idx':0,
+                            'CarrierID':waiting_tr_cmd['carrierID'],
+                            'CarrierType':waiting_tr_cmd['TransferInfoList'][0].get('CarrierType', ''), #chocp 2022/2/9
+
+                            'ZoneID':waiting_tr_cmd['zoneID'],  #chocp 9/14
+                            'Source':waiting_tr_cmd['source'],
+                            'Dest':host_tr_cmd['dest'],
+                            'CommandID':waiting_tr_cmd["uuid"],
+                            # 'Priority':waiting_tr_cmd["priority"] if not waiting_tr_cmd.get('original_priority','') else waiting_tr_cmd['original_priority'],
+                            'Priority':new_host_priority,
+                            'Replace':waiting_tr_cmd['replace'],
+                            'Back':waiting_tr_cmd['back']
+                            }, True)
+
+                    print('change stage priority {} to transfer priority {}'.format(waiting_tr_cmd["priority"], new_host_priority))
+                    zone_wq.change_transfer_priority(host_command_id, new_host_priority)
+                    break
+            else:
+                continue
+            print('> check if pre-dispatch command in vehicle')
+            stage_id='PRE-'+stage_id
+            host_command_id='PRE-'+host_command_id
+
+        # check if stage is executing
+        vehicle_id=''
+        h_vehicle=0
+        for vehicle_id, h_vehicle in Vehicle.h.vehicles.items():
+            if stage_id in h_vehicle.CommandIDList:
+                break
+        else:
+            print('> no stage command or pre-dispatch command in vehicle')
+            return
+        print('> find stage id in vehicle', vehicle_id)
+
+        # replace tr_cmd uuid
+        local_tr_cmd={}
+        for local_tr_cmd in h_vehicle.tr_cmds:
+            if local_tr_cmd['uuid'] == stage_id:
+                print('> replace stage id by host cmd id in vehicle transfer queue', local_tr_cmd)
+                local_tr_cmd['uuid']=host_command_id
+                local_tr_cmd['host_tr_cmd']['uuid']=host_command_id
+                local_tr_cmd['host_tr_cmd']['CommandInfo']['CommandID']=host_command_id
+                try:
+                    # if obj:
+                    if obj and obj.get('system'): #from secs
+                        # if hasattr(obj['handle'], 'add_transfer_cmd'):
+                            # ActiveTransfers=E82.get_variables(obj['handle'], 'ActiveTransfers')
+                            # ActiveTransfers[host_command_id]=ActiveTransfers[stage_id]
+                            # ActiveTransfers[host_command_id]['CommandInfo']['CommandID']=host_command_id
+                            # ActiveTransfers[host_command_id]['TransferInfo']=host_tr_cmd['TransferInfo']
+                            # del ActiveTransfers[stage_id]
+                            # E82.update_variables(obj['handle'], {'ActiveTransfers': ActiveTransfers})
+                        if stage_id.startswith("PRE-"):
+                            new_stage_id=stage_id[len("PRE-"):]
+                            print('>>debug stage_id strip "PRE-"', stage_id)
+                        else:
+                            new_stage_id=stage_id
+
+                        if host_command_id.startswith("PRE-"):
+                            new_host_command_id=host_command_id[len("PRE-"):]
+                            print('>>debug host_command_id strip "PRE-"', host_command_id)
+                        else:
+                            new_host_command_id=host_command_id
+
+                        if hasattr(obj['handle'], 'Transfers'):
+                            # print('>debug mod stage id2', stage_id, host_command_id)
+                            # obj['handle'].Transfers.mod(stage_id, host_command_id)
+                            # obj['handle'].Transfers.set(host_command_id, {'Dest':host_tr_cmd['dest']})
+                            # obj['handle'].transfer_start(host_command_id, vehicle_id)
+                            print('>debug mod stage id2', new_stage_id, new_host_command_id)
+                            obj['handle'].Transfers.mod(new_stage_id, new_host_command_id)
+                            # obj['handle'].Transfers.set(new_host_command_id, {'Dest':host_tr_cmd['dest']})
+                            # obj['handle'].transfer_start(new_host_command_id, vehicle_id)
+                    else:
+                        print('>not secs')
+                        pass
+                        # if hasattr(self.secsgem_e82_default_h, 'add_transfer_cmd'):
+                            # ActiveTransfers=E82.get_variables(self.secsgem_e82_default_h, 'ActiveTransfers')
+                            # ActiveTransfers[host_command_id]=ActiveTransfers[stage_id]
+                            # ActiveTransfers[host_command_id]['CommandInfo']['CommandID']=host_command_id
+                            # ActiveTransfers[host_command_id]['TransferInfo']=host_tr_cmd['TransferInfo']
+                            # del ActiveTransfers[stage_id]
+                            # E82.update_variables(self.secsgem_e82_default_h, {'ActiveTransfers': ActiveTransfers})
+
+                except:
+                    print('except debug2')
+                    traceback.print_exc()
+                    pass
+                break
+
+        # send unassign for stage cmd
+        '''E82.report_event(h_vehicle.secsgem_e82_h,
+                    E82.VehicleUnassigned,{
+                    'VehicleID':vehicle_id,
+                    'CommandIDList':[stage_id],
+                    'CommandID':stage_id,
+                    'BatteryValue':h_vehicle.adapter.battery['percentage']})'''
+        '''output('VehicleUnassigned',{
+                'Battery':h_vehicle.adapter.battery['percentage'],
+                'Charge':h_vehicle.adapter.battery['charge'], #chocp 2022/5/20
+                'Connected':h_vehicle.adapter.online['connected'],
+                'Health':h_vehicle.adapter.battery['SOH'],
+                'MoveStatus':h_vehicle.adapter.move['status'],
+                'RobotStatus':h_vehicle.adapter.robot['status'],
+                'RobotAtHome':h_vehicle.adapter.robot['at_home'],
+                'VehicleID':vehicle_id,
+                'VehicleState':h_vehicle.AgvState,
+                'TransferTask':{'VehicleID':vehicle_id, 'Action':'', 'CommandID':'', 'CarrierID':'', 'Dest':'', 'ToPoint':''},
+                'Message':h_vehicle.message,
+                'ForceCharge':h_vehicle.force_charge,
+                'CommandIDList':[stage_id]}) #may be include fail cmd'''
+        output('TransferExecuteQueueRemove', {'CommandID':stage_id}, True)
+
+        # send assign for real transfer cmd
+        h_vehicle.CommandIDList.append(host_command_id)
+        # E82.report_event(h_vehicle.secsgem_e82_h, E82.TransferInitiated, {'CommandID':host_command_id,'CommandInfo':local_tr_cmd.get('host_tr_cmd', {}).get('CommandInfo', {}),'TransferCompleteInfo':local_tr_cmd.get('host_tr_cmd', {}).get('OriginalTransferCompleteInfo', {})})
+        # output('TransferInitiated',  {'CommandID':host_command_id})
+        output('TransferInitiated',  {'CommandID':new_host_command_id})
+
+        # E82.report_event(h_vehicle.secsgem_e82_h,
+                            # E82.VehicleAssigned,{
+                            # 'VehicleID':vehicle_id,
+                            # 'CommandIDList':[host_command_id],
+                            # 'CommandID':host_command_id,
+                            # 'BatteryValue':h_vehicle.adapter.battery['percentage']})
+        output('VehicleAssigned',{
+            'Battery':h_vehicle.adapter.battery['percentage'],
+            'Charge':h_vehicle.adapter.battery['charge'], #chocp 2022/5/20
+            'Connected':h_vehicle.adapter.online['connected'],
+            'Health':h_vehicle.adapter.battery['SOH'],
+            'MoveStatus':h_vehicle.adapter.move['status'],
+            'RobotStatus':h_vehicle.adapter.robot['status'],
+            'RobotAtHome':h_vehicle.adapter.robot['at_home'],
+            'VehicleID':vehicle_id,
+            'VehicleState':h_vehicle.AgvState,
+            'Message':h_vehicle.message,
+            'ForceCharge':h_vehicle.force_charge, #???
+            'CommandIDList':h_vehicle.CommandIDList})
+
+        # E82.report_event(h_vehicle.secsgem_e82_h, E82.Transferring, {'CommandID':host_command_id,'CarrierID':local_tr_cmd.get('carrierID', ''),'VehicleID':vehicle_id}) #8.24B-4
+        output('Transferring', {'CommandID':host_command_id})
+
+        output('TransferExecuteQueueAdd', {
+                    'VehicleID':vehicle_id,
+                    'CommandID':host_command_id,
+                    'CarrierID':local_tr_cmd.get('carrierID', ''),
+                    'Loc':local_tr_cmd.get('loc', ''),
+                    'CarrierType':local_tr_cmd.get('TransferInfo', {}).get('CarrierType', ''), #chocp 2022/2/24
+                    'Source':local_tr_cmd['source'],
+                    'Dest':local_tr_cmd['dest'],
+                    'Priority':local_tr_cmd['priority']
+                    }, True)
+
+        # change action type
+        for action in h_vehicle.actions:
+            print('>>>action', action, '>>>')
+            print(action.get('local_tr_cmd', {}).get('uuid'), host_command_id)
+            if action.get('local_tr_cmd', {}).get('uuid') == host_command_id:
+                if action.get('type') == 'ACQUIRE_STANDBY':
+                    print('> replace action type with ACQUIRE')
+                    action['type']='ACQUIRE'
+                    # action['type']='DEPOSIT'
+                if action.get('type') == 'DEPOSIT':
+                    print('> replace action target with new dest')
+                    action['taget']=host_tr_cmd['dest']
+                    action['point']=tools.find_point(host_tr_cmd['dest'])
                     
     def host_transfer_abort(self, local_command_id, cause='by host'): #'by man', 'by host', 'by replace'
         res=False
@@ -674,11 +913,13 @@ class TSC(threading.Thread):
         if stageIDList:
             for stageID in stageIDList:
                 if obj.get('system'): #from secs
-                    self.stage_completed(stageID, host_tr_cmd, obj)
+                    # self.stage_completed(stageID, host_tr_cmd, obj)
                     if hasattr(obj['handle'], 'add_transfer_cmd'):
+                        self.stage_completed(stageID, host_tr_cmd, obj)
                         obj['handle'].add_transfer_cmd(CommandInfo['CommandID'], {'CommandInfo': CommandInfo, 'TransferInfo': host_tr_cmd['OriginalTransferInfoList']}) # Mike: 2021/09/22
-                    if hasattr(obj['handle'], 'Transfers'):
-                        obj['handle'].transfer_cmd(CommandInfo['CommandID'], CommandInfo['Priority'], TransferInfoList[0]['CarrierID'], TransferInfoList[0]['SourcePort'], TransferInfoList[0]['DestPort'])
+                    elif hasattr(obj['handle'], 'Transfers'):
+                        self.stage_completed_e88(stageID, host_tr_cmd, obj)
+                        # obj['handle'].transfer_cmd(CommandInfo['CommandID'], CommandInfo['Priority'], TransferInfoList[0]['CarrierID'], TransferInfoList[0]['SourcePort'], TransferInfoList[0]['DestPort'])
                     #self.secsgem_e82_default_h.send_response(self.secsgem_e82_default_h.stream_function(2,50)([4]), obj['system'])
                     obj['handle'].send_response(obj['handle'].stream_function(2,50)([4]), obj['system'])
                 else:
@@ -1330,21 +1571,42 @@ class TSC(threading.Thread):
                                         'LocateResult':locate_result})
 
                     elif obj['remote_cmd'] == 'stage':
-                        if global_variables.TSCSettings.get('Other', {}).get('StageEnable','no') == 'yes':
-                            print(obj)
-                            obj['commandinfo']=obj['stageinfo']
-                            CommandInfo=obj['stageinfo']
-                            CommandInfo['CommandID']=obj['stageinfo'].get('StageID', '0')
-                            CommandInfo["TransferState"]=1
-                            TransferInfoList=obj['transferinfolist']
-                            HostSpecifyMRList=obj.get('VEHICLEID',[])
-                            for idx, HostSpecifyMR in enumerate(HostSpecifyMRList):
-                                TransferInfoList[idx]['HostSpecifyMR']=str(HostSpecifyMR) if HostSpecifyMR else '' #chocp 2022/1/4
-
-                            obj['remote_cmd']='transfer_format_check'
-                            remotecmd_queue.append(obj)
-                        else:
+                        # print('Stage Cmd', h_vehicle.AgvState)
+                        # if global_variables.RackNaming == 14: # DeanJwo for KYEC 20250512
+                        #     print('device:', Iot.h.devices)
+                        #     h_ELV=Iot.h.devices.get("ELV1", "ELV")
+                        #     if h_ELV:
+                        #         h_ELV.in_service()
+                        #         print('TSC take control of ELV')
+                        # if global_variables.TSCSettings.get('Other', {}).get('StageEnable','no') == 'yes':
+                        if global_variables.TSCSettings.get('Other', {}).get('StageEnable','no') != 'yes':
+                            print('Reject Stage Cmd', h_vehicle.AgvState)
                             obj['handle'].send_response(obj['handle'].stream_function(2,50)([1]), obj['system'])
+                            return
+
+                        if global_variables.field_id == 'USG3ELV':
+                            VehicleID=self.secsgem_e88_stk_default_h.Ports.Data[obj['PortID']].StockerCraneID
+                            h_vehicle=Vehicle.h.vehicles.get(VehicleID)
+                            if not h_vehicle or (h_vehicle and h_vehicle.AgvState in [ 'Pause', 'Removed']):
+                                print('Reject Stage Cmd', h_vehicle.AgvState)
+                                obj['handle'].send_response(obj['handle'].stream_function(2,50)([1]), obj['system'])
+                                return
+
+                        print(obj)
+                        obj['commandinfo']=obj['stageinfo']
+                        CommandInfo=obj['stageinfo']
+                        CommandInfo['CommandID']=obj['stageinfo'].get('StageID', '0')
+                        CommandInfo["TransferState"]=1
+                        TransferInfoList=obj['transferinfolist']
+                        HostSpecifyMRList=obj.get('VEHICLEID',[])
+                        for idx, HostSpecifyMR in enumerate(HostSpecifyMRList):
+                            TransferInfoList[idx]['HostSpecifyMR']=str(HostSpecifyMR) if HostSpecifyMR else '' #chocp 2022/1/4
+
+                        obj['remote_cmd']='transfer_format_check'
+                        remotecmd_queue.append(obj)
+                        # else:
+                        #     print('Reject Stage Cmd', h_vehicle.AgvState)
+                        #     obj['handle'].send_response(obj['handle'].stream_function(2,50)([1]), obj['system'])
 
                     elif obj['remote_cmd'] == 'pre_transfer': #8.27.13
                         CommandInfo=obj['commandinfo']
@@ -1836,16 +2098,71 @@ class TSC(threading.Thread):
                         VehicleID=self.secsgem_e88_stk_default_h.Ports.Data[obj['PortID']].StockerCraneID
                         h_vehicle=Vehicle.h.vehicles.get(VehicleID)
                         if h_vehicle:
-                            if h_vehicle.AgvState == 'Unassigned' and not h_vehicle.waiting_run and not h_vehicle.force_charge:
-                                obj['handle'].Ports.Data[obj['PortID']].PortBook=True
+                            # print('book_cmd_check',\
+                            #     'state:', h_vehicle.AgvState)
+                                # 'cmd_dest:', PortsTable.mapping[h_vehicle.action_in_run['target']][0],\
+                                # 'PortID:', PortsTable.mapping[obj['PortID']][0])
+                            if (h_vehicle.AgvState=='Unassigned' and not h_vehicle.waiting_run and not h_vehicle.force_charge):
+                                if all(status == 'None' for status in h_vehicle.carrier_status_list):
+                                    # print('all slots are None', h_vehicle.carrier_status_list)
+                                    obj['handle'].Ports.Data[obj['PortID']].PortBook = True
+                                    obj['handle'].send_response(obj['handle'].stream_function(2,42)([0]), obj['system'])
+                                    # h_vehicle.host_call_cmd=True
+                                    # h_vehicle.host_call_params=obj
+                                    # send Stage cmd
+                                    obj['commandinfo']=obj['stageinfo']
+                                    CommandInfo=obj['stageinfo']
+                                    CommandInfo['CommandID']=obj['stageinfo'].get('StageID', '0')
+                                    CommandInfo["TransferState"]=1
+                                    TransferInfoList=obj['transferinfolist']
+                                    HostSpecifyMRList=obj.get('VEHICLEID',[])
+                                    for idx, HostSpecifyMR in enumerate(HostSpecifyMRList):
+                                        TransferInfoList[idx]['HostSpecifyMR']=str(HostSpecifyMR) if HostSpecifyMR else '' #chocp 2022/1/4
+
+                                    obj['remote_cmd']='transfer_format_check'
+                                    remotecmd_queue.append(obj)
+                                # elif any(status != 'None' for status in h_vehicle.carrier_status_list):
+                                else:
+                                    # print('one of the slots is not None', h_vehicle.carrier_status_list)
+                                    obj['handle'].send_response(obj['handle'].stream_function(2,42)([2]), obj['system'])
+
+                            elif h_vehicle.AgvState not in ['Unassigned', 'Pause', 'Removed'] and \
+                                h_vehicle.action_in_run.get('target') in PortsTable.mapping and \
+                                obj.get('PortID') in PortsTable.mapping and \
+                                PortsTable.mapping[h_vehicle.action_in_run.get('target')][0] == PortsTable.mapping[obj['PortID']][0]:
+                                # print('book_cmd_check_2',\
+                                # 'state:', h_vehicle.AgvState,\
+                                # 'cmd_dest:', PortsTable.mapping[h_vehicle.action_in_run['target']],\
+                                # 'PortID:', PortsTable.mapping[obj['PortID']])
+                                obj['handle'].Ports.Data[obj['PortID']].PortBook = True
                                 obj['handle'].send_response(obj['handle'].stream_function(2,42)([0]), obj['system'])
-                                h_vehicle.host_call_cmd=True
-                                h_vehicle.host_call_params=obj
-                            elif h_vehicle.AgvState not in ['Unassigned', 'Pause', 'Removed'] and PortsTable.mapping[h_vehicle.action_in_run['target']][0] == PortsTable.mapping[obj['PortID']][0]:
-                                obj['handle'].Ports.Data[obj['PortID']].PortBook=True
-                                obj['handle'].send_response(obj['handle'].stream_function(2,42)([0]), obj['system'])
+                            elif(h_vehicle.AgvState=='Charging' and not h_vehicle.force_charge) or \
+                                (h_vehicle.action_in_run.get('type', '')=='GOTO' and not h_vehicle.force_charge):
+                                if h_vehicle.host_call_cmd :
+                                    call_cmd_obj = h_vehicle.host_call_params
+                                    obj['handle'].Ports.Data[call_cmd_obj['PortID']].PortBook = True
+                                    obj['handle'].send_response(obj['handle'].stream_function(2, 42)([0]), obj['system'])
+                                    pass
+                                else:
+                                    # obj['handle'].Ports.Data[obj['PortID']].PortBook = True
+                                    # obj['handle'].send_response(obj['handle'].stream_function(2,42)([0]), obj['system'])
+                                    # h_vehicle.host_call_cmd=True
+                                    # h_vehicle.host_call_params=obj
+                                    if all(status == 'None' for status in h_vehicle.carrier_status_list):
+                                        # print('all slots are None',h_vehicle.carrier_status_list)
+                                        obj['handle'].Ports.Data[obj['PortID']].PortBook = True
+                                        obj['handle'].send_response(obj['handle'].stream_function(2,42)([0]), obj['system'])
+                                        h_vehicle.host_call_cmd=True
+                                        h_vehicle.host_call_params=obj
+                                    else:
+                                        # print('one of the slots is not None', h_vehicle.carrier_status_list)
+                                        obj['handle'].send_response(obj['handle'].stream_function(2,42)([2]), obj['system'])
+
                             else:
                                 obj['handle'].send_response(obj['handle'].stream_function(2,42)([2]), obj['system'])
+                        else:
+                            print('Reject Book!!')
+                            obj['handle'].send_response(obj['handle'].stream_function(2,42)([2]), obj['system'])
 
                     elif obj['remote_cmd'] == 'assignable':
                         h_vehicle=Vehicle.h.vehicles.get(obj['VehicleID'])

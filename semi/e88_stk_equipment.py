@@ -796,6 +796,22 @@ class Transfers():
             return True
         return False
 
+    def mod(self, COMMANDID, NEWCOMMANDID):
+        for cmd_id, cmd_obj in self.Data.items():
+            print('mod commandid:', cmd_id, 'obj:', cmd_obj)
+        if COMMANDID in self.Data and NEWCOMMANDID not in self.Data:
+            self.Data[NEWCOMMANDID]=self.Data[COMMANDID]
+            print('>>> mod', NEWCOMMANDID)
+            del self.Data[COMMANDID]
+            return True
+        elif COMMANDID not in self.Data: # Stage cmd not in Data
+            # self.Data[NEWCOMMANDID]=self.Data[COMMANDID]
+            self.Data[NEWCOMMANDID].CommandID=NEWCOMMANDID
+            for cmd_id, cmd_obj in self.Data.items():
+                print('mod2 commandid:', cmd_id, 'obj:', cmd_obj.CommandID)
+            return True
+        return False
+
     def set(self, COMMANDID, datasets):
         for key, value in datasets.items():
             setattr(self.Data[COMMANDID], key, value)
@@ -974,6 +990,10 @@ AlarmTable={
     40018: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_Source, SV_CarrierID], 'text':'Host transfer cmd, source port conflict with specified carrier'},
     40019: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_Dest], 'text':'Host transfer cmd, dest port duplicate with other cmd'},
     40020: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_Source], 'text':'Host transfer cmd, source port duplicate with other cmd'},
+
+    50061: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID], 'text':'Elevator with alarmst'},
+    50062: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID], 'text':'Elevator linking timeout'},
+    50063: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID], 'text':'Elevator Connect fail'},
 
     60000: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID], 'text':'Host order rtd cmd, workID duplicate in worklist'},
     60001: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_CommandID, SV_CarrierID], 'text':'Host order rtd cmd, carrier duplicate in worklist'},
@@ -1402,6 +1422,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             "RENAME": secsgem.RemoteCommand("RENAME", "rename carrier command", ["CARRIERID", "CARRIERLOC"], None),
             "RESUME": secsgem.RemoteCommand("RESUME", "resume command", [], None),
             "RETRY": secsgem.RemoteCommand("RETRY", "retry command", ["ERRORID"], None),
+            "STAGEDELETE": secsgem.RemoteCommand("STAGEDELETE", "stage delete command", [], None, ["STAGEID"]),
         })
 
 
@@ -1412,7 +1433,8 @@ class E88Equipment(secsgem.GemEquipmentHandler):
         self.enhance_remote_commands.clear()
 
         self.enhance_remote_commands.update({
-            "TRANSFER": secsgem.RemoteCommand("TRANSFER", "transfer command", {"COMMANDINFO":["COMMANDID", "PRIORITY"], "TRANSFERINFO":["CARRIERID", "SOURCE", "DEST"]}, None),
+            "STAGE": secsgem.RemoteCommand("STAGE", "stage command", {"STAGEINFO":["STAGEID", "PRIORITY", "REPLACE", "EXPECTEDDURATION", "NOBLOCKINGTIME", "WAITTIMEOUT"], "TRANSFERINFO":["CARRIERID", "SOURCEPORT", "DESTPORT"]}, None, {"TRANSFERINFO":["CARRIERTYPE", "LOTID", "LOTTYPE", "CUSTID", "PRODUCT", "QUANTITY"], "VEHICLEID":None}), # Mike: 2021/07/12
+            "TRANSFER": secsgem.RemoteCommand("TRANSFER", "transfer command", {"COMMANDINFO":["COMMANDID", "PRIORITY"], "TRANSFERINFO":["CARRIERID", "SOURCE", "DEST"]}, None, {"TRANSFERINFO_CST":["LOT_ID","CARRIER_TYPE"] ,"STAGEIDLIST":None, "TRANSFERINFO":["CARRIERTYPE", "LOTID", "LOTTYPE", "CUSTID", "PRODUCT", "QUANTITY", "QTIME"], "EXECUTETIME":None, "CARRIERTYPE":None, "VEHICLEID":None}),
         })
 
         #####################################
@@ -1792,12 +1814,13 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             ack_params.append(['COMMANDID', 2])
             print("\nCommandID not found.\n")
             self.send_response(self.stream_function(2,42)([3, ack_params]), system)
-        elif False and self.SCState in [3, 2, 4] and self.Transfers.Data[COMMANDID].TransferState in [3, 2] and self.Carriers.Data[self.Transfers.Data[COMMANDID].CarrierID].CarrierState in [5, 2, 1, 3]:
+        elif self.SCState in [3, 2, 4] and self.Transfers.Data[COMMANDID].TransferState in [3, 2] and self.Carriers.Data[self.Transfers.Data[COMMANDID].CarrierID].CarrierState in [5, 2, 1, 3]:
             obj={}
             obj['remote_cmd']='abort'
             obj['CommandID']=COMMANDID
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
             self.COMMANDID=COMMANDID
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -1825,6 +1848,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['ZoneName']=ZONENAME
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -1871,12 +1895,13 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             ack_params.append(['COMMANDID', 2])
             print("\nCommandID not found.\n")
             self.send_response(self.stream_function(2,42)([3, ack_params]), system)
-        elif False and self.SCState in [3, 2, 4] and self.Transfers.Data[COMMANDID].TransferState in [1]:
+        elif self.SCState in [3, 2, 4] and self.Transfers.Data[COMMANDID].TransferState in [1]:
             obj={}
             obj['remote_cmd']='cancel'
             obj['CommandID']=COMMANDID
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -1908,6 +1933,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['CarrierLoc']=CARRIERLOC
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -1940,6 +1966,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
                 obj['Data'][key]=value
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -1968,6 +1995,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['CarrierID']=CARRIERID
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -2001,6 +2029,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['ZoneName']=ZONENAME
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -2025,6 +2054,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['remote_cmd']='sc_pause' #2022/08/09 Chi 
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -2055,6 +2085,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['CarrierID']=CARRIERID
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -2093,6 +2124,7 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['remote_cmd']='sc_resume'  #2022/08/09 Chi 
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
@@ -2133,7 +2165,125 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             print("\nretry cmd can not perform now.\n")
             self.send_response(self.stream_function(2,42)([2, ack_params]), system)
 
-    def _on_ercmd_TRANSFER(self, COMMANDINFO, TRANSFERINFO, system, ack_params):
+    def _on_rcmd_STAGEDELETE(self, system, ack_params, STAGEID=''): # Mike: 2020/08/18
+        #print("get stage delete cmd, param:{}\n", STAGEID)
+        #print("get stage delete cmd, system:{}, ack_parmas:{}\n".format(system, ack_params))
+
+        obj={}
+        obj['remote_cmd']='stagedelete'
+        obj['StageID']=STAGEID
+        obj['system']=system
+        obj['ack_params']=ack_params
+        obj['handle']=self
+        # self.send_response(self.stream_function(2,42)([4]), system)
+        remotecmd_queue.append(obj)
+
+    def _on_ercmd_STAGE(self, STAGEINFO, TRANSFERINFO, system, ack_params, **kwargs): # Mike: 2020/08/18
+        print("get stage cmd, param:{}, {}\n", STAGEINFO, TRANSFERINFO)
+        #print("get stage cmd, system:{}, ack_parmas:{}\n".format(system, ack_params))
+
+        StageID=STAGEINFO[0][0][1]
+        Priority=STAGEINFO[0][1][1]
+        CarrierID=TRANSFERINFO[0][0][1]
+        Source=TRANSFERINFO[0][1][1]
+        Dest=TRANSFERINFO[0][2][1]
+
+        if StageID in self.Transfers.Data:
+            ack_params.append(['STAGEID', 2])
+            print("\nStageID already exists.\n")
+            self.send_response(self.stream_function(2,50)([3, ack_params]), system)
+        elif not StageID:
+            ack_params.append(['STAGEID', 2])
+            print("\nStageID can not be empty.\n")
+            self.send_response(self.stream_function(2,50)([3, ack_params]), system)
+        # elif CarrierID not in self.Carriers.Data:
+        #     ack_params.append(['CARRIERID', 2])
+        #     print("\CARRIERID not found.\n")
+        #     self.send_response(self.stream_function(2,50)([3, ack_params]), system)
+        elif Priority > 101:
+            ack_params.append(['PRIORITY', 2])
+            print("\PRIORITY error.\n")
+            self.send_response(self.stream_function(2,50)([3, ack_params]), system)
+        # elif self.SCState in [3, 2, 4] and StageID not in self.Transfers.Data and self.Carriers.Data[CarrierID].CarrierState in [1, 4]:
+        elif self.SCState in [3, 2, 4] and StageID not in self.Transfers.Data :
+
+            obj={}
+            obj['remote_cmd']='transfer'
+            obj['stageinfo']={'StageID':StageID, 'Priority':Priority}
+            obj['transferinfo']={'CarrierID':CarrierID, 'Source':Source, 'Dest':Dest}
+            obj['stageIDlist']=kwargs.get("STAGEIDLIST", [[]])[0]
+            obj['system']=system
+            obj['ack_params']=ack_params
+            obj['handle']=self
+            obj['CARRIERTYPE']=kwargs.get('CARRIERTYPE', [])
+            obj['EXECUTETIME']=kwargs.get('EXECUTETIME', [''])
+            obj['VEHICLEID']=kwargs.get('VEHICLEID', [''])
+
+            #D_TransferInfo={} #chocp fix
+            self.StageInfo={}
+            self.StageInfo["StageID"]=STAGEINFO[0][0][1]
+            self.StageInfo["Priority"]=STAGEINFO[0][1][1]
+            self.StageInfo["ExpectedDuration"]=STAGEINFO[0][3][1]
+            self.StageInfo["NoBlockingTime"]=STAGEINFO[0][4][1]
+            self.StageInfo["WaitTimeout"]=STAGEINFO[0][5][1]
+
+            #D_TransferInfo={} #chocp fix
+            self.TransferInfo={}
+            self.TransferInfo["CarrierID"]=TRANSFERINFO[0][0][1]
+            self.TransferInfo["SourcePort"]=TRANSFERINFO[0][1][1]
+            self.TransferInfo["DestPort"]=TRANSFERINFO[0][2][1]
+
+            self.TransferInfoList=[] # Mike: 2021/07/27
+            for Trans in TRANSFERINFO:
+                Transfer={}
+                Transfer["CarrierID"]=Trans[0][1]
+                Transfer["SourcePort"]=Trans[1][1]
+                Transfer["DestPort"]=Trans[2][1]
+                for t in Trans[3:]:
+                    if t[0] == "CARRIERTYPE":
+                        Transfer["CarrierType"]=t[1]
+                    elif t[0] == "LOTID":
+                        Transfer["LotID"]=t[1]
+                    elif t[0] == "LOTTYPE":
+                        Transfer["LotType"]=t[1]
+                    elif t[0] == "CUSTID":
+                        Transfer["CustID"]=t[1]
+                    elif t[0] == "PRODUCT":
+                        Transfer["Product"]=t[1]
+                    elif t[0] == "QUANTITY":
+                        Transfer["Quantity"]=t[1]
+                    else:
+                        pass
+                self.TransferInfoList.append(Transfer)
+
+            obj={}
+            obj['remote_cmd']='stage'
+            obj['stageinfo']=self.StageInfo
+            # obj['transferinfo']=self.TransferInfo # Mike: 2021/07/27
+            obj['transferinfolist']=self.TransferInfoList # Mike: 2021/07/27
+            obj['system']=system
+            obj['ack_params']=ack_params
+            obj['handle']=self
+            obj['VEHICLEID']=kwargs.get('VEHICLEID', [''])
+            # self.send_response(self.stream_function(2,50)([4]), system)
+            # remotecmd_queue.append(obj)
+
+            if self.remote_commands_callback:
+                th=threading.Thread(target=self.remote_commands_callback, args=(obj,))
+                th.setDaemon(True)
+                th.start()
+            else:
+                remotecmd_queue.append(obj)
+
+            # if self.rcmd_auto_reply:
+            #     self.send_response(self.stream_function(2, 50)([0, ack_params]), system)
+
+            # self.transfer_cmd(StageID, Priority, CarrierID, Source, Dest)
+        else:
+            print("\nstage cmd can not perform now.\n")
+            self.send_response(self.stream_function(2,42)([2, ack_params]), system)
+
+    def _on_ercmd_TRANSFER(self, COMMANDINFO, TRANSFERINFO, system, ack_params, **kwargs):
         print("\nget transfer cmd, param:{}".format([COMMANDINFO, TRANSFERINFO]))
         print("get transfer cmd, system:{}, ack_parmas:{}\n".format(system, ack_params))
 
@@ -2163,9 +2313,13 @@ class E88Equipment(secsgem.GemEquipmentHandler):
             obj['commandinfo']={'CommandID':CommandID, 'Priority':Priority}
             obj['transferinfo']={'CarrierID':CarrierID, 'Source':Source, 'Dest':Dest}
             obj['transferinfolist']=[{'CarrierID':CarrierID, 'SourcePort':Source, 'DestPort':Dest}]
-            obj['handle']=self
+            obj['stageIDlist']=kwargs.get("STAGEIDLIST", [[]])[0]
             obj['system']=system
             obj['ack_params']=ack_params
+            obj['handle']=self
+            obj['CARRIERTYPE']=kwargs.get('CARRIERTYPE', [])
+            obj['EXECUTETIME']=kwargs.get('EXECUTETIME', [''])
+            obj['VEHICLEID']=kwargs.get('VEHICLEID', [''])
 
             if self.remote_commands_callback:
                 th=threading.Thread(target=self.remote_commands_callback, args=(obj,))

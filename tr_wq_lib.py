@@ -1,11 +1,13 @@
 import semi.e82_equipment as E82
+import semi.e88_stk_equipment as E88STK
 import global_variables
 import re
 from global_variables import output
 import time
 import logging
 
-from semi.SecsHostMgr import E82_Host
+from semi.SecsHostMgr import E82_Host, E88_STK_Host
+
 
 from workstation.eq_mgr import EqMgr
 
@@ -30,15 +32,18 @@ import traceback
 from web_service_log import *
 
 
-def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=False, StageIDList=[]):
+def transfer_format_check(secsGem_h, commandID, TransferInfoList, is_stage=False, StageIDList=[]):
+    secs_module = (E82 if isinstance(secsGem_h, E82_Host)
+                    else E88STK if isinstance(secsGem_h, E88_STK_Host)
+                    else None)
     ack=[]
     code=3
     StageList=[]
     
-    print('<start transfer format check>')
+    print('<start transfer format check>', secsGem_h, commandID, TransferInfoList, is_stage, StageIDList)
     print('1.check commandID duplicate?')
-    if secsGemE82_h and secsGemE82_h.check_transfer_cmd_duplicate(commandID):
-        e=alarms.CommandIDDuplicatedWarning(commandID, handler=secsGemE82_h)
+    if secsGem_h and secsGem_h.check_transfer_cmd_duplicate(commandID):
+        e=alarms.CommandIDDuplicatedWarning(commandID, handler=secsGem_h)
         if is_stage:
             return True, 3, [['STAGEID', 2]], e, StageList
         return True, 3, [['COMMANDID', 2]], e, StageList #chocp
@@ -53,7 +58,23 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
             if stageID not in StageList:
                 continue
             try:
-                stage_tr_cmd=E82_Host.default_h.ActiveTransfers.get(stageID)
+                # if hasattr(secsGem_h, 'StockerCraneID'):
+                if secs_module is E82:
+                    # stage_tr_cmd=E82_Host.default_h.ActiveTransfers.get(stageID)
+                    stage_tr_cmd=secsGem_h.ActiveTransfers.get(stageID)
+                    # print('debug stage_tr_cmd1', stage_tr_cmd)
+                elif secs_module is E88STK:
+                    stage_tr_cmd_class=secsGem_h.Transfers.Data[stageID]
+                    stage_tr_cmd=vars(stage_tr_cmd_class)
+                    # print('debug stage_tr_cmd0', stage_tr_cmd)
+                    stage_tr_cmd['TransferInfo']=[{
+                        'SourcePort': stage_tr_cmd.get('CarrierLoc', ''),
+                        'DestPort': stage_tr_cmd.get('Dest', ''),
+                        'CarrierID': stage_tr_cmd.get('CarrierID', ''),
+                        'HostSpecifyMR': stage_tr_cmd.get('HostSpecifyMR', ''),
+                        'ExecuteTime': int(stage_tr_cmd.get('ExecuteTime', 0))
+                    }]
+                    # print('debug stage_tr_cmd0.5', stage_tr_cmd)
                 if not stage_tr_cmd:
                     print('Cannot find stage cmd in list.')
                     StageList.remove(stageID)
@@ -64,7 +85,8 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                 continue
 
             if len(stage_tr_cmd['TransferInfo']) != len(TransferInfoList):
-                print('Length of transferinfo mismatch.')
+                print('Length of transferinfo mismatch. {} != {}'.format(len(stage_tr_cmd['TransferInfo']), len(TransferInfoList)))
+
                 StageList.remove(stageID)
                 continue
                 {"CarrierID": "111111", "SourcePort": "PORTX3", "DestPort": "PORTY3"}
@@ -77,7 +99,16 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
             sourcePort=TransferInfo['SourcePort']
             destPort=TransferInfo['DestPort']
             for stageID in StageList:
-                stage_tr_cmd=E82_Host.default_h.ActiveTransfers.get(stageID)
+                # # stage_tr_cmd=E82_Host.default_h.ActiveTransfers.get(stageID)
+                # stage_tr_cmd=secsGem_h.ActiveTransfers.get(stageID)
+                # if hasattr(secsGem_h, 'StockerCraneID'):
+                if secs_module is E82:
+                    stage_tr_cmd=E82_Host.default_h.ActiveTransfers.get(stageID)
+                    # print('debug stage_tr_cmd3', stage_tr_cmd)
+                elif secs_module is E88STK:
+                    stage_tr_cmd_class=secsGem_h.Transfers.Data[stageID]
+                    stage_tr_cmd=vars(stage_tr_cmd_class)
+                    # print('debug stage_tr_cmd2', stage_tr_cmd)
 
                 for stage in stage_tr_cmd['TransferInfo']:
                     print('0-1.check carrier id is correct?', carrierID, stage['CarrierID'])
@@ -143,21 +174,23 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
 
         if hostspecifyMR:
             if hostspecifyMR not in Vehicle.h.vehicles:
-                e=alarms.CommandSpecifyWarning(commandID, handler=secsGemE82_h)
+                e=alarms.CommandSpecifyWarning(commandID, handler=secsGem_h)
+
                 ack.append(["VEHICLEID", 2])
                 return True, 3, ack, e, StageList
             
         h_workstation=EqMgr.getInstance().workstations.get(sourcePort)#Hshuo 240807 check sourceport disable or not
         if h_workstation and not h_workstation.enable:
             print("\n!!!!!1-1.check source port disable or not")
-            e=alarms.CommandSourcePortDisable(commandID, sourcePort, handler=secsGemE82_h)
+            e=alarms.CommandSourcePortDisable(commandID, sourcePort, handler=secsGem_h)
             ack.append(["SOURCEPORT", 2])
 
             return True, 3, ack, e, StageList
         hh_workstation=EqMgr.getInstance().workstations.get(destPort)#Hshuo 240807 check destport disable or not
         if hh_workstation and not hh_workstation.enable: 
             print("\n!!!!!1-2.dest port is diable!!!!")
-            e=alarms.CommandDestPortDisable(commandID, destPort, handler=secsGemE82_h)
+            e=alarms.CommandDestPortDisable(commandID, destPort, handler=secsGem_h)
+
             ack.append(["DESTPORT", 2])
 
             return True, 3, ack, e, StageList
@@ -193,7 +226,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     carrier_type_ok=True
                     TransferInfo['CarrierType']=TransferInfoList[0].get('CarrierType')
                 else:
-                    e=alarms.CommandCarrierTypeNoneWarning(commandID, carrierID, carrierType, handler=secsGemE82_h)
+                    e=alarms.CommandCarrierTypeNoneWarning(commandID, carrierID, carrierType, handler=secsGem_h)
                     return True, 5, ack, e, StageList #need debug, 2022/1/2
 
         if carrierID:
@@ -201,11 +234,11 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                 print('3.check carrierID valid in whitelist?')
                 if global_variables.RackNaming == 5:
                     if 'C12N2' in carrierID: #for LG 2022/6/7
-                        e=alarms.CommandCarrierNotInWhiteListWarning(commandID, carrierID, handler=secsGemE82_h)
+                        e=alarms.CommandCarrierNotInWhiteListWarning(commandID, carrierID, handler=secsGem_h)
                         return True, 5, ack, e, StageList
 
                 elif not global_variables.WhiteCarriersMask.get(carrierID):
-                    e=alarms.CommandCarrierNotInWhiteListWarning(commandID, carrierID, handler=secsGemE82_h)
+                    e=alarms.CommandCarrierNotInWhiteListWarning(commandID, carrierID, handler=secsGem_h)
                     return True, 5, ack, e, StageList
 
             for queueID, zone_wq in TransferWaitQueue.getAllInstance().items(): #7. check if carrierID duplicator in waiting queue
@@ -213,23 +246,34 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     if host_tr_cmd['carrierID'] == carrierID:
                         if global_variables.TSCSettings.get('CommandCheck', {}).get('CarrierDuplicatedInWaitingQueueCheck') == 'yes' or host_tr_cmd['stage']:
                             print('4.check carrierID duplicate in waiting queue?')
-                            e=alarms.CommandCarrierDuplicatedInWaitingQueueWarning(commandID, carrierID, host_tr_cmd['uuid'], handler=secsGemE82_h)
+                            e=alarms.CommandCarrierDuplicatedInWaitingQueueWarning(commandID, carrierID, host_tr_cmd['uuid'], handler=secsGem_h)
                             ack.append(["CARRIERID", 2])
                             return True, 5, ack, e, StageList
                         else: #cancel before cmd in waiting queue  
                             host_command_id=host_tr_cmd['uuid']
                             #zone_wq.remove_waiting_transfer_by_commandID(host_command_id, cause='by command check', sub_code='TSC015', handler=secsGemE82_h)  #remind user chocp 2022/10/11, 2022/10/11
                             zone_wq.remove_waiting_transfer_by_commandID(host_command_id, cause='by command check', sub_code='TSC015')  #fix 2023/11/13
-                            E82.report_event(secsGemE82_h, E82.TransferCancelInitiated, {'CommandID':host_command_id,'CommandInfo':host_tr_cmd.get('CommandInfo',''),'TransferCompleteInfo':host_tr_cmd.get('OriginalTransferCompleteInfo','')}) #chocp 2022/3/11 add
+                            # E82.report_event(secsGem_h, E82.TransferCancelInitiated, {'CommandID': host_command_id, 'CommandInfo': host_tr_cmd.get('CommandInfo', ''), 'TransferCompleteInfo': host_tr_cmd.get('OriginalTransferCompleteInfo', '')})  # chocp 2022/3/11 add
+                            secs_module.report_event(secsGem_h, secs_module.TransferCancelInitiated, {'CommandID': host_command_id, 'CommandInfo': host_tr_cmd.get('CommandInfo', ''), 'TransferCompleteInfo': host_tr_cmd.get('OriginalTransferCompleteInfo', '')})
 
-                            if secsGemE82_h:
-                                secsGemE82_h.rm_transfer_cmd(host_command_id)
+                            if secsGem_h:
+                                # secsGem_h.rm_transfer_cmd(host_command_id)
+                                if secs_module is E82:
+                                    secsGem_h.rm_transfer_cmd(host_command_id)
+                                else:
+                                    secsGem_h.transfer_cancel(host_command_id)
 
                             for transferinfo in host_tr_cmd['OriginalTransferInfoList']:
                                 host_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':transferinfo['SourcePort']}) #bug, need check
 
-                            E82.report_event(secsGemE82_h,
-                                E82.TransferCancelCompleted, {
+                            # E82.report_event(secsGem_h,
+                            #     E82.TransferCancelCompleted, {
+                            #     'CommandInfo':host_tr_cmd.get('CommandInfo',''),
+                            #     'CommandID':host_command_id,
+                            #     'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo'], #9/13
+                            #     }) #chocp 2022/3/11 change seq
+                            secs_module.report_event(secsGem_h,
+                                secs_module.TransferCancelCompleted, {
                                 'CommandInfo':host_tr_cmd.get('CommandInfo',''),
                                 'CommandID':host_command_id,
                                 'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo'], #9/13
@@ -246,7 +290,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     for vehicle_id, h_vehicle in Vehicle.h.vehicles.items():
                         for local_tr_cmd in h_vehicle.tr_cmds:
                             if local_tr_cmd['carrierID'] == carrierID:
-                                e=alarms.CommandCarrierDuplicatedInExecutingQueueWarning(commandID, carrierID, local_tr_cmd['uuid'], handler=secsGemE82_h)
+                                e=alarms.CommandCarrierDuplicatedInExecutingQueueWarning(commandID, carrierID, local_tr_cmd['uuid'], handler=secsGem_h)
                                 ack.append(["CARRIERID", 2])
                                 return True, 5, ack, e, StageList
 
@@ -256,12 +300,12 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
             if '*' in sourcePort or sourcePort == 'E0P0' or sourcePort == '' or not EqMgr.getInstance().workstations.get(sourcePort) or new_source_port[:-5] in Vehicle.h.vehicles:
             #if '*' in sourcePort or sourcePort == 'E0P0' or sourcePort == '' or not EqMgr.getInstance().workstations.get(sourcePort) or source_port[:-5] in Vehicle.h.vehicles: ???
                 if not res:
-                    e=alarms.CommandCarrierLocateWarning(commandID, carrierID, handler=secsGemE82_h)
+                    e=alarms.CommandCarrierLocateWarning(commandID, carrierID, handler=secsGem_h)
                     ack.append(["CARRIERID", 2])
                     return True, 3, ack, e, StageList
                 
-                if  is_stage and new_source_port[:-5] in Vehicle.h.vehicles:
-                    e=alarms.CommandSourcePortConflictWarning(commandID, sourcePort, carrierID, handler=secsGemE82_h) #chocp 2021/11/8
+                if is_stage and new_source_port[:-5] in Vehicle.h.vehicles and self.secs_module!=E88STK:
+                    e=alarms.CommandSourcePortConflictWarning(commandID, sourcePort, carrierID, handler=secsGem_h) #chocp 2021/11/8
                     ack.append(["SOURCEPORT", 2])
                     return True, 3, ack, e, StageList
 
@@ -280,20 +324,20 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                         sector_name=h_eRack.carriers[int(portnum)-1]['area_id']
 
                     if sourcePort != sector_name:
-                        e=alarms.CommandSourcePortConflictWarning(commandID, sourcePort, carrierID, handler=secsGemE82_h) #chocp 2021/11/8
+                        e=alarms.CommandSourcePortConflictWarning(commandID, sourcePort, carrierID, handler=secsGem_h) #chocp 2021/11/8
                         ack.append(["SOURCEPORT", 2])
                         return True, 3, ack, e, StageList
                     else:
                         sourcePort=new_source_port
                         TransferInfo['SourcePort']=new_source_port
                 else:
-                    e=alarms.CommandSourcePortConflictWarning(commandID, sourcePort, carrierID, handler=secsGemE82_h) #chocp 2021/11/8
+                    e=alarms.CommandSourcePortConflictWarning(commandID, sourcePort, carrierID, handler=secsGem_h) #chocp 2021/11/8
                     ack.append(["SOURCEPORT", 2])
                     return True, 3, ack, e, StageList
         else: #if no carrierID
             print('6.check sourcePort valid?')
             if '*' in sourcePort or sourcePort == 'E0P0' or sourcePort == '': #if carrierID not specified, chocp add '' == '*' 20230523: 
-                e=alarms.CommandSourcePortNullWarning(commandID, sourcePort, handler=secsGemE82_h) #chocp 2021/11/8
+                e=alarms.CommandSourcePortNullWarning(commandID, sourcePort, handler=secsGem_h) #chocp 2021/11/8
                 ack.append(["SOURCEPORT", 2])
                 return True, 3, ack, e, StageList
             else:
@@ -329,7 +373,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                 for host_tr_cmd in zone_wq.queue:
                     #if host_tr_cmd['dest'] == destPort:
                     if host_tr_cmd['source'] == sourcePort and SourcePortDuplicatedCheck:
-                        e=alarms.CommandSourcetPortDuplicatedWarning(commandID, sourcePort, host_tr_cmd['uuid'], handler=secsGemE82_h)
+                        e=alarms.CommandSourcetPortDuplicatedWarning(commandID, sourcePort, host_tr_cmd['uuid'], handler=secsGem_h)
                         ack.append(["SOURCEPORT", 2])
                         return True, 3, ack, e, StageList
             else:#check duplicator in executing queue
@@ -337,7 +381,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     for vehicle_id, h_vehicle in Vehicle.h.vehicles.items():
                         for local_tr_cmd in h_vehicle.tr_cmds:
                             if local_tr_cmd['source'] == sourcePort:
-                                e=alarms.CommandSourcetPortDuplicatedWarning(commandID, sourcePort, local_tr_cmd['uuid'], handler=secsGemE82_h)
+                                e=alarms.CommandSourcetPortDuplicatedWarning(commandID, sourcePort, local_tr_cmd['uuid'], handler=secsGem_h)
                                 ack.append(["SOURCEPORT", 2])
                                 return True, 3, ack, e, StageList
 
@@ -350,7 +394,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                 if h_vehicle.id in sourcePort:
                     break
             else:
-                e=alarms.CommandSourcePortNotFoundWarning(commandID, sourcePort, handler=secsGemE82_h)
+                e=alarms.CommandSourcePortNotFoundWarning(commandID, sourcePort, handler=secsGem_h)
                 ack.append(["SOURCEPORT", 2])
                 return True, 3, ack, e, StageList
 
@@ -388,12 +432,12 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
             elif destPort == '' or destPort == '*' or destPort[:-5] in Vehicle.h.vehicles: #GF 1: acquire to the MR itself cmd
                 #if Dest is '*', not support Source is 'MRxxx'
                 if sourcePort[:-5] in Vehicle.h.vehicles:
-                    return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGemE82_h), StageList #GF 2: reject MR to MR itself
+                    return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGem_h), StageList #GF 2: reject MR to MR itself
 
                 if idx<len(TransferInfoList)-1: #GF 3: reject replace cmd, swap port is AMR buf
                     code=3
                     ack.append(["DESTPORT", 2])
-                    return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGemE82_h), StageList
+                    return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGem_h), StageList
 
                 res=True
             else:
@@ -403,7 +447,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                 TransferInfo['DestPort']=new_dest_port
                 continue
             else:
-                return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGemE82_h), StageList
+                return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGem_h), StageList
 
         if global_variables.TSCSettings.get('CommandCheck', {}).get('ReturnToFirst') == 'yes' and return_to:
             res, new_dest_port=tools.auto_assign_return_to_port(h_workstation.back_erack, TransferInfo.get('CarrierType', ''))
@@ -413,12 +457,12 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
         elif destPort == '' or destPort == '*' or destPort[:-5] in Vehicle.h.vehicles: #GF 1: acquire to the MR itself cmd
             #if Dest is '*', not support Source is 'MRxxx'
             if sourcePort[:-5] in Vehicle.h.vehicles:
-                return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGemE82_h), StageList #GF 2: reject MR to MR itself
+                return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGem_h), StageList #GF 2: reject MR to MR itself
 
             if idx<len(TransferInfoList)-1: #GF 3: reject replace cmd, swap port is AMR buf
                 code=3
                 ack.append(["DESTPORT", 2])
-                return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGemE82_h), StageList
+                return True, 3, ack, alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGem_h), StageList
 
             return False, 0, [], 0, StageList #check  success and exit
         
@@ -461,7 +505,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     pass
 
         if not res:
-            e=alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGemE82_h)
+            e=alarms.CommandDestPortAssignFailWarning(commandID, destPort, handler=secsGem_h)
             dest_error=True
             code=3
             ack.append(["DESTPORT", 2])
@@ -491,7 +535,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                 for host_tr_cmd in zone_wq.queue:
                     #if host_tr_cmd['dest'] == destPort:
                     if host_tr_cmd['dest'] == destPort and DestPortDuplicatedCheck: #chocp 2022/5/24 only for workstation... 2024/02/17 for all except Stock type
-                        e=alarms.CommandDestPortDuplicatedWarning(commandID, destPort, host_tr_cmd['uuid'], handler=secsGemE82_h)
+                        e=alarms.CommandDestPortDuplicatedWarning(commandID, destPort, host_tr_cmd['uuid'], handler=secsGem_h)
                         ack.append(["DESTPORT", 2])
                         return True, 3, ack, e, StageList
             else:#check duplicator in executing queue
@@ -500,7 +544,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     for vehicle_id, h_vehicle in Vehicle.h.vehicles.items():
                         for local_tr_cmd in h_vehicle.tr_cmds:
                             if local_tr_cmd['dest'] == destPort and DestPortDuplicatedCheck:
-                                e=alarms.CommandDestPortDuplicatedWarning(commandID, destPort, local_tr_cmd['uuid'], handler=secsGemE82_h)
+                                e=alarms.CommandDestPortDuplicatedWarning(commandID, destPort, local_tr_cmd['uuid'], handler=secsGem_h)
                                 ack.append(["DESTPORT", 2])
                                 return True, 3, ack, e, StageList
 
@@ -514,7 +558,7 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                 if h_vehicle.id in destPort:
                     break
             else:
-                e=alarms.CommandDestPortNotFoundWarning(commandID, destPort, handler=secsGemE82_h)
+                e=alarms.CommandDestPortNotFoundWarning(commandID, destPort, handler=secsGem_h)
                 ack.append(["DESTPORT", 2])
 
                 return True, 3, ack, e, StageList
@@ -530,14 +574,14 @@ def transfer_format_check(secsGemE82_h, commandID, TransferInfoList, is_stage=Fa
                     res=tools.erack_slot_type_verify(h_eRack, source_port_no, carrierType)
                     if not res:
                         print(1, carrierType, h_eRack.validSlotType)
-                        e=alarms.CommandSourceErackCarrierTypefailWarning(commandID, carrierID, TransferInfo.get('CarrierType', ''), sourcePort, h_eRack.validSlotType, handler=secsGemE82_h)
+                        e=alarms.CommandSourceErackCarrierTypefailWarning(commandID, carrierID, TransferInfo.get('CarrierType', ''), sourcePort, h_eRack.validSlotType, handler=secsGem_h)
                         return True, 3, ack, e, StageList
 
                 elif destport_res and rack_id == dest_rack_id:
                     res=tools.erack_slot_type_verify(h_eRack, dest_port_no, carrierType)
                     if not res:
                         print(2, carrierType, h_eRack.validSlotType)
-                        e=alarms.CommandDestErackCarrierTypefailWarning(commandID, carrierID, TransferInfo.get('CarrierType', ''), destPort, h_eRack.validSlotType, handler=secsGemE82_h)
+                        e=alarms.CommandDestErackCarrierTypefailWarning(commandID, carrierID, TransferInfo.get('CarrierType', ''), destPort, h_eRack.validSlotType, handler=secsGem_h)
                         return True, 3, ack, e, StageList
 
         print('<final transfer cmd check?')
@@ -558,12 +602,21 @@ class TransferWaitQueue():
             h.update_params(setting)
             return h
         else:
-            secsgem_e82_h=E82_Host.getInstance(queueID)
-            return TransferWaitQueue(secsgem_e82_h, queueID, setting)
+            if 'v4' in global_variables.api_spec:
+                secsgem_h=E88_STK_Host.getInstance(queueID)
+                secs_module=E88STK #??? DeanJwo for test
+            else:
+                secsgem_h=E82_Host.getInstance(queueID)
+                secs_module=E82 #??? DeanJwo for test
+            # secsgem_h=E88_STK_Host.getInstance(queueID)
+            return TransferWaitQueue(secsgem_h, secs_module, queueID, setting)
 
-    def __init__(self, secsgem_e82_h, queueID, setting): #need create for all zone and all vehicle waiting queue
+    def __init__(self, secsgem_h, secs_module, queueID, setting): #need create for all zone and all vehicle waiting queue
         self.queueID=queueID
-        self.secsgem_e82_h=secsgem_e82_h
+        # self.secsgem_e82_h=secsgem_e82_h
+        # self.secsgem_e88_h=secsgem_e88_h
+        self.secsgem_h=secsgem_h
+        self.secs_module=secs_module
         #self.queueType='Normal' #2022/12/13 chocp
         #self.preferZoneID='' #for FST
         self.my_lock=threading.Lock()
@@ -629,10 +682,10 @@ class TransferWaitQueue():
             self.update_params(self.default_setting)
         
         
-
         TransferWaitQueue.__instance[queueID]=self
         print('******************************************************')
-        print('TransferWaitQueue', 'init', queueID, self.secsgem_e82_h)
+        # print('TransferWaitQueue', 'init', queueID, self.secsgem_e82_h)
+        print('TransferWaitQueue', 'init', queueID, self.secsgem_h)
         print('******************************************************')
 
     def update_params(self, setting): #chocp add 2022/4/12
@@ -865,16 +918,40 @@ class TransferWaitQueue():
                     }, True)
             # Mike: 2022/12/02
             try:
-                ActiveTransfers=E82.get_variables(self.secsgem_e82_h, 'ActiveTransfers')
-                ActiveTransfers[host_tr_cmd.get('uuid', '')]['CommandInfo']['TransferState']=6
-                E82.update_variables(self.secsgem_e82_h, {'ActiveTransfers': ActiveTransfers})
+                print('debug ActiveTransfers2')
+                # ActiveTransfers=E82.get_variables(self.secsgem_e82_h, 'ActiveTransfers')
+                # ActiveTransfers[host_tr_cmd.get('uuid', '')]['CommandInfo']['TransferState']=6
+                # E82.update_variables(self.secsgem_e82_h, {'ActiveTransfers': ActiveTransfers})
+
+                # # if  hasattr(self.secsgem_h, 'add_transfer_cmd'):
+                # if self.secs_module == E82:
+                #     ActiveTransfers=E82.get_variables(self.secsgem_h, 'ActiveTransfers')
+                #     ActiveTransfers[host_tr_cmd.get('uuid', '')]['CommandInfo']['TransferState']=6
+                #     E82.update_variables(self.secsgem_h, {'ActiveTransfers': ActiveTransfers})
+                # # elif hasattr(self.secsgem_h, 'transfer_cmd'):
+                # elif self.secs_module == E88STK:
+
+                #     print('check E88Equipment')
+
+                #     ActiveTransfers=E88STK.get_variables(self.secsgem_h, 'ActiveTransfers')
+                #     print("ActiveTransfers : {}".format(ActiveTransfers))
+                #     ActiveTransfers[host_tr_cmd.get('uuid', '')]['CommandInfo']['TransferState']=6
+                #     E88STK.update_variables(self.secsgem_h, {'ActiveTransfers': ActiveTransfers})
+                self.secs_call("update_transferstate", host_tr_cmd.get("uuid", ""), 6)
+
+
             except:
+                print(traceback.print_exc())
                 pass
 
             #if host_tr_cmd['sourceType']!='FromVehicle': #GRA, already report smae event in zone queue
             #    E82.report_event(self.secsgem_e82_h, E82.TransferInitiated, {'CommandID':host_tr_cmd["uuid"]})
             if not host_tr_cmd.get('stage', 0):
-                E82.report_event(self.secsgem_e82_h, E82.TransferInitiated, {'CommandID':host_tr_cmd["uuid"],'CommandInfo':host_tr_cmd['CommandInfo'],'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo']})
+                # if  hasattr(self.secsgem_h, 'add_transfer_cmd'):
+                #     E82.report_event(self.secsgem_e82_h, E82.TransferInitiated, {'CommandID':host_tr_cmd["uuid"],'CommandInfo':host_tr_cmd['CommandInfo'],'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo']})
+                # else:
+                #     pass
+                self.secs_module.report_event(self.secsgem_h, self.secs_module.TransferInitiated, {'CommandID':host_tr_cmd["uuid"],'CommandInfo':host_tr_cmd['CommandInfo'],'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo']})
                 output('TransferInitiated',  {'CommandID':host_tr_cmd["uuid"]})
 
             print('add_waiting_transfer_list', self.queueID, self.single_transfer_total, self.replace_transfer_total)
@@ -1203,7 +1280,16 @@ class TransferWaitQueue():
                         EqMgr.getInstance().orderMgr.update_work_status(host_command_id, 'FAIL', 'Transfer command in waiting queue be canceled') #cancel cmd by man
                         
 
-                self.secsgem_e82_h.rm_transfer_cmd(host_command_id) #fix cancel link cmd 2022/6/28
+                # self.secsgem_e82_h.rm_transfer_cmd(host_command_id) #fix cancel link cmd 2022/6/28
+                # if hasattr(self.secsgem_h, 'rm_transfer_cmd'):
+                # if self.secs_module == E82:
+                #     print('e82 cancel check')
+                #     self.secsgem_h.rm_transfer_cmd(host_command_id)
+                # # elif hasattr(self.secsgem_h, 'transfer_cancel'):
+                # elif self.secs_module == E88STK:
+                #     print('e88 cancel check')
+                #     self.secsgem_h.transfer_cancel(host_command_id)
+                self.secs_call("remove_transfer" ,host_command_id)
 
                 return True, host_tr_cmd #fix cancel link cmd 2022/6/28
         else:
@@ -1709,7 +1795,12 @@ class TransferWaitQueue():
                         if h_workstation and h_workstation.workstation_type in ['StockIn', 'StockIn&StockOut', 'LifterPort']:
                             if new_stockin_port:
                                 if dest!=new_stockin_port:
-                                    E82.report_event(self.secsgem_e82_h, E82.DestPortChanged, 
+                                    # E82.report_event(self.secsgem_h, E82.DestPortChanged,
+                                    #     {'CommandID':host_tr_cmd['uuid'],
+                                    #     'CarrierID':host_tr_cmd['carrierID'],
+                                    #     'DestPort':host_tr_cmd['dest'],
+                                    #     'TransferPort':new_stockin_port})
+                                    self.secs_module.report_event(self.secsgem_h, self.secs_module.DestPortChanged,
                                         {'CommandID':host_tr_cmd['uuid'],
                                         'CarrierID':host_tr_cmd['carrierID'], 
                                         'DestPort':host_tr_cmd['dest'], 

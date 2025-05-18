@@ -662,19 +662,19 @@ class ABCSConnectFailWarning(MyException):
         self.notify({'Iot':ABCSID}, collections.OrderedDict({'DeviceID':ABCSID}), handler=handler)
 
 class ELVWithAlarmWarning(MyException):
-    def __init__(self, ELVID, sub_code='0', handler=E88_STK_Host):
+    def __init__(self, ELVID, sub_code='0', handler=None):
         MyException.__init__(self, 'Error', 50061, sub_code, 'Elevator with alarms')
-        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=None)
+        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=handler)
 
 class ELVLinkLostWarning(MyException):
-    def __init__(self, ELVID, sub_code='0', handler=E88_STK_Host):
+    def __init__(self, ELVID, sub_code='0', handler=None):
         MyException.__init__(self, 'Error', 50062, sub_code, 'Elevator linking timeout')
-        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=None)
+        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=handler)
 
 class ELVConnectFailWarning(MyException):
-    def __init__(self, ELVID, sub_code='0', handler=E88_STK_Host):
+    def __init__(self, ELVID, sub_code='0', handler=None):
         MyException.__init__(self, 'Error', 50063, sub_code, 'Elevator Connect fail')
-        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=None)
+        self.notify({'Iot':ELVID}, collections.OrderedDict({'DeviceID':ELVID}), handler=handler)
 
 
 #for temp

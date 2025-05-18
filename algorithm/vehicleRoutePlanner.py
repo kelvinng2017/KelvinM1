@@ -216,18 +216,6 @@ class RoutePlanner(threading.Thread):
             params={'DeviceID':device_id, 'Floor':floor}
             r=collections.deque([('elevator_open', params), ('moving_out_elevator', params), route])
             g=collections.deque(['P', 'P', 'I'])
-        elif process == 'leave_elevator':
-            device_id=pose['group']
-            floor=pose.get('floor', global_map_mapping[global_route_mapping[pose['route']]]+1)
-            params={'DeviceID':device_id, 'Floor':floor}
-            r=collections.deque(['Wait', ('move_out_elevator_complete', params), ('elevator_close', params), route]) #???
-            g=collections.deque(['W', 'P', 'P', 'I'])
-        elif process == 'leave_elevator':
-            device_id=pose['group']
-            floor=pose.get('floor', global_map_mapping[global_route_mapping[pose['route']]]+1)
-            params={'DeviceID':device_id, 'Floor':floor}
-            r=collections.deque(['Wait', ('move_out_elevator_complete', params), ('elevator_close', params), route]) #???
-            g=collections.deque(['W', 'P', 'P', 'I'])
         elif process == "open_gate":
             r = collections.deque([('gate_open', params), 'wait', ('is_gate_opened', params), route]) #???
             g = collections.deque(['P', 'W', 'P', 'I'])
@@ -284,6 +272,7 @@ class RoutePlanner(threading.Thread):
             r=collections.deque(['wait', ('move_in_elevator_complete', params), ('elevator_close', params), route]) #???
             g=collections.deque(['W', 'P', 'P', 'I'])
         elif process == 'leave_elevator':
+            pose=tools.get_pose(previous_route)
             device_id=pose['group']
             floor=pose.get('floor', global_map_mapping[global_route_mapping[pose['route']]]+1)
             params={'DeviceID':device_id, 'Floor':floor}
