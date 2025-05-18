@@ -61,7 +61,6 @@ SV_VehicleLastState=626
 SV_CommandIDList=614
 SV_StageID=615 # Mike: 2021/07/22
 SV_ExecuteTime=616 #Kelvin 2022/08/21
-SV_ResultSubCode=634 #kelvin 2025/04/08
 SV_DoorState=649 #peter 240705
 SV_ALTX=651
 SV_ALSV=652
@@ -259,12 +258,8 @@ EventTable={
     ExpectedDurationExpired: {'report':[SV_StageID]},
     WaitTimeoutExpired: {'report':[SV_StageID]},
     TrAddReq: {'report':[SV_VehicleID, SV_TransferPort]},
-    #peter 24/03/07,start for K9
-    #TrLoadReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID,SV_CommandID,SV_ExecuteTime]},
-    TrLoadReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID,SV_CommandID]},
-    #TrUnLoadReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID,SV_CommandID,SV_ExecuteTime]}
-    TrUnLoadReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID,SV_CommandID]},
-    TrShiftReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID,SV_CommandID]},
+    TrLoadReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID,SV_CommandID,SV_ExecuteTime]},
+    TrUnLoadReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID,SV_CommandID,SV_ExecuteTime]},
     TrBackReq: {'report':[SV_VehicleID, SV_TransferPort, SV_CarrierID]},
     EQStatusReq: {'report':[SV_EQID]},
     PortStatusReq: {'report':[SV_PortID]},
