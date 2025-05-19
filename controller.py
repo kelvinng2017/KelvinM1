@@ -702,6 +702,8 @@ def mount_socketio_func(sio):
                 global_variables.RouteAlgo='A*WithRoad'
             else:
                 global_variables.RouteAlgo='A*'
+            if global_variables.TSCSettings.get('TrafficControl', {}).get('NearDistance'):
+                global_variables.global_nearDistance=global_variables.TSCSettings.get('TrafficControl', {}).get('NearDistance')
             try:
                 global_variables.Format_RackPort_Parse=global_variables.RackPortFormat[global_variables.RackNaming-1][0]
                 global_variables.Format_RackPort_Print=global_variables.RackPortFormat[global_variables.RackNaming-1][1]

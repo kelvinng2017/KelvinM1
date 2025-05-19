@@ -5580,7 +5580,10 @@ class Vehicle(threading.Thread):
                                             self.alarm_set='Error'
                                             self.reset_alarm()
                                             
-                            if self.error_retry_cmd and not self.adapter.alarm['error_code'] and self.adapter.move['status'] == 'Idle' and self.adapter.robot['status'] == 'Idle' and not self.adapter.online['man_mode']:
+                            elif global_variables.RackNaming in [33, 42, 58] and self.error_code == 10029:
+                                self.reset_alarm()
+                                            
+                            if self.error_retry_cmd and (not self.adapter.alarm['error_code'] or self.adapter.alarm['error_code'] == '900001') and self.adapter.move['status'] == 'Idle' and self.adapter.robot['status'] == 'Idle' and not self.adapter.online['man_mode']:
                                 self.error_retry_cmd=False
                                 self.retry_action()
 

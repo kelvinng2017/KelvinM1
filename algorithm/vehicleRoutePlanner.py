@@ -1521,9 +1521,11 @@ class RoutePlanner(threading.Thread):
                 'VehicleState':self.adapter.vehicle_instance.AgvState,
                 'Routes':self.occupied_route })
 
-    def update_location(self, use_new_data, allow_no_point=False, max_dist=100, check_head=True): # Mike: 2021/02/18 # Mike: 2022/02/08 # Mike: 2022/02/25
+    def update_location(self, use_new_data, allow_no_point=False, max_dist=None, check_head=True): # Mike: 2021/02/18 # Mike: 2022/02/08 # Mike: 2022/02/25
 
         self.logger.debug('{} {}'.format('[{}] '.format(self.id), 'update_location....'))
+        if max_dist is None:
+            max_dist = global_variables.global_nearDistance
 
         if use_new_data:
             for i in range(100): # Mike: 2021/04/19

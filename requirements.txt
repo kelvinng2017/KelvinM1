@@ -18,3 +18,4 @@ psutil==6.1.1
 namedthreads==1.0
 #setproctitle=1.1.10
 pymodbus==2.5.3
+pyserial==3.5

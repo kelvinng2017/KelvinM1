@@ -67,9 +67,13 @@ def round_a_point(p):
 def check_a_point(p, target, max_dist=100): # Mike: 2022/04/15
     return (((PortsTable.mapping[target]['x'] - p[0])**2 + (PortsTable.mapping[target]['y'] - p[1])**2) < max_dist**2) and (PortsTable.mapping[target]['z'] == p[2])
 
-def round_a_point_new(p, check_head=True, max_dist=100, find_nearest=True): # Mike: 2021/03/02 # Mike: 2021/10/06
+def round_a_point_new(p, check_head=True, max_dist=None, find_nearest=True): # Mike: 2021/03/02 # Mike: 2021/10/06
 
     near=list(filter((lambda t: t[1]['z'] == p[2]), sorted(PoseTable.mapping.items(), key=lambda t: (t[1]['x'] - p[0])**2 + (t[1]['y'] - p[1])**2))) #chocp 2023/7/21
+
+    ret=['']
+    if max_dist is None:
+        max_dist = global_variables.global_nearDistance
 
     ret=['']
     for P in near:

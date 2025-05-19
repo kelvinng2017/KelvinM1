@@ -1,3 +1,11 @@
+9.0.3(2025/05/19)
+add:
+1.add pyserial whl file to Resource
+mod:
+1.mod max_dist use NearDistance
+2.mod get right timeout can suppert retry fuction
+fix:
+
 9.0.2(2025/05/15)
 add:
 mod:

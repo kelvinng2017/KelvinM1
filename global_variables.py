@@ -315,6 +315,7 @@ global_auto_group=False
 global_vehicles_priority={}
 global_port_transfer_table_mem=[]
 global_crossZoneLink={}
+global_nearDistance=150
 
 global_cassetteType=['A12', 'B12', 'C08', 'D08', 'C12', '12S', '8S', '08S', 'MC', 'FOUP', 'FOSB']
 
