@@ -283,7 +283,13 @@ class TSC(threading.Thread):
                         CarrierLoc=transferinfo['SourcePort']
                         if CarrierID in self.secsgem_e82_default_h.ActiveCarriers:
                             CarrierLoc=self.secsgem_e82_default_h.ActiveCarriers[CarrierID]["RackID"]+self.secsgem_e82_default_h.ActiveCarriers[CarrierID]["SlotID"]
-                        host_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':CarrierLoc}) #bug, need check
+                        # host_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':CarrierLoc}) #bug, need check
+
+                        if host_tr_cmd and host_tr_cmd['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                            if transferinfo['DestPort'] == host_tr_cmd['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                                host_tr_cmd['OriginalTransferCompleteInfo'][0]['CarrierLoc']=CarrierLoc
+                            elif len(host_tr_cmd['OriginalTransferCompleteInfo']) > 1:
+                                host_tr_cmd['OriginalTransferCompleteInfo'][1]['CarrierLoc']=CarrierLoc
 
                     E82.report_event(self.secsgem_e82_default_h, E82.TransferCancelCompleted, {
                                 'CommandInfo':host_tr_cmd['CommandInfo'],
@@ -299,6 +305,23 @@ class TSC(threading.Thread):
                                 #'CarrierLoc':self.action_in_run['loc'],
                                 'CarrierLoc':host_tr_cmd['dest']}) #chocp fix for tfme 2021/10/23
                     output('TransferCancelCompleted', {'CommandID':host_command_id})
+                    if global_variables.TSCSettings.get('Other', {}).get('SendTransferCompletedAfterAbort', 'no') == 'yes' :
+                        E82.report_event(self.secsgem_e82_default_h,
+                                        E82.TransferCompleted,{
+                                        'CommandInfo':host_tr_cmd['CommandInfo'],
+                                        'VehicleID':"",
+                                        'TransferCompleteInfo':host_tr_cmd['OriginalTransferCompleteInfo'], #9/13
+                                        'TransferInfo':host_tr_cmd['OriginalTransferInfoList'][0] if host_tr_cmd['OriginalTransferInfoList'] else {},
+                                        'CommandID':host_tr_cmd['CommandInfo'].get('CommandID', ''),
+                                        'Priority':host_tr_cmd['CommandInfo'].get('Priority', 0),
+                                        'Replace':host_tr_cmd['CommandInfo'].get('Replace', 0),
+                                        'CarrierID':host_tr_cmd['carrierID'], #chocp fix for tfme 2021/10/23
+                                        'SourcePort':host_tr_cmd['source'], #chocp fix for tfme 2021/10/23
+                                        'DestPort':host_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                                        #'CarrierLoc':self.action_in_run['loc'],
+                                        'CarrierLoc':host_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                                        'NearLoc':'', # for amkor ben 250502
+                                        'ResultCode':40001 if global_variables.RackNaming != 60 else 99 })
 
                     if global_variables.TSCSettings.get('Safety', {}).get('SkipCancelLoadWhenUnloadCancel', 'no') == 'no': #8.25.9-2
                         if host_tr_cmd.get('link'): #check with link cmd, also need delete
@@ -313,7 +336,9 @@ class TSC(threading.Thread):
                                     CarrierLoc=transferinfo['SourcePort']
                                     if CarrierID in self.secsgem_e82_default_h.ActiveCarriers:
                                         CarrierLoc=self.secsgem_e82_default_h.ActiveCarriers[CarrierID]["RackID"]+self.secsgem_e82_default_h.ActiveCarriers[CarrierID]["SlotID"]
-                                    link_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':CarrierLoc}) #bug, need check
+                                    # link_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':CarrierLoc}) #bug, need check
+                                    if link_tr_cmd['OriginalTransferCompleteInfo'] : # ben 250523
+                                        link_tr_cmd['OriginalTransferCompleteInfo'][0]['CarrierLoc']=CarrierLoc
 
                                 # E82.report_event(self.secsgem_e82_default_h, E82.TransferCancelCompleted, {'CommandID':link_tr_cmd.get('uuid')}) #2022/6/30
                                 E82.report_event(self.secsgem_e82_default_h, E82.TransferCancelCompleted, {
@@ -846,7 +871,7 @@ class TSC(threading.Thread):
                     elif uuid.endswith('-UNLOAD'):
                         uuid=uuid[:-7]
                 if uuid == local_command_id:
-                    if global_variables.RackNaming== 43 and h_vehicle.AgvState in ['Acquiring', 'Depositing']:
+                    if global_variables.RackNaming in [43, 60] and h_vehicle.AgvState in ['Acquiring', 'Depositing']:
                         break
                     #local_command_id, result_code, result_txt, link_workstation=False, cause='by alarm'): #fix 6
                     res=h_vehicle.abort_tr_cmds_and_actions(local_command_id, 40002, 'Transfer command in exectuing queue be aborted', cause)
@@ -898,7 +923,12 @@ class TSC(threading.Thread):
             'operatorID':obj.get('operatorID', '') if obj else '',
             'Residence_Time':TransferInfoList[0].get('QTime', 1000) if transfer_type == "pre_transfer" else 2000#Yuri 10/21
         }
-        
+
+        for transferinfo in TransferInfoList:
+            host_tr_cmd['OriginalTransferCompleteInfo'].append({
+                'TransferInfo': copy.deepcopy(transferinfo), # ben 250520
+                'CarrierLoc': transferinfo.get('SourcePort', '')
+            })        
         
         h_workstation=EqMgr.getInstance().workstations.get(host_tr_cmd['dest']) #add for Buf Constrain
         if h_workstation:
@@ -1724,7 +1754,22 @@ class TSC(threading.Thread):
                                 if hasattr(obj['handle'], 'Transfers'):
                                     obj['handle'].Transfers.delete(CommandInfo['CommandID'])
                                 #self.secsgem_e82_default_h.send_response(self.secsgem_e82_default_h.stream_function(2,50)([code, ack]), obj['system'])
-                                obj['handle'].send_response(obj['handle'].stream_function(2,50)([code, ack]), obj['system'])
+                                if global_variables.RackNaming == 60 : # ben 250421
+                                    obj['handle'].send_response(obj['handle'].stream_function(2,50)([4]), obj['system'])
+
+                                    if isinstance(alarm, (alarms.CommandCarrierDuplicatedInWaitingQueueWarning, alarms.CommandCarrierDuplicatedInExecutingQueueWarning)):
+                                        amker_ResultCode=3
+                                    else :
+                                        amker_ResultCode=1
+                                    
+                                    E82.report_event(self.secsgem_e82_default_h, E82.TransferCompleted, {
+                                                        'CommandInfo':{'CommandID' : CommandInfo['CommandID'], 'Priority' : CommandInfo['Priority'], 'Replace' : CommandInfo['Replace'] },
+                                                        'ResultCode': amker_ResultCode,
+                                                        'TransferCompleteInfo':[{'TransferInfo':{'CarrierID':TransferInfoList[0]['CarrierID'] , 'SourcePort':TransferInfoList[0]['SourcePort'], 'DestPort':TransferInfoList[0]['DestPort']}, 'CarrierLoc':''}],
+                                                        'NearLoc':'' # for mirle ben 250502
+                                                    })                                     
+                                else :
+                                    obj['handle'].send_response(obj['handle'].stream_function(2,50)([code, ack]), obj['system'])
                             #fix CommandInfo['CommandID'] to alarm.command_id for database deal commandID duplicator
                             output('TransferParamsCheckReject', {'CommandID':alarm.command_id,\
                                     'CommandInfo': CommandInfo,\
@@ -2387,7 +2432,7 @@ class TSC(threading.Thread):
                                 '''if 'MR' in zoneID and len(zone_wq.queue): #for specified MR for StockOut
                                     can_run_flag=True ''' #disable dispatch cmd for MRxxx zone right now
                                 if len(wq.queue): #chi 2022/11/23
-                                    if time.time()-wq.queue[0]['received_time']>wq.commandLivingTime:
+                                    if time.time()-wq.queue[0]['received_time']>wq.commandLivingTime and global_variables.RackNaming not in [33, 40, 41, 42, 58]:
                                         wq.wq_lock.release() #8.21N-3
                                         res, queueID=self.transfer_cancel(wq.queue[0]['uuid'], 'by Command Timeout')
                                         continue

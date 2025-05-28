@@ -1,3 +1,19 @@
+9.0.6(2025/05/22) by ben
+add:
+1. add racknaming 59 for SKYWORKS MX, 60 for Amkor
+2. add protocol_list 'v3_AMKOR'
+3. add erack data for SKYWORKS MX
+4. add TSC setting SendTransferCompletedAfterAbort
+5. add faulthandler to log segment fault
+
+mod:
+1. modify OriginalTransferCompletedInfo
+2. modify S2F50 for rackNaming 60
+3. mark namethread package
+
+fix:
+1. fix wrong replace command ID to be deleted
+
 9.0.5(2025/05/22) 
 add:
 1. add endarrival check for route in execute_action

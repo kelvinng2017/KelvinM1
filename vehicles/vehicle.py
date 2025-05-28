@@ -564,6 +564,9 @@ class Vehicle(threading.Thread):
                                 'Carriers':self.carrier_status_list
                                 })
 
+                        if self.bufs_status[i]['local_tr_cmd']: # ben add 250506
+                            self.bufs_status[i]['local_tr_cmd']['carrierLoc']=self.bufs_status[i]['local_tr_cmd'].get('dest', '')
+
                         self.bufs_status[i]['type']='None'
                         if global_variables.RackNaming == 42:
                             self.update_dynamic_buffer_mapping(i,'Empty')
@@ -578,6 +581,7 @@ class Vehicle(threading.Thread):
                                              'VehicleID':self.id,
                                              'CommandID':host_command_id,
                                              'CarrierLoc':self.id+self.vehicle_bufID[i],
+                                             'NearLoc':'', # for amkor ben 250502
                                              'CarrierID':self.bufs_status[i]['stockID']})
 
                         if self.last_bufs_status[i]['stockID'] not in ['', 'None', 'Unknown']:
@@ -612,8 +616,23 @@ class Vehicle(threading.Thread):
                         self.bufs_status[i]['type']=self.bufs_status[i]['local_tr_cmd'].get('TransferInfo', {}).get('CarrierType', '')
                         print(self.bufs_status[i]['type'])
                         
-                        if not self.bufs_status[i]['local_tr_cmd'] and global_variables.RackNaming == 42:
+                        # if not self.bufs_status[i]['local_tr_cmd'] and global_variables.RackNaming == 42:
+                        #     self.update_dynamic_buffer_mapping(i,'Unknown') 
+                        if self.bufs_status[i]['local_tr_cmd']: # ben modify if to if elif 250506 
+                            self.bufs_status[i]['local_tr_cmd']['carrierLoc']=self.id+self.vehicle_bufID[i]
+
+                        elif not self.bufs_status[i]['local_tr_cmd'] and global_variables.RackNaming == 42:
                             self.update_dynamic_buffer_mapping(i,'Unknown')
+
+                        local_tr_cmd=self.action_in_run.get('local_tr_cmd', {})
+                        if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                            if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
+                                local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                            else :
+                                if local_tr_cmd['TransferInfo']['DestPort'] == local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                                    local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                elif len(local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']) > 1:
+                                    local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][1]['CarrierLoc']=local_tr_cmd['carrierLoc']
 
     def AgvErrorCheck(self, mr_state):
         local_tr_cmd=self.action_in_run.get('local_tr_cmd', {})
@@ -820,14 +839,32 @@ class Vehicle(threading.Thread):
                                                     'VehicleID':self.id,
                                                     'CommandID':host_command_id,
                                                     'CarrierLoc':self.id+self.vehicle_bufID[i],
+                                                    'NearLoc':'', # for amkor ben 250502
                                                     'CarrierID':self.bufs_status[i]['stockID']})
+                                if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                                    if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                    else :
+                                        if local_tr_cmd['TransferInfo']['DestPort'] == local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                                            local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                        elif len(local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']) > 1:
+                                            local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][1]['CarrierLoc']=local_tr_cmd['carrierLoc']
                         else:
                             E82.report_event(self.secsgem_e82_h,
                                                 E82.CarrierInstalled, {
                                                 'VehicleID':self.id,
                                                 'CommandID':host_command_id,
                                                 'CarrierLoc':self.id+self.vehicle_bufID[i],
+                                                'NearLoc':'', # for amkor ben 250502
                                                 'CarrierID':self.bufs_status[i]['stockID']})
+                            if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                                if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
+                                    local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                else :
+                                    if local_tr_cmd['TransferInfo']['DestPort'] == local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                    elif len(local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']) > 1:
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][1]['CarrierLoc']=local_tr_cmd['carrierLoc']
 
                 #if self.bufs_status[i]['stockID'] == 'ReadFail' and mr_state not in ['Acquiring','Depositing','Pause'] and not global_variables.TSCSettings.get('Safety', {}).get('BufferNoRFIDCheck', 'no') == 'yes':
                 if self.bufs_status[i]['read_fail_warn'] and\
@@ -871,7 +908,7 @@ class Vehicle(threading.Thread):
         for local_tr_cmd in self.tr_cmds:
             if local_tr_cmd['host_tr_cmd']['uuid'] in local_command_id:
                 del_tr_cmds.append(local_tr_cmd)
-                del_tr_cmds_id.append(local_command_id)
+                del_tr_cmds_id.append(local_tr_cmd['uuid']) # ben fix 250516
                 if local_tr_cmd['host_tr_cmd'].get('link'): #8.22J-2
                     link_local_tr_cmd=local_tr_cmd['host_tr_cmd'].get('link')
                     if check_link:
@@ -885,8 +922,8 @@ class Vehicle(threading.Thread):
                                     res, tmp_host_tr_cmd=zone_wq.remove_waiting_transfer_by_commandID(link_uuid, cause='by link')
                                     if res:
                                         # self.doPreDispatchCmd=False
-                                        for transferinfo in link_local_tr_cmd['OriginalTransferInfoList']:
-                                            link_local_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':transferinfo['SourcePort']}) #bug, need check
+                                        # for transferinfo in link_local_tr_cmd['OriginalTransferInfoList']:
+                                        #     link_local_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':transferinfo['SourcePort']}) #bug, need check
                                         link_local_tr_cmd['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
 
                                         E82.report_event(self.secsgem_e82_h,
@@ -967,6 +1004,24 @@ class Vehicle(threading.Thread):
                         result_code=1
                 else:
                     result_code=1
+            
+            elif global_variables.RackNaming == 60:
+                if result_code == 10019:
+                    if self.error_sub_code in ['TSC018', 'TSC021']:  # CarrRfiddifferent, CarrRfidConflict
+                        result_code=4
+                    elif self.error_sub_code == '0':                 # CarrRfidFail
+                        result_code=5
+                    else:
+                        result_code=1
+                elif result_code == 10007:
+                    if self.error_sub_code == '':
+                        result_code=64
+                    elif self.error_sub_code == '':
+                        result_code=65
+                    else:
+                        result_code=1
+                else:
+                    result_code=99
 
             if not local_tr_cmd.get('host_tr_cmd', {}).get('stage', 0):
                 output('TransferCompleted', {
@@ -1001,7 +1056,15 @@ class Vehicle(threading.Thread):
             #9/13 chocp fix from tfme
             #local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['TransferInfo'], 'CarrierLoc':self.action_in_run['loc']})
             local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['TransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #bug, need check
-            local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #bug, need check
+            l#local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #bug, need check
+            if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
+                    local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                else :
+                    if local_tr_cmd['TransferInfo']['DestPort'] == local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                    elif len(local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']) > 1:
+                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][1]['CarrierLoc']=local_tr_cmd['carrierLoc']
 
             # print('In abort... local_tr_cmd is: ', local_tr_cmd)
             if local_tr_cmd['last']:
@@ -1022,6 +1085,7 @@ class Vehicle(threading.Thread):
                                     'DestPort':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                     #'CarrierLoc':self.action_in_run['loc'],
                                     'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                                    'NearLoc':'', # for amkor ben 250502
                                     'ResultCode':result_code})
                     self.secsgem_e82_h.rm_transfer_cmd(local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''))
                 else:
@@ -1044,6 +1108,22 @@ class Vehicle(threading.Thread):
                                         'VehicleID':self.id, #8.25.13-1
                                         'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                         'ResultCode':result_code }) #chocp fix for tfme 2021/10/23
+                            if global_variables.TSCSettings.get('Other', {}).get('SendTransferCompletedAfterAbort', 'no') == 'yes' : # ben add 250516
+                                E82.report_event(self.secsgem_e82_h,
+                                            E82.TransferCompleted,{
+                                            'CommandInfo':local_tr_cmd['host_tr_cmd']['CommandInfo'],
+                                            'VehicleID':self.id,
+                                            'TransferCompleteInfo':local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'], #9/13
+                                            'TransferInfo':local_tr_cmd['host_tr_cmd']['OriginalTransferInfoList'][0] if local_tr_cmd['host_tr_cmd']['OriginalTransferInfoList'] else {},
+                                            'CommandID':local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''),
+                                            'Priority':local_tr_cmd['host_tr_cmd']['CommandInfo'].get('Priority', 0),
+                                            'Replace':local_tr_cmd['host_tr_cmd']['CommandInfo'].get('Replace', 0),
+                                            'CarrierID':local_tr_cmd['carrierID'],
+                                            'SourcePort':local_tr_cmd['source'],
+                                            'DestPort':local_tr_cmd['dest'],
+                                            'CarrierLoc':local_tr_cmd['dest'],
+                                            'NearLoc':'',
+                                            'ResultCode':result_code })
 
                         self.secsgem_e82_h.rm_transfer_cmd(local_tr_cmd['host_tr_cmd']['uuid'])
 
@@ -1073,7 +1153,23 @@ class Vehicle(threading.Thread):
                                         'VehicleID':self.id, #8.25.13-1
                                         'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                         'ResultCode':result_code }) #chocp fix for tfme 2021/10/23
-
+                            if global_variables.TSCSettings.get('Other', {}).get('SendTransferCompletedAfterAbort', 'no') == 'yes' : # ben add 250516
+                                E82.report_event(self.secsgem_e82_h,
+                                            E82.TransferCompleted,{
+                                            'CommandInfo':local_tr_cmd['host_tr_cmd']['CommandInfo'],
+                                            'VehicleID':self.id,
+                                            'TransferCompleteInfo':local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'],
+                                            'TransferInfo':local_tr_cmd['host_tr_cmd']['OriginalTransferInfoList'][0] if local_tr_cmd['host_tr_cmd']['OriginalTransferInfoList'] else {},
+                                            'CommandID':local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''),
+                                            'Priority':local_tr_cmd['host_tr_cmd']['CommandInfo'].get('Priority', 0),
+                                            'Replace':local_tr_cmd['host_tr_cmd']['CommandInfo'].get('Replace', 0),
+                                            'CarrierID':local_tr_cmd['carrierID'],
+                                            'SourcePort':local_tr_cmd['source'],
+                                            'DestPort':local_tr_cmd['dest'],
+                                            'CarrierLoc':local_tr_cmd['dest'],
+                                            'NearLoc':'', # for amkor ben 250502
+                                            'ResultCode':result_code })
+                                
                         self.secsgem_e82_h.rm_transfer_cmd(local_tr_cmd['host_tr_cmd']['uuid'])
 
 
@@ -1620,6 +1716,7 @@ class Vehicle(threading.Thread):
                         'CommandID':uuid, #chocp add 10/30
                         'TransferPort':target,
                         'CarrierID':carrierID,
+                        'CarrierLoc':self.id+self.action_in_run['loc'], # ben add 250430
                         'BatteryValue':self.adapter.battery['percentage']}) #change target carrierID.....
 
         output('VehicleAcquireStarted',{
@@ -1972,6 +2069,7 @@ class Vehicle(threading.Thread):
                         'CommandID':uuid, #chocp add 10/30
                         'TransferPort':target,
                         'CarrierID':carrierID,
+                        'CarrierLoc':local_tr_cmd['carrierLoc'], # ben add 250516
                         'BatteryValue':self.adapter.battery['percentage']})
 
         output('VehicleDepositStarted',{
@@ -2310,6 +2408,7 @@ class Vehicle(threading.Thread):
                         E82.report_event(self.secsgem_e82_h, #fix 
                                         E82.VehicleDeparted, {
                                         'VehicleID':self.id,
+                                        'CarrierLoc':local_tr_cmd['carrierLoc'], # ben add 250430
                                         'CommandID':uuid,
                                         'TransferPort':target,
                                         'BatteryValue':self.adapter.battery['percentage']})
@@ -2317,6 +2416,7 @@ class Vehicle(threading.Thread):
                         E82.report_event(self.secsgem_e82_h,
                                         E82.VehicleDeparted, {
                                         'VehicleID':self.id,
+                                        'CarrierLoc':local_tr_cmd['carrierLoc'], # ben add 250430
                                         'CommandID':uuid,
                                         'TransferPort':TransferPort,
                                         'TransferPortList':PortsTable.reverse_mapping[self.adapter.last_point],
@@ -3116,7 +3216,7 @@ class Vehicle(threading.Thread):
                     'replace':0,
                     'CommandInfo':CommandInfo,
                     'TransferCompleteInfo':[],
-                    'OriginalTransferCompleteInfo':[],
+                    'OriginalTransferCompleteInfo':[{'TransferInfo': TransferInfo, 'CarrierLoc': TransferInfo.get('SourcePort', '')}], # ben add Info 250506
                     'TransferInfoList':[TransferInfo],
                     'OriginalTransferInfoList':[TransferInfo],
                     'link':None,
@@ -5904,13 +6004,13 @@ class Vehicle(threading.Thread):
                                 for local_tr_cmd in self.tr_cmds:
                                     if local_tr_cmd['host_tr_cmd']['uuid'] not in self.CommandIDList:#fix 5
                                         self.CommandIDList.append(local_tr_cmd['host_tr_cmd']['uuid']) #release commandID
-                                        if global_variables.RackNaming == 43:  # Mirle can't accept CommandIDList need one cmd one VehicleAssigned
+                                        if global_variables.RackNaming in [43, 60]:  # Mirle can't accept CommandIDList need one cmd one VehicleAssigned
                                             E82.report_event(self.secsgem_e82_h,
                                             E82.VehicleAssigned,{
                                             'VehicleID':self.id,
                                             'CommandID':local_tr_cmd['host_tr_cmd']['uuid']})
                                             
-                                if global_variables.RackNaming != 43: 
+                                if global_variables.RackNaming not in [43, 60]: 
                                     E82.report_event(self.secsgem_e82_h,
                                                 E82.VehicleAssigned,{
                                                 'VehicleID':self.id,
@@ -6265,7 +6365,15 @@ class Vehicle(threading.Thread):
                                 vehicle_wq.last_add_time=time.time()
 
                                 local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['TransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #8.25.10-1
-                                local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #8.25.10-1
+                                # local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #8.25.10-1
+                                if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                                    if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                    else :
+                                        if local_tr_cmd['TransferInfo']['DestPort'] == local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                                            local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                        elif len(local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']) > 1:
+                                            local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][1]['CarrierLoc']=local_tr_cmd['carrierLoc']    
                                 E82.report_event(self.secsgem_e82_h,
                                                 E82.TransferCompleted,{
                                                 'CommandInfo':local_tr_cmd['host_tr_cmd']['CommandInfo'],
@@ -6281,6 +6389,7 @@ class Vehicle(threading.Thread):
                                                 'DestPort':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
                                                 #'CarrierLoc':self.action_in_run['loc'],
                                                 'CarrierLoc':local_tr_cmd['dest'], #chocp fix for tfme 2021/10/23
+                                                'NearLoc':'', # for amkor ben 250502
                                                 'ResultCode':0})
 
                                 output('TransferCompleted', {
@@ -6667,7 +6776,7 @@ class Vehicle(threading.Thread):
                         if self.adapter.robot['finished'] == 'InterlockError':
                             if global_variables.RackNaming == 8:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Serious', handler=self.secsgem_e82_h)
-                            elif global_variables.RackNaming == 43:
+                            elif global_variables.RackNaming in [43, 60]:
                                 raise alarms.BaseSourceInterlockWarning(self.id, uuid, target, handler=self.secsgem_e82_h)
                             else:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Error', handler=self.secsgem_e82_h)
@@ -6711,7 +6820,7 @@ class Vehicle(threading.Thread):
                             self.tr_assert_result=''
                             #8.22G-1 chocp rewrite for jcet CIS PreBindCheck...
                             carrierID_from_cmd=local_tr_cmd['carrierID']
-                            carrierID_from_rfid=self.re_assign_carrierID(self.action_in_run['loc']) if global_variables.RackNaming != 43 else self.re_assign_carrierID(self.action_in_run['loc'],wrong_id_allow=True)
+                            carrierID_from_rfid=self.re_assign_carrierID(self.action_in_run['loc']) if global_variables.RackNaming not in [43, 60] else self.re_assign_carrierID(self.action_in_run['loc'],wrong_id_allow=True)
 
                             if carrierID_from_cmd == '' or carrierID_from_cmd == 'None': #chocp fix for tfme 2021/10/23
                                 local_tr_cmd['carrierID']=carrierID_from_rfid
@@ -6854,7 +6963,7 @@ class Vehicle(threading.Thread):
                                 continue
 
                             elif self.tr_assert['Result'] == 'OK':
-                                if global_variables.RackNaming ==43:
+                                if global_variables.RackNaming in [43, 60]:
                                     if self.tr_assert['TransferPort'] == 'None' or self.tr_assert['SendBy'] == 'by web': #chocp add 2021/12/21
                                         self.enter_depositing_state()
                                         continue
@@ -7080,7 +7189,7 @@ class Vehicle(threading.Thread):
                         if self.adapter.robot['finished'] == 'InterlockError':
                             if global_variables.RackNaming == 8:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Serious', handler=self.secsgem_e82_h)
-                            elif global_variables.RackNaming == 43:
+                            elif global_variables.RackNamingin [43, 60]:
                                 raise alarms.BaseShiftInterlockWarning(self.id, uuid, target, handler=self.secsgem_e82_h)
                             else:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Error', handler=self.secsgem_e82_h)
@@ -7101,7 +7210,14 @@ class Vehicle(threading.Thread):
                             
                             #9/13 chocp fix from tfme
                             local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['TransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']})
-                            local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']})
+                            if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                                if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
+                                    local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                else :
+                                    if local_tr_cmd['TransferInfo']['DestPort'] == local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                    elif len(local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']) > 1:
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][1]['CarrierLoc']=local_tr_cmd['carrierLoc']
 
                             E82.report_event(self.secsgem_e82_h,
                                         E82.VehicleShiftCompleted, {
@@ -7187,7 +7303,7 @@ class Vehicle(threading.Thread):
                         if self.adapter.robot['finished'] == 'InterlockError':
                             if global_variables.RackNaming == 8:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Serious', handler=self.secsgem_e82_h)
-                            elif global_variables.RackNaming == 43:
+                            elif global_variables.RackNaming in [43, 60]:
                                 raise alarms.BaseDestInterlockWarning(self.id, uuid, target, handler=self.secsgem_e82_h)
                             else:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Error', handler=self.secsgem_e82_h)
@@ -7320,7 +7436,15 @@ class Vehicle(threading.Thread):
 
                             #9/13 chocp fix from tfme
                             local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['TransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']})
-                            local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']})
+                            # local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']})
+                            if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
+                                if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
+                                    local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                else :
+                                    if local_tr_cmd['TransferInfo']['DestPort'] == local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['TransferInfo']['DestPort'] :
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
+                                    elif len(local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']) > 1:
+                                        local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][1]['CarrierLoc']=local_tr_cmd['carrierLoc']
 
                             if local_tr_cmd['last']:
 
@@ -7503,10 +7627,10 @@ class Vehicle(threading.Thread):
                                     'ResultCode':0})
                             if link_local_tr_cmd:
                                 link_local_tr_cmd['TransferCompleteInfo'].append({'TransferInfo': link_local_tr_cmd['OriginalTransferInfoList'][0] if link_local_tr_cmd['OriginalTransferInfoList'] else {}, 'CarrierLoc':target})
-                                link_local_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': link_local_tr_cmd['OriginalTransferInfoList'][0] if link_local_tr_cmd['OriginalTransferInfoList'] else {}, 'CarrierLoc':target})
+                                #link_local_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': link_local_tr_cmd['OriginalTransferInfoList'][0] if link_local_tr_cmd['OriginalTransferInfoList'] else {}, 'CarrierLoc':target})
                             else:
                                 local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['host_tr_cmd']['OriginalTransferInfoList'][0], 'CarrierLoc':target})
-                                local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['host_tr_cmd']['OriginalTransferInfoList'][0], 'CarrierLoc':target})
+                                #local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['host_tr_cmd']['OriginalTransferInfoList'][0], 'CarrierLoc':target})
 
                             if local_tr_cmd['last'] and link_local_tr_cmd:
 
@@ -7524,6 +7648,7 @@ class Vehicle(threading.Thread):
                                                 'DestPort':link_local_tr_cmd['dest']if link_local_tr_cmd else local_tr_cmd['host_tr_cmd'].get('dest', 0), #chocp fix for tfme 2021/10/23
                                                 #'CarrierLoc':self.action_in_run['loc'],
                                                 'CarrierLoc':link_local_tr_cmd['dest']if link_local_tr_cmd else local_tr_cmd['host_tr_cmd'].get('dest', 0), #chocp fix for tfme 2021/10/23
+                                                'NearLoc':'', # for amkor ben 250502
                                                 'ResultCode':0 })
 
                                 self.secsgem_e82_h.rm_transfer_cmd(link_local_tr_cmd['CommandInfo'].get('CommandID', '') if link_local_tr_cmd else local_tr_cmd['host_tr_cmd']['CommandInfo'].get('CommandID', ''))

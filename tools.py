@@ -1134,22 +1134,22 @@ def Timed_charging(timelist):
     except:
         return False
     
-def find_command_detail_by_commandID(commandID):
-    default_cmd={'CommandInfo':'','TransferCompleteInfo':''}
-    if global_variables.RackNaming != 43:  #only Mirle MCS need query this detail
+def find_command_detail_by_commandID(commandID): # change to OriginalTransferCompleteInfo ben 250429
+    default_cmd={'CommandInfo':'','OriginalTransferCompleteInfo':''}
+    if global_variables.RackNaming not in [43, 60]:  #only Mirle MCS need query this detail # add Amkor ben 250429
         return default_cmd
     for queueID, zone_wq in TransferWaitQueue.getAllInstance().items():
         for host_tr_cmd in zone_wq.queue:
             if commandID == host_tr_cmd['uuid']:
                 default_cmd['CommandInfo']=host_tr_cmd['CommandInfo']
-                default_cmd['TransferCompleteInfo']=host_tr_cmd['TransferCompleteInfo']
+                default_cmd['OriginalTransferCompleteInfo']=host_tr_cmd['OriginalTransferCompleteInfo']
                 return default_cmd
     else:
         for vehicle_id, h_vehicle in Vehicle.h.vehicles.items():
             for local_tr_cmd in h_vehicle.tr_cmds:
                 if commandID == local_tr_cmd['uuid']:
                     default_cmd['CommandInfo']=local_tr_cmd['host_tr_cmd']['CommandInfo']
-                    default_cmd['TransferCompleteInfo']=local_tr_cmd['host_tr_cmd']['TransferCompleteInfo']
+                    default_cmd['OriginalTransferCompleteInfo']=local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']
                     return default_cmd
     return default_cmd
 

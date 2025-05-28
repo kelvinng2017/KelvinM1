@@ -213,6 +213,7 @@ SV_SubCode=657 #Chi 2022/06/17
 SV_EnhancedCarrierInfo=658 #2024/06/21 for Mirle MCS
 SV_InstallTime=659 #2024/06/21 for Mirle MCS
 SV_CarrierState=660 #2024/06/21 for Mirle MCS
+SV_NearLoc=310 # add for amkor ben 250502
 
 ''' Rack '''
 SV_ActiveRacks=701

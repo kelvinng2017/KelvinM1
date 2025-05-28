@@ -5,6 +5,9 @@ if six.PY2:
   ConfigParser=configparser.SafeConfigParser
 else:
   ConfigParser=configparser.ConfigParser
+  import faulthandler
+  _fault_log = open("fault.log", "a")
+  faulthandler.enable(file=_fault_log, all_threads=True)
 # from configparser import ConfigParser
 import traceback
 import os
@@ -82,8 +85,8 @@ import logging
 import zmq #chocp 2024/8/9
 
 from web_service_log import *
-import namedthreads
-namedthreads.patch()
+# import namedthreads
+# namedthreads.patch()
 
 def generate_routes():
     print('\ngenerate_routes:')
@@ -617,7 +620,7 @@ def mount_socketio_func(sio):
             
             try:
                 secsgem_e82_h=E82_Host.getInstance()
-                port_variable='PortID' if global_variables.RackNaming != 43 else 'TransferPort'
+                port_variable='PortID' if global_variables.RackNaming not in [43, 60] else 'TransferPort'
                 if changes:
                     for i in changes:
                         if i['PortTransferState'] == 2:
@@ -879,6 +882,7 @@ def mount_socketio_func(sio):
                     'TransferCompleteInfo':[{'TransferInfo':{'CarrierID':cmd.get('CarrierID', '') , 'SourcePort':cmd['Source'], 'DestPort':cmd['Dest']}, 'CarrierLoc':''}],
                     'TransferInfo':{'CarrierID':cmd.get('CarrierID', '') , 'SourcePort':cmd['Source'], 'DestPort':cmd['Dest']},
                     'VehicleID':'',
+                    'NearLoc':'',
                     'ResultCode': 10001}) #tsc internal error
 
                 output('TransferCompleted', {

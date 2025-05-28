@@ -12,6 +12,7 @@ import protocol.erack_data_sj as erack_sj
 import protocol.erack_data_qualcomm as erack_qualcomm
 import protocol.erack_date_ti as erack_ti
 import protocol.erack_data_skyworksSG as erack_skyworksSG
+import protocol.erack_data_skyworksMX as erack_skyworksMX
 
 #need config zone
 #step 1:divide zone
@@ -86,6 +87,8 @@ RackPortFormat=[
     [r'(ER-.+)-(.+)',                               '%s-%.2d',      r'(ER.+)',                              '%s',    ''], #56 Intel tim
     [r'(ER-.+)-(.+)',                               '%s-%.2d',      r'(ER.+)',                              '%s',    ''], #57 Malta
     [r'(ER-.+)-(.+)',                               '%s-%.2d',      r'(ER.+)',                              '%s',    ''], #58. Renesas JP FT YZ
+    [r'(ER\d+)P(\d+)',                              '%sP%d',        r'(ER\d+)',                             '%s',    ''], #59. SKYWORKSMX
+    [r'(EX.+)_SL(.+)',                              '%s_SL%.3d',    r'(EX.+)',                              '%s',    ''], #60. Amkor
 ]
 
 Format_RackPort_Parse=r'E(\d+)P(\d+)'
@@ -325,7 +328,8 @@ global_erack_item={
     'JCET':erack_jcet,
     'QUALCOMM':erack_qualcomm,
     'TI':erack_ti,
-    'SKYWORKSSG':erack_skyworksSG
+    'SKYWORKSSG':erack_skyworksSG,
+    'SKYWORKSMX':erack_skyworksMX
 }
 
 

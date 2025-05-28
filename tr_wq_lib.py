@@ -263,8 +263,8 @@ def transfer_format_check(secsGem_h, commandID, TransferInfoList, is_stage=False
                                 else:
                                     secsGem_h.transfer_cancel(host_command_id)
 
-                            for transferinfo in host_tr_cmd['OriginalTransferInfoList']:
-                                host_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':transferinfo['SourcePort']}) #bug, need check
+                            # for transferinfo in host_tr_cmd['OriginalTransferInfoList']:
+                            #     host_tr_cmd['OriginalTransferCompleteInfo'].append({'TransferInfo': transferinfo, 'CarrierLoc':transferinfo['SourcePort']}) #bug, need check
 
                             # E82.report_event(secsGem_h,
                             #     E82.TransferCancelCompleted, {
