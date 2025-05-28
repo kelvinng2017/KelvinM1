@@ -2158,8 +2158,8 @@ class Vehicle(threading.Thread):
         to_point=tools.find_point(target)
         
 
-        if force_route or self.action_in_run['type'] in ['GOTO'] or self.at_station == '' or (self.adapter.last_point!=to_point): #fix 8/20
-            
+        if force_route or self.action_in_run['type'] in ['GOTO'] or self.at_station == '' or (self.adapter.last_point != to_point) or (self.adapter.move['arrival'] != 'EndArrival'): #fix 8/20
+
             if self.actions:
                 if self.actions[0]['type'] == 'EXCHANGE':
                     h_ABCS=Iot.h.devices.get(target, None)

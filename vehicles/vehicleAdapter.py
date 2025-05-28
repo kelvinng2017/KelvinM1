@@ -1640,7 +1640,7 @@ class Adapter(threading.Thread):
 
         self.logger.info('{} {} {} {} {} {} {}'.format('[{}] '.format(self.id), 'acquire_control:', from_port, fpn, to_port, tpn, carrierID))
         self.buf_idx_estimate=tpn-1
-        self.buf_status_estimate=carrierID #not safty
+        self.buf_status_estimate=carrierID #not safety
         # Mike: 2021/05/27
         command='{:04d}'.format(self.robot_cmd_id)
         self.robot_control(from_port, to_port, command, e84=e84, cs=cs, cont=cont, pn=pn, ct=ct, fpn=fpn, tpn=tpn, **kwargs)
@@ -1719,7 +1719,7 @@ class Adapter(threading.Thread):
         self.logger.info('{} {} {} {} {} {}'.format('[{}] '.format(self.id), 'deposite_control:', from_port, fpn, to_port, tpn))
         #self.logger.info('{} {} {} {} {}'.format('[{}] '.format(self.id), 'deposite_control:', from_port, to_port, pn))
         self.buf_idx_estimate=fpn-1
-        self.buf_status_estimate='None'  #not safty
+        self.buf_status_estimate='None'  #not safety
         # Mike: 2021/05/27
         command='{:04d}'.format(self.robot_cmd_id)
         self.robot_control(from_port, to_port, command, e84=e84, cs=cs, cont=cont, pn=pn, ct=ct, fpn=fpn, tpn=tpn,**kwargs)
@@ -1789,7 +1789,7 @@ class Adapter(threading.Thread):
 
         self.logger.info('{} {} {} {} {} {}'.format('[{}] '.format(self.id), 'shift_control:', from_port, fpn, to_port, tpn))
         self.buf_idx_estimate=-1
-        self.buf_status_estimate='None'  #not safty
+        self.buf_status_estimate='None'  #not safety
         # Mike: 2021/05/27
         command='{:04d}'.format(self.robot_cmd_id)
         self.robot_control(from_port, to_port, command, e84=e84, cs=cs, cont=cont, fpn=fpn, tpn=tpn, ct=ct, **kwargs)
@@ -1868,7 +1868,7 @@ class Adapter(threading.Thread):
 
         self.logger.info('{} {} {} {}'.format('[{}] '.format(self.id), 'swap_control:', from_port, to_port))
         self.buf_idx_estimate=fpn-1
-        self.buf_status_estimate=self.vehicle_instance.action_in_run["local_tr_cmd"]["carrierID"] #not safty
+        self.buf_status_estimate=self.vehicle_instance.action_in_run["local_tr_cmd"]["carrierID"] #not safety
         # Mike: 2021/05/27
         command='{:04d}'.format(self.robot_cmd_id)
         self.robot_control(from_port, to_port, command, e84=e84, cs=cs, cont=cont, pn=pn, ct=ct, fpn=fpn, tpn=tpn,**kwargs)

@@ -1,3 +1,13 @@
+9.0.5(2025/05/22) 
+add:
+1. add endarrival check for route in execute_action
+mod:
+1. at move_nak, when vehicle_stop no response and the current_route is empty, will append new route to let get_right thread not stop
+2. if enroute is end, the nak process will end
+3. update_location will now update last_point based on the latest coordinate when nat use new data
+fix:
+1. change typo safty to safety
+
 9.0.4(2025/05/22) 
 add:
 1. add FaultCarrierWarning for TI Dallas to report fault carrier on vehicle

@@ -459,7 +459,8 @@ class tcp_bridge:
                                     print('stop moving')
                                 else:
                                     total_pos += "0"
-                                    self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
+                                    if not self.test:
+                                        self.output_buffer.appendleft((total_pos, bytearray(raw_rx[-4:].encode())))
                                     print('stop moving fail')
 
                         elif (raw_rx[1:4] == "P93"):    # Map Change Request

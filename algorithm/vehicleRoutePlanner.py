@@ -1200,8 +1200,16 @@ class RoutePlanner(threading.Thread):
                     '''th=threading.Thread(target=self.adapter.vehicle_stop,)
                     th.setDaemon(True)
                     th.start()'''
-                    if not self.adapter.vehicle_stop(check_stop=0, check_get_right_th=False):
+                    if not self.adapter.vehicle_stop(Stime=0.1, check_stop=0, check_get_right_th=False):
                         if self.adapter.wait_stop in [0, 1]:
+                            if not len(self.current_route):
+                                # self.current_route.appendleft(path_mem)
+                                # self.current_go_list.appendleft(go_list_mem)
+                                self.current_route.appendleft(['Wait'])
+                                self.current_go_list.appendleft(['W'])
+                            print('cannot stop vehicle, continue')
+                            if self.adapter.vehicle_instance.AgvState != 'Enroute':
+                                break
                             continue
                         elif self.adapter.wait_stop == 2:
                             self.clean_route()
