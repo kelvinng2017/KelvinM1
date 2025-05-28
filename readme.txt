@@ -1,3 +1,10 @@
+9.0.4(2025/05/22) 
+add:
+1. add FaultCarrierWarning for TI Dallas to report fault carrier on vehicle
+2. add ReportDepartedWhenVehicleAssigned setting to report VehicleDeparted when vehicle assigned
+mod:
+fix:
+
 9.0.3(2025/05/19)
 add:
 1.add pyserial whl file to Resource

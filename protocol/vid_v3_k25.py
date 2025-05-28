@@ -313,6 +313,7 @@ AlarmTable={
     10032: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID, SV_CommandID, SV_PortID], 'text':'MR with other warning'},
     10033: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID], 'text': 'MR with emergency evacuation'},
     10034: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID, SV_CommandID, SV_PortID], 'text': 'Action not support'},
+    10035: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID, SV_CarrierLoc, SV_CarrierID, SV_CommandID], 'text':'Fault carrier on MR'},
     
     20001: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode ], 'text':'SC internal error, code exception'},
     20002: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_RackID, SV_CarrierLoc], 'text':'Base read rfid error'},

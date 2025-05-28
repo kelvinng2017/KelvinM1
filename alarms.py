@@ -439,6 +439,10 @@ class ActionNotSupportWarning(MyException):
     def __init__(self, vehicleID, commandID, portID, sub_code='', handler=None):
         MyException.__init__(self, 'Error', 10034, sub_code, 'Action not support')
         self.notify({'Vehicle':vehicleID}, collections.OrderedDict({'VehicleID':vehicleID, 'CommandID':commandID, 'PortID':portID}), handler=handler)
+class FaultCarrierWarning(MyException):
+    def __init__(self,vehicleID, commandID, portID, carrierID, sub_code='0', handler=None):
+        MyException.__init__(self, 'Warning', 10035, sub_code, 'Fault carrier on MR')
+        self.notify({'Vehicle':vehicleID}, collections.OrderedDict({'VehicleID':vehicleID,'CommandID':commandID,'CarrierLoc':portID, 'CarrierID':carrierID}), handler=handler)
 
 class SCInternalWarning(MyException): #need fix secsgem
     def __init__(self, eRackID, sub_code='0', handler=None):

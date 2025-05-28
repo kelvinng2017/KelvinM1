@@ -535,6 +535,8 @@ AlarmTable={
     10032: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID, SV_CommandID, SV_PortID], 'text': 'MR with other warning'},
     10033: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID], 'text': 'MR with emergency evacuation'},
     10034: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID, SV_CommandID, SV_PortID], 'text': 'Action not support'},
+    10035: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_VehicleID, SV_CarrierLoc, SV_CarrierID, SV_CommandID], 'text':'Fault carrier on MR'},
+
     
     10051: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_RackID], 'text':'Erack off line'},
     10052: {'report':[SV_ALTX, SV_ALSV, SV_UnitType, SV_UnitID, SV_Level, SV_SubCode, SV_RackID], 'text':'Erack water level high'},

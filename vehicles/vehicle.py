@@ -2304,7 +2304,8 @@ class Vehicle(threading.Thread):
 
             #if global_variables.RackNaming == 3: #for tfme
             if global_variables.RackNaming != 36:#K11 alway need report VehicleDeparted
-                if not force_route:
+                if not force_route or global_variables.TSCSettings.get('Other', {}).get('ReportDepartedWhenVehicleAssigned') == 'yes':
+
                     if global_variables.TSCSettings.get('Other', {}).get('ReportFromPortWhenVehicleDeparted') == 'yes':
                         E82.report_event(self.secsgem_e82_h, #fix 
                                         E82.VehicleDeparted, {
