@@ -1994,7 +1994,7 @@ class TransferWaitQueue():
                         'back': '',
                         'CommandInfo':CommandInfo,
                         'TransferCompleteInfo':[],
-                        'OriginalTransferCompleteInfo':[],
+                        'OriginalTransferCompleteInfo':do_pre_tr_cmd['OriginalTransferCompleteInfo'], # ben add info 250520
                         'TransferInfoList':[TransferInfo],
                         'OriginalTransferInfoList':[TransferInfo],
                         'credit':1,

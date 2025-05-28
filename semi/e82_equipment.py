@@ -851,6 +851,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
             SV_VehicleState:secsgem.StatusVariable(SV_VehicleState, "SV_VehicleState", "", secsgem.SecsVarU2, True), # 2024/07/15
             SV_VehicleLastState:secsgem.StatusVariable(SV_VehicleLastState, "SV_VehicleLastState", "", secsgem.SecsVarU2, True), # 2024/07/15
             SV_NearPort:secsgem.StatusVariable(SV_NearPort, "SV_NearPort", "", secsgem.SecsVarString, True), # 2024/07/15
+            SV_NearLoc:secsgem.StatusVariable(SV_NearLoc, "SV_NearLoc", "", secsgem.SecsVarString, True), # 2025/05/02 ben for amkor
             SV_CurrentPortStates: secsgem.StatusVariable(SV_CurrentPortStates, "SV_CurrentPortStates", "", secsgem.SecsVarList, True), # Mike: 2021/08/10
             SV_AlarmsSetDescription: secsgem.StatusVariable(SV_AlarmsSetDescription, "SV_AlarmsSetDescription", "", secsgem.SecsVarList, True), # 2024/08/28
             SV_DoorState: secsgem.StatusVariable(SV_DoorState, "SV_DoorState", "", secsgem.SecsVarString, True),#peter 240705
@@ -943,7 +944,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
         #####################################
         ''' Alarm initial '''
         for ALID, DATA in AlarmTable.items():
-            if mdln == 'v3_MIRLE':
+            if mdln in ['v3_MIRLE', 'v3_AMKOR']:
                 if 'event_id' in DATA and len(DATA['event_id']) == 2:
                     self.alarms.update({
                         ALID: secsgem.Alarm((ALID), DATA['text'], DATA['text'], secsgem.ALCD.PERSONAL_SAFETY | secsgem.ALCD.EQUIPMENT_SAFETY, DATA['event_id'][0], DATA['event_id'][1]),
@@ -1074,7 +1075,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
                 TransferInfo=secsgem.SecsVarList([DI.CARRIERID, DI.SOURCEPORT, DI.DESTPORT], [TransferCompleteInfo["TransferInfo"]["CarrierID"], TransferCompleteInfo["TransferInfo"]["SourcePort"], TransferCompleteInfo["TransferInfo"]["DestPort"]])
                 TransferCompleteInfo_n=secsgem.SecsVarList([DI.TRANSFERINFO, DI.CARRIERLOC], [TransferInfo, TransferCompleteInfo["CarrierLoc"]])
                 L_TransferCompleteInfo.append(TransferCompleteInfo_n)
-            if self.MDLN  == 'v3_MIRLE':
+            if self.MDLN in ['v3_MIRLE', 'v3_AMKOR'] :
                 return TransferCompleteInfo_n
             else:
                 ret=secsgem.SecsVarArray(DI.TRANSFERCOMPLETEINFOUNIT, L_TransferCompleteInfo)
@@ -1285,6 +1286,9 @@ class E82Equipment(secsgem.GemEquipmentHandler):
                 L_AlarmsSetDescription.append(EnhancedALID_n)
             ret=secsgem.SecsVarArray(DI.ACTIVEVEHICLESUNIT, L_AlarmsSetDescription)
             return ret
+        elif sv.svid == SV_NearLoc: # 2025/05/02 ben add for amkor
+            value=self.NearLoc
+            return sv.value_type(value)
         
 
         '''
@@ -1407,7 +1411,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
                     raise Exception(err)
         
         self.alarms[alid].set=True
-        if self.MDLN  == 'v3_MIRLE':
+        if self.MDLN in ['v3_MIRLE', 'v3_AMKOR'] :
             if alarmlevel == 'Warning':
                 self.trigger_collection_events(503) 
             else:
@@ -1438,7 +1442,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
                     raise Exception(err)
 
         self.alarms[alid].set=False
-        if self.MDLN  == 'v3_MIRLE':
+        if self.MDLN in ['v3_MIRLE', 'v3_AMKOR'] :
             if alarmlevel == 'Warning':
                 self.trigger_collection_events(504) 
             else:
@@ -1468,7 +1472,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
         self.COMMANDID=COMMANDID
 
         self.ResultCode=2
-        if self.MDLN  == 'v3_MIRLE':
+        if self.MDLN in ['v3_MIRLE', 'v3_AMKOR'] :
             self.send_response(self.stream_function(2,42)([4]), system)
         else:
             self.send_response(self.stream_function(2,42)([0]), system)    
@@ -1628,7 +1632,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
         obj['ack_params']=ack_params
         obj['handle']=self
         self.ResultCode=1
-        if self.MDLN  == 'v3_MIRLE':
+        if self.MDLN in ['v3_MIRLE', 'v3_AMKOR'] :
             self.send_response(self.stream_function(2,42)([4]), system)
         else:
             self.send_response(self.stream_function(2,42)([0]), system)   

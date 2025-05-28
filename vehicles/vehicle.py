@@ -7189,7 +7189,7 @@ class Vehicle(threading.Thread):
                         if self.adapter.robot['finished'] == 'InterlockError':
                             if global_variables.RackNaming == 8:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Serious', handler=self.secsgem_e82_h)
-                            elif global_variables.RackNamingin [43, 60]:
+                            elif global_variables.RackNaming in [43, 60]:
                                 raise alarms.BaseShiftInterlockWarning(self.id, uuid, target, handler=self.secsgem_e82_h)
                             else:
                                 raise alarms.BaseRobotInterlockWarning(self.id, uuid, target, 'Error', handler=self.secsgem_e82_h)
