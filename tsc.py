@@ -1624,7 +1624,7 @@ class TSC(threading.Thread):
                         if global_variables.TSCSettings.get('Other', {}).get('StageEnable','no') != 'yes':
                             print('Reject Stage Cmd', h_vehicle.AgvState)
                             obj['handle'].send_response(obj['handle'].stream_function(2,50)([1]), obj['system'])
-                            return
+                            continue
 
                         if global_variables.field_id == 'USG3ELV':
                             VehicleID=self.secsgem_e88_stk_default_h.Ports.Data[obj['PortID']].StockerCraneID
@@ -1632,7 +1632,7 @@ class TSC(threading.Thread):
                             if not h_vehicle or (h_vehicle and h_vehicle.AgvState in [ 'Pause', 'Removed']):
                                 print('Reject Stage Cmd', h_vehicle.AgvState)
                                 obj['handle'].send_response(obj['handle'].stream_function(2,50)([1]), obj['system'])
-                                return
+                                continue
 
                         print(obj)
                         obj['commandinfo']=obj['stageinfo']

@@ -1,3 +1,11 @@
+9.0.8(2025/06/05)
+add:
+mod:
+1.modify GATEadapter username and password
+fix:
+1.fix controller.py log bug
+2.fix stage cmd return cause tsc dead bug
+
 9.0.7(2025/06/04)
 add:
 mod:

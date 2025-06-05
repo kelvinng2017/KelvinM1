@@ -253,8 +253,8 @@ class RestAPIComm:
                         self.logger.warning("Failed to retrieve IOT device_id: {} seeddata.".format(self.iot.device_id))
                         return
                     seeddata = seeddata_input["value"]
-                    username = "root"
-                    password = "00000000"
+                    username = action.get("data", {}).get("username", "root")
+                    password = action.get("data", {}).get("password", "00000000")
                     oridata = "{}:{}:{}".format(seeddata, username, password)
                     authdata = md5(oridata.encode()).hexdigest()
                     action = {

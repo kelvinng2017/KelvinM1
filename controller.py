@@ -1499,7 +1499,7 @@ if __name__ == '__main__':
         try:
             if global_variables.tsc.heart_beat > 0 and time.time() - global_variables.tsc.heart_beat > 60:
                 global_variables.tsc.heart_beat=0
-                global_variables.tsc.tsclogger.info('{}'.format("<<<  TSC is dead. >>>"))
+                global_variables.tsc.logger.info('{}'.format("<<<  TSC is dead. >>>"))
 
             if not SocketIO.connected:
                 print('connect front-end server before {}:{}'.format(global_variables.url_ip, global_variables.url_port))
