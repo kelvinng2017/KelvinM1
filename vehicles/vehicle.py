@@ -1857,7 +1857,7 @@ class Vehicle(threading.Thread):
                 if global_variables.TSCSettings.get('Other', {}).get('E84Continue', 'yes') == 'yes':
                     cont=1
                 if self.actions[1]['type'] == 'DEPOSIT':
-                    if carrierID and carrierID == self.actions[1]['local_tr_cmd']['carrierID']:
+                    if carrierID and carrierID == self.actions[1]['local_tr_cmd']['carrierID'] or uuid == self.actions[1]['local_tr_cmd']['uuid']:
                         payload['NextBuffer']='BUFFER{:02d}'.format(self.vehicle_bufID.index(self.actions[0]['loc']))
                     else:
                         self.action_loc_assign(self.actions[1])
@@ -6463,7 +6463,7 @@ class Vehicle(threading.Thread):
                         else:
                             if self.ControlPhase == 'GoTransfer' and not self.doPreDispatchCmd: #chocp for StockOut ????
                                 print('To GoRecovery:')
-                                if global_variables.TSCSettings.get('Recovery', {}).get('Auto') == 'yes' and self.buf_residual():
+                                if global_variables.TSCSettings.get('Recovery', {}).get('ReportFaultCarrierToHost') == 'yes':
                                     if global_variables.TSCSettings.get('Recovery', {}).get('KeepCarrierOnTheVehicle') == 'yes': #chi 2022/11/8 for keep carrier on vehicle when auto recovery
                                         self.ControlPhase='GoRecovery'
                                     else:

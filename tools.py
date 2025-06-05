@@ -154,6 +154,8 @@ def re_assign_source_port(carrierID):
         ##chocp:2021/3/27  return ExPx, MRxBUFx
         #for vehicle_id, h_vehicle in VehicleMgr.getInstance().vehicles.items():
         for vehicle_id, h_vehicle in Vehicle.h.vehicles.items():
+            if not h_vehicle.adapter.online['connected'] and h_vehicle.AgvState == 'Pause':
+                continue
             for i in range(h_vehicle.bufNum):
                 buf=h_vehicle.adapter.carriers[i]
                 if buf['status'] == carrierID:

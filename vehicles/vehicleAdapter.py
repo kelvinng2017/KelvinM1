@@ -2145,7 +2145,8 @@ class Adapter(threading.Thread):
                             server_cert = settings.get("server_cert", "/home/mcsadmin/server.crt")
                             client_cert = settings.get("client_cert", "/home/mcsadmin/client.crt")
                             client_key = settings.get("client_key", "/home/mcsadmin/client.key")
-                            context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+                            # context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+                            context = ssl._create_unverified_context()
                             if auth_mode == "server":
                                 context.load_verify_locations(server_cert)
                             elif auth_mode == "client":
@@ -2351,7 +2352,8 @@ class Adapter(threading.Thread):
                         server_cert = settings.get("server_cert", "/home/mcsadmin/server.crt")
                         client_cert = settings.get("client_cert", "/home/mcsadmin/client.crt")
                         client_key = settings.get("client_key", "/home/mcsadmin/client.key")
-                        context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+                        # context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+                        context = ssl._create_unverified_context()
                         if auth_mode == "server":
                             context.load_verify_locations(server_cert)
                         elif auth_mode == "client":

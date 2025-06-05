@@ -1,3 +1,12 @@
+9.0.7(2025/06/04)
+add:
+mod:
+1.modify ssl connect function
+2.modify check MR connected state in re_assign_source_port
+fix:
+1.fix when MR do acquire and deposit in the same point will trigger alarm bug
+2.fix no select auto recover but do fault recover bug
+
 9.0.6(2025/05/22) by ben
 add:
 1. add racknaming 59 for SKYWORKS MX, 60 for Amkor
