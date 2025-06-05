@@ -1,0 +1,1 @@
+erack_data=['index', 'lotID','stage', 'partno', 'machine']

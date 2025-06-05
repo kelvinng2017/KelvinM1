@@ -24,6 +24,7 @@ import algorithm.schedule_by_auto_order as schedule_by_auto_order
 import algorithm.schedule_by_better_cost as schedule_by_better_cost
 import algorithm.schedule_by_mix_lowest_cost_priority as schedule_by_mix_lowest_cost_priority
 import algorithm.schedule_by_point_cost as schedule_by_point_cost
+import algorithm.schedule_by_better_cost_optimized as schedule_by_better_cost_optimized
 import semi.e82_equipment as E82
 
 from global_variables import PortsTable
@@ -1056,7 +1057,7 @@ class Vehicle(threading.Thread):
             #9/13 chocp fix from tfme
             #local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['TransferInfo'], 'CarrierLoc':self.action_in_run['loc']})
             local_tr_cmd['host_tr_cmd']['TransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['TransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #bug, need check
-            l#local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #bug, need check
+            #local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'].append({'TransferInfo': local_tr_cmd['OriginalTransferInfo'], 'CarrierLoc':local_tr_cmd['carrierLoc']}) #bug, need check
             if local_tr_cmd and local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo']: # only update loc ben 250508
                 if "PRE-" in local_tr_cmd['host_tr_cmd']['uuid'] :
                     local_tr_cmd['host_tr_cmd']['OriginalTransferCompleteInfo'][0]['CarrierLoc']=local_tr_cmd['carrierLoc']
@@ -1561,18 +1562,29 @@ class Vehicle(threading.Thread):
                         raise alarms.BufferAcquireCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID)
 
             else:
+                self.adapter.logger.debug("== available_buffer_list:{}".format(available_buffer_list))
                 for idx in available_buffer_list: #select a buffer form last buffer
+                    self.adapter.logger.debug("== deposite action_loc_assign")
+                    
+                    self.adapter.logger.debug("self.enableBuffer[{}]:{}".format(idx,self.enableBuffer[idx]))
+                    self.adapter.logger.debug("self.adapter.carriers[{}]['status']:{}".format(idx,self.adapter.carriers[idx]['status']))
+                    
                     if self.enableBuffer[idx] == 'yes' and self.adapter.carriers[idx]['status'] == 'None':
 
                         action['loc']=self.vehicle_bufID[idx]
+                        self.adapter.logger.debug("action['loc']:{}".format(action['loc']))
                         local_tr_cmd["start_time"]=time.time()#2024/9/12 Yuri
                         self.bufs_status[idx]['local_tr_cmd']=local_tr_cmd
-                        self.bufs_status[idx]['local_tr_cmd_mem']=local_tr_cmd                        
+                        self.adapter.logger.debug("self.bufs_status[{}]['local_tr_cmd']['uuid']:{}".format(idx,self.bufs_status[idx]['local_tr_cmd']['uuid']))
+
+                        self.bufs_status[idx]['local_tr_cmd_mem']=local_tr_cmd 
+                        self.adapter.logger.debug("self.bufs_status[{}]['local_tr_cmd_mem']['uuid']:{}".format(idx,self.bufs_status[idx]['local_tr_cmd_mem']['uuid']))                       
                         break
                 else: #chocp fix
                     raise alarms.BufferAcquireCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID)
 
         elif action['type'] == 'DEPOSIT':
+
             if global_variables.RackNaming == 15: # JWO 2023/09/20 for GF
                 # Check if 'SourcePort' contains "BUF"
                 source_port=local_tr_cmd.get('TransferInfo', {}).get('SourcePort', '')
@@ -1612,25 +1624,44 @@ class Vehicle(threading.Thread):
                         raise alarms.BufferDepositCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID) #chocp fix 2021/11/23
 
             else:
+                self.adapter.logger.debug("== acquire action_loc_assign")
                 for i in range(self.bufNum):
+                    
                     carrier=self.adapter.carriers[i]
-
+                    self.adapter.logger.info("carrier:{}".format(carrier))
                     #fix support for stocker out
                     record_command_id=self.bufs_status[i]['local_tr_cmd'].get('uuid', '').lstrip('PRE-')
+                    self.adapter.logger.info('self.vehicle_bufID[{}]={}, record commandID={}, but buf carrier status={}, and deposit commandID={},self.enableBuffer[{}]={}'.format(i,self.vehicle_bufID[i], record_command_id, carrier['status'], uuid,i,self.enableBuffer[i]))
+                    
                     print('check AMR {}, record commandID={}, but buf carrier status={}, and deposit commandID={}'.format(self.vehicle_bufID[i], record_command_id, carrier['status'], uuid))
-                    if record_command_id and record_command_id in uuid: #2022/12/29 support replace -load/-unload
-                        #if self.enableBuffer[i] == 'yes' and carrier['status'] not in ['None', 'Unknown', 'PositionError']:
-                        if self.enableBuffer[i] == 'yes' and carrier['status'] not in ['None', 'PositionError']:  #chocp 2024/03/27 
-                            
-                            if carrierID and global_variables.TSCSettings.get('Safety', {}).get('BufferStatusCheck','yes') == 'yes':
-                                if carrier['status'] == carrierID:
+                    if global_variables.RackNaming == 36:
+                        if record_command_id and record_command_id == uuid: #2022/12/29 support replace -load/-unload
+                            #if self.enableBuffer[i] == 'yes' and carrier['status'] not in ['None', 'Unknown', 'PositionError']:
+                            if self.enableBuffer[i] == 'yes' and carrier['status'] not in ['None', 'PositionError']:  #chocp 2024/03/27 
+                                
+                                if carrierID and global_variables.TSCSettings.get('Safety', {}).get('BufferStatusCheck','yes') == 'yes':
+                                    if carrier['status'] == carrierID:
+                                        action['loc']=self.vehicle_bufID[i]
+                                        
+                                        break
+                                else:
                                     action['loc']=self.vehicle_bufID[i]
                                     
                                     break
-                            else:
-                                action['loc']=self.vehicle_bufID[i]
+                    else:
+                        if record_command_id and record_command_id in uuid: #2022/12/29 support replace -load/-unload
+                            #if self.enableBuffer[i] == 'yes' and carrier['status'] not in ['None', 'Unknown', 'PositionError']:
+                            if self.enableBuffer[i] == 'yes' and carrier['status'] not in ['None', 'PositionError']:  #chocp 2024/03/27 
                                 
-                                break
+                                if carrierID and global_variables.TSCSettings.get('Safety', {}).get('BufferStatusCheck','yes') == 'yes':
+                                    if carrier['status'] == carrierID:
+                                        action['loc']=self.vehicle_bufID[i]
+                                        
+                                        break
+                                else:
+                                    action['loc']=self.vehicle_bufID[i]
+                                    
+                                    break
                 else:
                     raise alarms.BufferDepositCheckWarning(self.id, uuid, 'NO_VALID_BUF', carrierID) #chocp fix 2021/11/23
                 
@@ -1991,7 +2022,10 @@ class Vehicle(threading.Thread):
                     raise alarms.CommandDestErackCarrierTypefailWarning(uuid, carrierID, carrierType, target, h_eRack.validSlotType)
                     
         if not self.action_in_run['loc']: #select a buffer for deposit, need check
+            self.adapter.logger.debug("self.action_in_run['loc']:{}".format(self.action_in_run['loc']))
             self.action_loc_assign(self.action_in_run)
+            self.adapter.logger.debug("self.action_in_run['loc']:{}".format(self.action_in_run['loc']))
+
 
             """if global_variables.RackNaming == 15: # JWO 2023/09/20 for GF
                 # Check if 'SourcePort' contains "BUF"
@@ -2062,6 +2096,8 @@ class Vehicle(threading.Thread):
 
         EqMgr.getInstance().trigger(target, 'deposit_start_evt')
         self.h_eRackMgr.trigger(target, 'deposit_start_evt')
+
+        self.adapter.logger.debug("desposit->,carrierID:{},target:{},CommandID:{},loc:{}".format(carrierID,target,uuid,self.action_in_run['loc']))
 
         E82.report_event(self.secsgem_e82_h,
                         E82.VehicleDepositStarted,{
@@ -5945,8 +5981,11 @@ class Vehicle(threading.Thread):
                                     fail_tr_cmds_id, actions=schedule_by_lowest_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point, self.model)
                                 elif self.bufNum>=12:
                                     self.adapter.logger.info("self.tr_cmds:{}".format(self.tr_cmds))
-                                    fail_tr_cmds_id, actions=schedule_by_point_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point)
+                                    # fail_tr_cmds_id, actions=schedule_by_point_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point)
                                     #fail_tr_cmds_id, actions=schedule_by_better_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point, self.model)
+                                    self.adapter.logger.info(self.tr_cmds)
+                                    fail_tr_cmds_id, actions=schedule_by_better_cost_optimized.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point, self.model)
+                                    
                                 else:
                                     fail_tr_cmds_id, actions=schedule_by_better_cost.task_generate(self.tr_cmds, self.buf_available, self.adapter.last_point, self.model)
                                 # if global_variables.RackNaming==36:
