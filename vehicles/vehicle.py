@@ -1378,6 +1378,33 @@ class Vehicle(threading.Thread):
 
         return
 
+    def cycle_action_on_pass(self):
+        """Cycle actions when assert reply is pass."""
+
+        if not self.token.acquire(False):
+            return
+        try:
+            if self.action_in_run:
+                if self.action_in_run.get('type') == 'ACQUIRE':
+                    uuid = self.action_in_run.get('local_tr_cmd', {}).get('uuid', '')
+                    if uuid:
+                        moved = []
+                        for act in list(self.actions):
+                            if act.get('local_tr_cmd', {}).get('uuid', '') == uuid:
+                                self.actions.remove(act)
+                                moved.append(act)
+                        for act in moved:
+                            self.actions.append(act)
+
+                self.actions.append(self.action_in_run)
+
+            self.action_in_run = self.actions.popleft() if self.actions else {}
+
+            if self.action_in_run.get('type') == 'DEPOSIT':
+                self.AgvState = 'Parked'
+        finally:
+            self.token.release()
+
     def alarm_handler(self, alarm_instance):
         local_tr_cmd=self.action_in_run.get('local_tr_cmd', {})
         uuid=local_tr_cmd.get('uuid', '')
@@ -6705,6 +6732,10 @@ class Vehicle(threading.Thread):
                         
                         if self.tr_assert:
                             if self.tr_assert['Result'] == 'CANCEL' and self.tr_assert.get('CommandID','') == uuid:
+                                self.AgvState='Parked'
+                                continue
+
+                            elif self.tr_assert['Result'] == 'PASS':
                                 self.AgvState='Parked'
                                 continue
                             

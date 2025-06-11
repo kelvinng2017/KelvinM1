@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import collections
 import traceback
 import threading
@@ -20,7 +21,7 @@ from global_variables import Vehicle
 from global_variables import output
 from global_variables import remotecmd_queue
 import tools
-
+from web_service_log import *
 import json
 import copy
 from pprint import pformat
@@ -149,6 +150,13 @@ class GpmErackAdapter(threading.Thread):
 
         self.thread_stop=False
         self.sock=0
+
+        # 添加重連相關參數
+        self.reconnect_count=0
+        self.max_reconnect_attempts=120
+        self.base_reconnect_delay=2
+        self.max_reconnect_delay=30
+        self.last_successful_connection=0
 
         self.alarm_table={20001:0, 20002:0, 20003:0, 20004:0, 20005:0, 20031:0, 20032:0, 20033:0, 20034:0, 20041:0, 20042:0, 20043:0, 20050:0}
         self.alarm_eRackWater={20052:0, 20053:0} 
@@ -348,6 +356,18 @@ class GpmErackAdapter(threading.Thread):
         #     'AssociatedNum':self.associated_slots,
         #     'ErrorNum':self.error_slots
         #     }))
+        # action_logger.info("new eRackStatusUpdate:{}".format({
+        #     'idx':self.idx,
+        #     'DeviceID':self.device_id,
+        #     'MAC':self.mac,
+        #     'IP':self.ip,
+        #     'Status':self.erack_status,
+        #     'carriers':self.carriers,
+        #     'SlotNum':self.slot_num,
+        #     'StockNum':self.slot_num-self.available,
+        #     'AssociatedNum':self.associated_slots,
+        #     'ErrorNum':self.error_slots
+        #     }))
         
         self.send_ui_last_data={
             'idx':self.idx,
@@ -361,7 +381,20 @@ class GpmErackAdapter(threading.Thread):
             'AssociatedNum':self.associated_slots,
             'ErrorNum':self.error_slots
             }
-
+        
+        
+        action_logger.debug("eRackStatusUpdate:{}".format({
+            'idx':self.idx,
+            'DeviceID':self.device_id,
+            'MAC':self.mac,
+            'IP':self.ip,
+            'Status':self.erack_status,
+            'carriers':self.carriers,
+            'SlotNum':self.slot_num,
+            'StockNum':self.slot_num-self.available,
+            'AssociatedNum':self.associated_slots,
+            'ErrorNum':self.error_slots
+            }))
         output('eRackStatusUpdate', {
             'idx':self.idx,
             'DeviceID':self.device_id,
@@ -1033,24 +1066,16 @@ class GpmErackAdapter(threading.Thread):
                         self.E88_Zones.Data[self.device_id].zone_alarm_set(20004, True)
                         self.alarm_table[20004]=1
                     self.E88_Zones.Data[self.device_id].ZoneState=2
-                    retry=0
-                    while(retry<120 and not self.thread_stop): #fix 5
-                        try:
-                            # GpmErackAdapter_logger.warning("{},Erack restart connecting times:{}".format(self.device_id,retry))
-                            print('Rack adapter {} connecting {}, {}'.format(self.device_id, self.ip, self.port))
-                            self.sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                            self.sock.settimeout(5)
-                            self.sock.connect((self.ip, self.port))
-                            self.connected=True
-                            self.syncing_time=time.time()
-
+                    
+                    # 使用新的重連機制
+                    success = False
+                    while self.reconnect_count < self.max_reconnect_attempts and not self.thread_stop:
+                        if self.attempt_reconnection():
+                            success = True
                             break
-                        except Exception as e:
-                            retry+=1
-                            time.sleep(2)
-                            pass
-                    else:
-                        print('Out loop for ')
+                    
+                    if not success and not self.thread_stop:
+                        print('[{}] 達到最大重連次數，拋出連接異常'.format(self.device_id))
                         raise ConnectWarning(self.device_id, self.ip, self.port)
 
 
@@ -1094,20 +1119,27 @@ class GpmErackAdapter(threading.Thread):
                         # raise LinkLostWarning(self.device_id)
                         raise alarms.SocketNullStringWarning(self.device_id, handler=self.secsgem_e88_h)
                     except:
-                        
-                        
-                        
-
+                        traceback.print_exc()
                         if self.syncing_time and (time.time()-self.syncing_time > 10): #chocp 2021/10/4
-                            
-                            # GpmErackAdapter_logger.error("{},except2".format(self.device_id))
-
-                            raise LinkLostWarning(self.device_id)
+                            raise alarms.LinkLostWarning(self.device_id, handler=self.secsgem_e88_h)
                         else:
-                            # GpmErackAdapter_logger.error("{},except3".format(self.device_id))
-
                             self.sync=False
+                            time.sleep(1)
                             continue
+                        
+                        
+                        
+
+                        # if self.syncing_time and (time.time()-self.syncing_time > 10): #chocp 2021/10/4
+                            
+                        #     # GpmErackAdapter_logger.error("{},except2".format(self.device_id))
+
+                        #     raise LinkLostWarning(self.device_id)
+                        # else:
+                        #     # GpmErackAdapter_logger.error("{},except3".format(self.device_id))
+
+                        #     self.sync=False
+                        #     continue
                     
 
                     self.erack_status='UP'
@@ -1124,6 +1156,8 @@ class GpmErackAdapter(threading.Thread):
                                 break
 
                             #for port update and respond data
+                            # action_logger.info("self.carriers[idx]:{}".format(self.carriers[idx]))
+                            # action_logger.info("port:{}".format(port))
                             self.change_state(self.carriers[idx], 'port_sync_evt', port)
    
                             if idx in range(self.begin, self.end):
@@ -1175,29 +1209,42 @@ class GpmErackAdapter(threading.Thread):
             except MyException as e: #ErackOffLineWarning
                 # GpmErackAdapter_logger.error("ErackOffLineWarning")
                 # GpmErackAdapter_logger.error("MyException:{}".format(e))
-                #traceback.print_exc()
-                self.sock.close()
+                print('[{}] MyException異常: {}'.format(self.device_id, e.txt))
+                
+                # 關閉連接並重置狀態
+                try:
+                    self.sock.close()
+                except:
+                    pass
                 self.connected=False
                 self.sync=False
                 self.erack_status='DOWN'
-                # GpmErackAdapter_logger.error("DOWN2")
 
                 output('AlarmSet', {'type':e.alarm_set, 'code':e.code, 'extend_code':e.sub_code, 'txt':e.txt})
-
 
                 if self.last_erack_status!=self.erack_status:
                     self.notify_panel()
                     self.last_erack_status=self.erack_status
 
-                time.sleep(1)
+                # 檢查是否需要強制重連
+                if time.time() - self.last_successful_connection > 300:  # 5分鐘無成功連接
+                    print('[{}] 長時間無成功連接，執行張制重連'.format(self.device_id))
+                    self.force_reconnect()
+                else:
+                    time.sleep(1)
 
             except: #ErackOffLineWarning
+                print('[{}] 一般異常:'.format(self.device_id))
                 traceback.print_exc()
-                self.sock.close()
+                
+                # 關閉連接並重置狀態
+                try:
+                    self.sock.close()
+                except:
+                    pass
                 self.connected=False
                 self.sync=False
                 self.erack_status='DOWN'
-                # GpmErackAdapter_logger.error("DOWN3,self.status:{}".format(self.erack_status))
 
                 output('AlarmSet', {'type':'Error', 'code':30000, 'extend_code':self.device_id, 'txt':traceback.format_exc()})
 
@@ -1205,7 +1252,12 @@ class GpmErackAdapter(threading.Thread):
                     self.notify_panel()
                     self.last_erack_status=self.erack_status
 
-                time.sleep(1)
+                # 檢查是否需要強制重連
+                if time.time() - self.last_successful_connection > 300:  # 5分鐘無成功連接
+                    print('[{}] 長時間無成功連接，執行強制重連'.format(self.device_id))
+                    self.force_reconnect()
+                else:
+                    time.sleep(1)
                 #self.secsgem_e82_h.set_alarm(self.error_code)
         else:
             self.E88_Zones.Data[self.device_id].ZoneState=0
@@ -1237,3 +1289,67 @@ class GpmErackAdapter(threading.Thread):
 
             print('\n<end eRack thread:{}>\n'.format(self.device_id))
 
+    def attempt_reconnection(self):
+        """
+        嘗試重新連接，使用指數退避算法
+        """
+        print('[{}] 嘗試重新連接... (第 {} 次)'.format(self.device_id, self.reconnect_count + 1))
+        
+        try:
+            # 關閉舊連接
+            if self.sock:
+                try:
+                    self.sock.close()
+                except:
+                    pass
+            
+            # 創建新連接
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.settimeout(10)  # 增加超時時間
+            self.sock.connect((self.ip, self.port))
+            
+            # 連接成功
+            self.connected = True
+            self.syncing_time = time.time()
+            self.last_successful_connection = time.time()
+            self.reconnect_count = 0  # 重置重連計數器
+            
+            print('[{}] 重連成功！'.format(self.device_id))
+            return True
+            
+        except Exception as e:
+            self.reconnect_count += 1
+            print('[{}] 重連失敗: {} (嘗試次數: {})'.format(self.device_id, str(e), self.reconnect_count))
+            
+            # 計算下次重連的延遲時間（指數退避）
+            delay = min(self.base_reconnect_delay * (2 ** min(self.reconnect_count, 5)), 
+                       self.max_reconnect_delay)
+            
+            print('[{}] {}秒後重試...'.format(self.device_id, delay))
+            time.sleep(delay)
+            
+            return False
+
+    def force_reconnect(self):
+        """
+        強制重連，重置所有狀態
+        """
+        print('[{}] 執行強制重連...'.format(self.device_id))
+        
+        # 重置連接狀態
+        self.connected = False
+        self.sync = False
+        self.erack_status = 'DOWN'
+        self.reconnect_count = 0
+        
+        # 關閉現有連接
+        if self.sock:
+            try:
+                self.sock.close()
+            except:
+                pass
+            self.sock = None
+        
+        # 嘗試重新連接
+        return self.attempt_reconnection()
+        

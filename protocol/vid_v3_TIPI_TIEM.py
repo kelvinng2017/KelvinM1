@@ -44,6 +44,8 @@ SV_CommandInfo=59 # CommandID, Priority, Replace
 SV_ResultCode=64 # U2
 SV_VehicleID=70
 SV_CarrierID=54
+SV_BatteryValue=88
+
 #SV_CarrierInfo=55
 SV_CarrierLoc=56
 SV_PortID=75
@@ -234,10 +236,10 @@ EventTable={
     VehicleDepositCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
     VehicleShiftCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
 
-    VehicleChargeStarted: {'report':[SV_VehicleID]},
-    VehicleChargeCompleted: {'report':[SV_VehicleID]},
-    VehicleExchangeStarted: {'report':[SV_VehicleID]},
-    VehicleExchangeCompleted: {'report':[SV_VehicleID]},
+    VehicleChargeStarted: {'report':[SV_VehicleID,SV_BatteryValue]},
+    VehicleChargeCompleted: {'report':[SV_VehicleID,SV_BatteryValue]},
+    VehicleExchangeStarted: {'report':[SV_VehicleID,SV_BatteryValue]},
+    VehicleExchangeCompleted: {'report':[SV_VehicleID,SV_BatteryValue]},
     VehicleInstalled: {'report':[SV_VehicleID]},
     VehicleRemoved: {'report':[SV_VehicleID]},
     VehicleUnassigned: {'report':[SV_VehicleID, SV_CommandIDList]},

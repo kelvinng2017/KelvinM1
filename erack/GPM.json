@@ -1,0 +1,241 @@
+{
+    "Status": "UP",
+    "MAC": "123456",
+    "SlotNum": 12,
+    "DeviceID": "TBE01",
+    "idx": 18,
+    "carriers": [
+        {
+            "rack_row": 1,
+            "status": "up",
+            "rack_col": 1,
+            "lot": {
+                "booked": 0,
+                "lotID": "TY1789",
+                "booked_for": "",
+                "machine": "BSE18",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 0,
+            "state": "Identified",
+            "errorCode": "",
+            "carrierID": "12-F02"
+        },
+        {
+            "rack_row": 1,
+            "status": "up",
+            "rack_col": 2,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 1,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 1,
+            "status": "up",
+            "rack_col": 3,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 2,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 1,
+            "status": "up",
+            "rack_col": 4,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 3,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 2,
+            "status": "up",
+            "rack_col": 1,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 4,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 2,
+            "status": "up",
+            "rack_col": 2,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 5,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 2,
+            "status": "up",
+            "rack_col": 3,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 6,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 2,
+            "status": "up",
+            "rack_col": 4,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 7,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 3,
+            "status": "up",
+            "rack_col": 1,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 8,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 3,
+            "status": "up",
+            "rack_col": 2,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 9,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 3,
+            "status": "up",
+            "rack_col": 3,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 10,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        },
+        {
+            "rack_row": 3,
+            "status": "up",
+            "rack_col": 4,
+            "lot": {
+                "booked": 0,
+                "lotID": "",
+                "booked_for": "",
+                "machine": "",
+                "stage": "",
+                "desc": ""
+            },
+            "checked": 1,
+            "errorTxt": "",
+            "idx": 11,
+            "state": "Empty",
+            "errorCode": "",
+            "carrierID": ""
+        }
+    ],
+    "IP": "127.0.0.1",
+    "StockNum": 1,
+    "AssociatedNum": 0,
+    "ErrorNum": 0
+}

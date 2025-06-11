@@ -13,6 +13,7 @@ import protocol.erack_data_qualcomm as erack_qualcomm
 import protocol.erack_date_ti as erack_ti
 import protocol.erack_data_skyworksSG as erack_skyworksSG
 import protocol.erack_data_skyworksMX as erack_skyworksMX
+import protocol.erack_data_CHIPMOS as  erack_chipmos
 
 #need config zone
 #step 1:divide zone
@@ -329,7 +330,8 @@ global_erack_item={
     'QUALCOMM':erack_qualcomm,
     'TI':erack_ti,
     'SKYWORKSSG':erack_skyworksSG,
-    'SKYWORKSMX':erack_skyworksMX
+    'SKYWORKSMX':erack_skyworksMX,
+    'CHIPMOS':erack_chipmos
 }
 
 

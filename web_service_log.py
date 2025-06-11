@@ -123,3 +123,17 @@ LogFileHandler=log_handler.TimedRotatingFileHandler(filename, when='midnight', i
 LogFileHandler.setLevel(logging.DEBUG)
 LogFileHandler.setFormatter(logging.Formatter("%(asctime)s-[%(filename)s]-[%(funcName)s]-[line:%(lineno)d]-[%(levelname)s]-[%(threadName)s]: %(message)s"))
 by_point_logger.addHandler(LogFileHandler)
+
+
+#####################################################################################################################################
+erack_logger=logging.getLogger("erack_logger")
+erack_logger.setLevel(logging.DEBUG)
+streamLogHandler=logging.StreamHandler()
+streamLogHandler.setLevel(logging.DEBUG)
+streamLogHandler.setFormatter(formatter)
+erack_logger.addHandler(streamLogHandler)
+filename=os.path.join("log", "erack_logger.log")
+LogFileHandler=log_handler.TimedRotatingFileHandler(filename, when='midnight', interval=1, backupCount=30, encoding="utf-8")
+LogFileHandler.setLevel(logging.DEBUG)
+LogFileHandler.setFormatter(logging.Formatter("%(asctime)s-[%(filename)s]-[%(funcName)s]-[line:%(lineno)d]-[%(levelname)s]-[%(threadName)s]: %(message)s"))
+erack_logger.addHandler(LogFileHandler)

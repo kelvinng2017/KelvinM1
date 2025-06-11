@@ -38,6 +38,7 @@ from erack.MFErackAdapter_e88 import MFErackAdapter
 from erack.CDAErackAdapter_e88 import CDAErackAdapter #Sean for KumamotoTPB
 
 from workstation.eq_mgr import EqMgr
+from web_service_log import action_logger
 
 
 class E88_ErackMgr(threading.Thread):
@@ -131,12 +132,13 @@ class E88_ErackMgr(threading.Thread):
                         else:
                             tmp[label]=value
                     data=tmp
-                    print(data)
+                    print("data:{}".format(data))
+                    action_logger.warning("data:{}".format(data))
 
                     # 9/19
                     for device_id, h_eRack in self.eRacks.items():
                         if rack_id == device_id:
-                            if global_variables.RackNaming!=7:
+                            if global_variables.RackNaming!=777:
                                 h_eRack.eRackInfoUpdate({
                                     'cmd':'infoupdate',
                                     'port_idx':port_idx,
@@ -283,6 +285,20 @@ class E88_ErackMgr(threading.Thread):
                 if h.heart_beat > 0 and time.time() - h.heart_beat > 60:
                     h.heart_beat=0
                     self.tsclogger.info('{}'.format("<<<  ErackAdapter {} is dead. >>>".format(rack_id)))
+                    
+                    
+                    if not h.is_alive():
+                        self.tsclogger.info('{}'.format("<<<  Attempting to restart ErackAdapter {} >>>".format(rack_id)))
+                        try:
+                            
+                            h.force_reconnect()
+                            
+                            if not h.is_alive():
+                                h.thread_stop = False
+                                h.start()
+                                self.tsclogger.info('{}'.format("<<<  ErackAdapter {} restarted successfully >>>".format(rack_id)))
+                        except Exception as e:
+                            self.tsclogger.error('{}'.format("<<<  Failed to restart ErackAdapter {}: {} >>>".format(rack_id, str(e))))
 
             obj=None
             try:

@@ -1478,6 +1478,9 @@ class TSC(threading.Thread):
                                 try:
                                     for vehicle_id, h_vehicle in Vehicle.h.vehicles.items():
                                         if h_vehicle.action_in_run.get('target', '') == obj['DESTPORT']: # Mike: 2021/09/08
+                                            if obj['RESULT'] == 'PASS':
+                                                # assert pass => cycle current action
+                                                self.logger.debug('assert result is pass')
                                             default_tr_assert={'Request':obj['REQUEST'], 'Result':obj['RESULT'], 'TransferPort':obj['DESTPORT'], 'CarrierID':obj['CARRIERID'],'SendBy':'by host'} #chocp add 2021/12/21, 2022/6/15
                                             if obj.get('WAIT','') =='Enable':
                                                 h_vehicle.wait_eq_operation=True
