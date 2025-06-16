@@ -138,6 +138,7 @@ VehicleChargeCompleted=212
 VehicleExchangeStarted=213
 VehicleExchangeCompleted=214
 VehicleShiftCompleted=217
+VehicleShiftStarted=218
 VehicleTrafficBlocking=221
 VehicleTrafficRelease=222
 VehicleObstacleBlocking=223
@@ -235,6 +236,7 @@ EventTable={
 
     VehicleDepositCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
     VehicleShiftCompleted: {'report':[SV_VehicleID, SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
+    VehicleShiftStarted: {'report':[SV_VehicleID,SV_CommandID, SV_TransferPort, SV_CarrierID, SV_ResultCode]},
 
     VehicleChargeStarted: {'report':[SV_VehicleID,SV_BatteryValue]},
     VehicleChargeCompleted: {'report':[SV_VehicleID,SV_BatteryValue]},

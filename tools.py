@@ -18,7 +18,7 @@ from global_variables import Vehicle #for StockOut
 #import route_count #for K25
 import algorithm.route_count_caches as schedule #for K25
 from tr_wq_lib import TransferWaitQueue
-from web_service_log import * 
+
 
 
 from global_variables import output
@@ -512,7 +512,7 @@ def print_rackport_format(rack_id, port_no, rows=3, columns=4):
         port_position=int(str(a)+str(b))
         portID=global_variables.Format_RackPort_Print%(rack_id, port_position)
         
-    elif global_variables.RackNaming == 52: #240822 Hshuo KYEC FT
+    elif global_variables.RackNaming in [52,61]: #240822 Hshuo KYEC FT
         if port_no != 0:
             port_map={
                 10: 'A',
@@ -625,13 +625,13 @@ def rackport_format_parse(target): #2023/12/26
                 if port_no < 0:
                     port_no=0
                     
-        elif global_variables.RackNaming == 52:# 240822 Hshuo KYEC FT
+        elif global_variables.RackNaming in [52, 61]:# 240822 Hshuo KYEC FT
             rack_id=r.group(1)
             port_str=r.group(2)
             h_eRack=Erack.h.eRacks.get(rack_id)
             if h_eRack:
                 if port_str.isdigit():
-                    port_no=int(port_str) - 1   
+                    port_no=int(port_str)  
                 else:
                     port_no=ord(port_str) - ord('A') + 10
                 res=True
@@ -683,22 +683,11 @@ def rackport_format_parse(target): #2023/12/26
     return res, rack_id, port_no
 
 
-def check_transfer_waiting_queue(check_queueID_name):
-    for queueID_name, zone_wq_check in TransferWaitQueue.getAllInstance().items():
-        tool_logger.debug("queueID_name:{}".format(queueID_name))
-        if "zone_1F_AMR_MGZ" in check_queueID_name:
-            tool_logger.debug("in zone_1F_AMR_MGZ")
-            for host_tr_cmd_check in zone_wq_check.queue:#equipmentID
-                tool_logger.debug(host_tr_cmd_check.get("source"))
-                tool_logger.debug(host_tr_cmd_check.get("dest"))
-                tool_logger.debug("source:{},dest:{},equipmentID:{}".format(host_tr_cmd_check.get("source"),host_tr_cmd_check.get("dest"),""))
 
 
 
 def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_reserved, schedule_algo='by_fix_order'): #new for Buf Constain
-    tool_logger.info("uuid:{},source:{},dest:{},carrierID:{}".format(host_tr_cmd.get("uuid",""),host_tr_cmd.get("source",""),host_tr_cmd.get("dest",""),host_tr_cmd.get("carrierID","")))
-    tool_logger.info("in buf_available_list_sorted:{}".format(buf_available_list_sorted))
-    tool_logger.info("buf_reserved:{}".format(buf_reserved))
+    
     # tool_logger.info("schedule_algo:{}".format(schedule_algo))
     primary_cmd_count=0
     single_cmd_count=0
@@ -713,7 +702,7 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
         buf_available_list_sorted = sort_buffers_bypriority(h_vehicle, host_tr_cmd=host_tr_cmd, buf_available_list_sorted=buf_available_list_sorted)
         if global_variables.RackNaming in [46]:
             if host_tr_cmd.get("shiftTransfer",False) == True:
-                tool_logger.debug("is shiftTransfer")
+                
                 return True, 0, 0, False, buf_constrain, unload_buf_constrain
         # if global_variables.RackNaming in [33, 58] and buf_available_list_sorted:
         #     priorityBuf=host_tr_cmd.get('priorityBuf', '')
@@ -738,16 +727,12 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                 if h_vehicle.check_carrier_type =='yes':
                     if carriertype and carriertype in h_vehicle.carriertypedict[bufID] or 'All' in h_vehicle.carriertypedict[bufID]:
                         buf_constrain.append(bufID)
-                        tool_logger.debug("return1")
                         return True, 1, 1, False, buf_constrain, unload_buf_constrain
                     else:
-                        tool_logger.debug("return2")
+                        
                         return False, primary_cmd_count, single_cmd_count, buf_reserved, buf_constrain, unload_buf_constrain
                 else:
                     buf_constrain.append(bufID)
-                    tool_logger.debug("buf_constrain:{}".format(buf_constrain))
-                    tool_logger.debug("unload_buf_constrain:{}".format(unload_buf_constrain))
-                    tool_logger.debug("return3")
                     return True, 1, 1, False, buf_constrain, unload_buf_constrain
                            
         r_source=re.match(r'(.+)(BUF\d+)', host_tr_cmd['source'])
@@ -755,7 +740,6 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
             bufID=r_source.group(2)
             if bufID!='BUF00':
                 buf_constrain.append(bufID)
-                tool_logger.debug("return4")
                 return True, 1, 1, False, buf_constrain, unload_buf_constrain
             
         if h_vehicle.check_carrier_type =='yes':
@@ -872,7 +856,7 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                     buf_constrain.append(bufID)
                     buf_available_list_sorted.remove(bufID)
                     single_cmd_count+=1 #add for future load cmd not primary cmd test
-                    tool_logger.debug("do single_cmd_count:{}".format(single_cmd_count))
+                    
                     primary_cmd_count+=1
                     if global_variables.RackNaming == 42:
                         h_vehicle.update_dynamic_buffer_mapping(h_vehicle.vehicle_bufID.index(bufID),carriertype)
@@ -891,9 +875,9 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                         buf_available_list_sorted.pop(buf_available_list_sorted.index(bufID))
                         buf_constrain.append(bufID)
                         single_cmd_count+=1
-                        tool_logger.debug("do single_cmd_count:{}".format(single_cmd_count))
+                        
                     else:
-                        tool_logger.debug("return5")
+                        
                         return False, primary_cmd_count, single_cmd_count, buf_reserved, buf_constrain, unload_buf_constrain
                     if host_tr_cmd['replace']>0:
                         matched_buf = [buf for buf in buf_available_list_sorted if buf in h_vehicle.bufferDirection[bufferAllowedDirections]]
@@ -902,9 +886,9 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                             buf_available_list_sorted.pop(buf_available_list_sorted.index(bufID))
                             buf_constrain.append(bufID)
                             single_cmd_count+=1
-                            tool_logger.debug("do single_cmd_count:{}".format(single_cmd_count))
+                            
                         else:
-                            tool_logger.debug("return6")
+                            
                             return False, primary_cmd_count, single_cmd_count, buf_reserved, buf_constrain, unload_buf_constrain
                 else:
                     bufID=buf_available_list_sorted.pop(0)
@@ -918,11 +902,11 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                     if host_tr_cmd['replace']>0:
                         bufID=buf_available_list_sorted.pop(0)
                         if host_tr_cmd.get('BufConstrain') and (bufID not in h_vehicle.vehicle_onTopBufs): #contrain to top level
-                            tool_logger.debug("return7")
+                            
                             return False, primary_cmd_count, single_cmd_count, buf_reserved, buf_constrain, unload_buf_constrain
 
                         buf_constrain.append(bufID)
-                        tool_logger.debug("do single_cmd_count:{}".format(single_cmd_count))
+                       
                         single_cmd_count+=1
 
             elif host_tr_cmd['primary']:#unload or load primary single cmd or replace primary cmd
@@ -933,18 +917,18 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
                             if not buf_reserved:
                                 bufID=buf_available_list_sorted.pop(-1) #reserverd for link cmd from last not important buf
                                 buf_reserved=True
-                            tool_logger.debug("do single_cmd_count:{}".format(single_cmd_count))
+                            
                             single_cmd_count+=1 #add for future load cmd not primary cmd test
                     else:
                         if not buf_reserved:
                                 bufID=buf_available_list_sorted.pop(-1) #reserverd for link cmd from last not important buf
                                 buf_reserved=True
-                        tool_logger.debug("do single_cmd_count:{}".format(single_cmd_count))
+                        
                         single_cmd_count+=1 #add for future load cmd not primary cmd test
 
                 bufID=buf_available_list_sorted.pop(-1) #reserverd for this cmd
                 primary_cmd_count+=1
-                tool_logger.debug("do single_cmd_count:{}".format(single_cmd_count))
+                
                 single_cmd_count+=1
                 #if host_tr_cmd['Dest'] == '*....
                 #   return True, primary_cmd_count, single_cmd_count, buf_reserved, [bufID]
@@ -952,14 +936,9 @@ def buf_allocate_test(h_vehicle, host_tr_cmd, buf_available_list_sorted, buf_res
 
     except:
         traceback.print_exc()
-        tool_logger.debug("return8")
+        
         return False, primary_cmd_count, single_cmd_count, buf_reserved, buf_constrain, unload_buf_constrain
-    tool_logger.debug("return9")
-    tool_logger.debug("primary_cmd_count:{}".format(primary_cmd_count))
-    tool_logger.debug("single_cmd_count:{}".format(single_cmd_count))
-    tool_logger.debug("buf_reserved:{}".format(buf_reserved))
-    tool_logger.debug("buf_constrain:{}".format(buf_constrain))
-    tool_logger.debug("unload_buf_constrain:{}".format(unload_buf_constrain))
+    
     return True, primary_cmd_count, single_cmd_count, buf_reserved, buf_constrain, unload_buf_constrain
 
 

@@ -85,6 +85,7 @@ import logging
 import zmq #chocp 2024/8/9
 
 from web_service_log import *
+
 # import namedthreads
 # namedthreads.patch()
 
@@ -1109,18 +1110,38 @@ def mount_socketio_func(sio):
     @sio.on('CarrierDispatch', namespace='/{}'.format(global_variables.controller_id))
     def get_carrier_booking_cmd(data):
 
+
+        print("data:====================================={}".format(data))
+        action_logger.debug("data rack:{}".format(data))
+
         eRackID=data.get('erackid')
         row=data.get('row', 1)
         col=data.get('col', 0)
 
         machine=data.get('machine')
         result=data.get('result')
+        
+        carrierID=data.get('carrierID')
+
+        
 
         # 9/19
         for rack_id, h_eRack in Erack.h.eRacks.items(): #fix2
             if rack_id == eRackID:
                 port_no=h_eRack.columns*(row-1)+col
-                h_eRack.change_state(h_eRack.carriers[port_no-1], 'user_edit_cmd', {'machine':machine, 'result':result})
+
+
+                if global_variables.erack_version == 'v3':
+                    h_eRack.change_state(h_eRack.carriers[port_no-1], 'user_edit_cmd', {'machine':machine, 'result':result})
+                else:
+                    h_eRack.eRackInfoUpdate({
+                        'cmd':'infoupdate',
+                        'port_idx':port_no-1,
+                        'carrierID':carrierID,
+                        'data':data})
+                    
+
+                
                 break
 
         print('->get_carrier_comfirm_cmd: ', eRackID, row, col, data)

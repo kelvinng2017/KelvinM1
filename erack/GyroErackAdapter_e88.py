@@ -207,10 +207,10 @@ class GyroErackAdapter(threading.Thread):
             check=True
             for idx, carrier in enumerate(self.carriers):
                 #mCarriers.append(carrier) #big bug: 2021/2/21 chocp
-                erack_logger.debug("idx:{} carrier:{}".format(idx,  carrier))
-                if global_variables.RackNaming == 7:
-                    carrier['state'] = self.lots[idx]['state']
+                
+                # carrier['state'] = self.lots[idx]['state']
                 mCarriers.append(copy.deepcopy(carrier))
+                
                 mCarriers[idx]['lot']=self.lots[idx]
                 #print(carrier['status'], carrier['carrierID'], self.lots[idx]['booked'])
                 if carrier['status'] == 'up' and carrier['carrierID'] == '': #9/26 chocp
@@ -277,22 +277,49 @@ class GyroErackAdapter(threading.Thread):
 
     def set_machine_info(self, port_no, dest, vehicle_id=''): #chocp add 9/24
         print('set_machine_info', port_no, dest)
-        if vehicle_id:
-            self.lots[port_no-1]['machine']=dest + ' by {}'.format(vehicle_id) 
+        if global_variables.RackNaming == 7:
+            if self.lots[port_no-1]['state'] not in ["Dispatch"]:
+                self.carriers[port_no-1]['state']='Dispatch'
+                self.lots[port_no-1]['state']='Dispatch'
+                if vehicle_id:
+                    self.lots[port_no-1]['machine']=dest + ' by {}'.format(vehicle_id) 
+                else:
+                    self.lots[port_no-1]['machine']=dest
+            else:
+                if self.device_id in ["TBD01","TBD02"]:
+                    self.carriers[port_no-1]['state']='Associated'
+                    self.lots[port_no-1]['state']='Associated'
+                else:
+                    self.carriers[port_no-1]['state']='Identified'
+                    self.lots[port_no-1]['state']='Identified'
+                if "by" in self.lots[port_no-1]['machine']:
+                    orginal_dest=str(self.lots[port_no-1]['machine']).split("by")[0]
+                    self.lots[port_no-1]['machine']=orginal_dest
         else:
-            self.lots[port_no-1]['machine']=dest
+            if vehicle_id:
+                    self.lots[port_no-1]['machine']=dest + ' by {}'.format(vehicle_id) 
+            else:
+                self.lots[port_no-1]['machine']=dest
+        
         self.notify_panel()
 
-    def set_booked_flag(self, port_no, flag=False, vehicle_id='', source=''): #2022/3/18
+    def set_booked_flag(self, port_no, flag=False, vehicle_id='', source=''): #2022/3/18 #Booked
         print('set_booked_flag', port_no, flag)
+        
         if flag:
             self.lots[port_no-1]['booked']=1
             self.lots[port_no-1]['booked_for']=vehicle_id
             self.lots[port_no-1]['desc']=vehicle_id + ' from {}'.format(source) if source else ''
+            self.carriers[port_no-1]['state']='Booked'
+            
         else:
             self.lots[port_no-1]['booked']=0
             self.lots[port_no-1]['booked_for']=''
             self.lots[port_no-1]['desc']=''
+            self.carriers[port_no-1]['state']='Empty'
+           
+
+        
 
         self.notify_panel()
 
@@ -576,11 +603,13 @@ class GyroErackAdapter(threading.Thread):
                     carrier_change=True
 
         if carrier_change:
+            
             self.notify_panel(force=True)   
             #print('eRack Secs and panel Update...')
             self.last_carriers=copy.deepcopy(self.carriers)
 
         if self.last_erack_status!=self.erack_status:
+            
             self.notify_panel(force=True)
             #print('eRack Panel Update...')
             self.last_erack_status=self.erack_status
@@ -643,6 +672,8 @@ class GyroErackAdapter(threading.Thread):
 
             if 'assyLotList' in info['data']:#chipmos use
                 
+                
+                
                 lotID=info['data'].get("assyLotList",'')
                 self.lots[info['port_idx']]['lotID']=lotID
                 
@@ -662,14 +693,27 @@ class GyroErackAdapter(threading.Thread):
                 lotsmessage=info['data'].get("message",'')
                 self.lots[info['port_idx']]['desc']=lotsmessage
 
+            if 'result' in info['data']:
+                if info['data'].get("result","") == "confirm":
+                    self.carriers[info['port_idx']]['state']='PreDispatch'
+                    self.lots[info['port_idx']]['state']='PreDispatch'
+
+
+
             if 'send_associated_status' in info['data']:
-                erack_logger.debug("send_associated_status in info['data']")
                 result_send_associated_status=info['data'].get("send_associated_status",True)
                 if result_send_associated_status:
+                    self.carriers[info['port_idx']]['state']='Associated'
                     self.lots[info['port_idx']]['state']='Associated'
                 else:
+                    self.carriers[info['port_idx']]['state']='Identified'
                     self.lots[info['port_idx']]['state']='Identified'
-                erack_logger.debug(self.lots)
+                if info['data'].get("errorCode",'') != '':
+                    if info['data'].get("message",'') != '70005':
+                        self.carriers[info['port_idx']]['state']='Error'
+                        self.lots[info['port_idx']]['state']='Error'
+                    else:
+                        self.lots[info['port_idx']]['errorCode']=''
             
         
             if 'lotID' in info['data']:

@@ -138,7 +138,7 @@ class E88_ErackMgr(threading.Thread):
                     # 9/19
                     for device_id, h_eRack in self.eRacks.items():
                         if rack_id == device_id:
-                            if global_variables.RackNaming!=777:
+                            if global_variables.erack_version != 'v3':
                                 h_eRack.eRackInfoUpdate({
                                     'cmd':'infoupdate',
                                     'port_idx':port_idx,

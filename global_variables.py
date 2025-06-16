@@ -90,6 +90,7 @@ RackPortFormat=[
     [r'(ER-.+)-(.+)',                               '%s-%.2d',      r'(ER.+)',                              '%s',    ''], #58. Renesas JP FT YZ
     [r'(ER\d+)P(\d+)',                              '%sP%d',        r'(ER\d+)',                             '%s',    ''], #59. SKYWORKSMX
     [r'(EX.+)_SL(.+)',                              '%s_SL%.3d',    r'(EX.+)',                              '%s',    ''], #60. Amkor
+    [r'(.+-LSLS-.{3})(\w)',                         '%s%s',         r'(.+-LSLS-.+)',                        '%s',    ''], #61 KYEC F2L1_FT
 ]
 
 Format_RackPort_Parse=r'E(\d+)P(\d+)'
