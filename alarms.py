@@ -51,6 +51,7 @@ class MyException(Exception):
                         setattr(handler,'VehicleInfo', VehicleInfo)
                     if key == 'CommandID':
                         setattr(handler,'CommandID', value)
+                        self.command_id=value
                     if key == 'CarrierID':
                         setattr(handler,'CarrierID', value)
                     if key == 'CarrierLoc':

@@ -592,13 +592,13 @@ class Vehicle(threading.Thread):
                                              'RackID':self.id,
                                              'SlotID':self.vehicle_bufID[i],
                                              'CarrierID':self.bufs_status[i]['stockID']})
-                        
-                        self.secsgem_e82_h.enhanced_add_carrier(self.bufs_status[i]['stockID'], {
-                                             'RackID':self.id,
-                                             'SlotID':self.vehicle_bufID[i],
-                                             'CarrierID':self.bufs_status[i]['stockID'],
-                                             'InstallTime':formatted_time,
-                                             'CarrierState':6})
+                        if self.bufs_status[i]['stockID']:
+                            self.secsgem_e82_h.enhanced_add_carrier(self.bufs_status[i]['stockID'], {
+                                                'RackID':self.id,
+                                                'SlotID':self.vehicle_bufID[i],
+                                                'CarrierID':self.bufs_status[i]['stockID'],
+                                                'InstallTime':formatted_time,
+                                                'CarrierState':6})
 
                         self.carrier_status_list=[] #for >8 slot
                         for j in range(self.bufNum):
@@ -782,13 +782,13 @@ class Vehicle(threading.Thread):
                                              'RackID':self.id,
                                              'SlotID':self.vehicle_bufID[i],
                                              'CarrierID':self.bufs_status[i]['stockID']})
-
-                        self.secsgem_e82_h.enhanced_add_carrier(self.bufs_status[i]['stockID'], {
-                                             'RackID':self.id,
-                                             'SlotID':self.vehicle_bufID[i],
-                                             'CarrierID':self.bufs_status[i]['stockID'],
-                                             'InstallTime':formatted_time,
-                                             'CarrierState':6})
+                        if self.bufs_status[i]['stockID']:
+                            self.secsgem_e82_h.enhanced_add_carrier(self.bufs_status[i]['stockID'], {
+                                                'RackID':self.id,
+                                                'SlotID':self.vehicle_bufID[i],
+                                                'CarrierID':self.bufs_status[i]['stockID'],
+                                                'InstallTime':formatted_time,
+                                                'CarrierState':6})
 
                         self.carrier_status_list=[] #for >8 slot
                         for j in range(self.bufNum):
@@ -987,8 +987,9 @@ class Vehicle(threading.Thread):
 
             if cause not in ['by alarm', 'by stage']:
                 alarms.CommandAbortWarning(cause, uuid, handler=self.secsgem_e82_h) #set alarm by host or by web abort
-                
+            ld_result_code=1
             if global_variables.RackNaming == 43:
+                old_result_code=result_code
                 if result_code == 10016:
                     if self.error_sub_code == 'TSC002':
                         result_code=72
@@ -1007,6 +1008,7 @@ class Vehicle(threading.Thread):
                     result_code=1
             
             elif global_variables.RackNaming == 60:
+                old_result_code=result_code
                 if result_code == 10019:
                     if self.error_sub_code in ['TSC018', 'TSC021']:  # CarrRfiddifferent, CarrRfidConflict
                         result_code=4
@@ -1032,7 +1034,7 @@ class Vehicle(threading.Thread):
                         'CommandID':uuid,
                         #'CommandInfo':local_tr_cmd['host_tr_cmd']['CommandInfo'],
                         'TransferCompleteInfo':[{'TransferInfo':local_tr_cmd['TransferInfo'], 'CarrierLoc':''}],
-                        'ResultCode':result_code,
+                        'ResultCode':result_code if global_variables.RackNaming not in [43, 60] else old_result_code,
                         'Message':result_txt }, True)
 
 
@@ -6608,6 +6610,11 @@ class Vehicle(threading.Thread):
 
                         target=self.action_in_run.get('target', '')
 
+                        if target:
+                            to_point=tools.find_point(target)
+                        else:
+                            to_point=''
+
                         if self.change_target:
                             print('change target')
                             self.change_target=False
@@ -6660,7 +6667,7 @@ class Vehicle(threading.Thread):
                                                     'CommandIDList':command_id_list,
                                                     'TransferInfoList':TransferInfoList})
 
-                                if self.autoReroute == 'yes': # Mike: 2022/08/20
+                                if self.autoReroute == 'yes' and to_point and to_point != self.adapter.last_point: # Mike: 2022/08/20
                                     self.message='MR move with route obstacles and into reroute'
                                     self.reroute()
                         #point=self.adapter.move["at_point"]

@@ -1,3 +1,13 @@
+9.0.10(2025/06/13)
+add:
+mod:
+1.modify query SV_EnhancedCarriers param location
+2.modify make sure have carrierID then call enhanced_add_carrier function
+3.modify racknaming [43,60] will show original result_code on UI
+fix:
+1.fix transporter case error
+2.fix same point reroute bug
+
 9.0.9(2025/06/06)
 add:
 1. add RackNaming 61

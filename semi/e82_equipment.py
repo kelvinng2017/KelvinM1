@@ -1041,7 +1041,7 @@ class E82Equipment(secsgem.GemEquipmentHandler):
             L_EnhancedCarriers=[]
             for CarrierID, EnhancedCarrier in self.EnhancedCarriers.items():
                 #CarrierInfo_n=secsgem.SecsVarList([DI.CARRIERID, DI.VEHICLEID, DI.CARRIERLOC], [ActiveCarrier["CarrierID"], ActiveCarrier["VehicleID"], ActiveCarrier["CarrierLoc"]])
-                CarrierInfo_n=secsgem.SecsVarList([DI.CARRIERID, DI.RACKID, DI.SLOTID, DI.INSTALLTIME,DI.CARRIERSTATE], [EnhancedCarrier["CarrierID"], EnhancedCarrier["RackID"], EnhancedCarrier["SlotID"], EnhancedCarrier["InstallTime"], EnhancedCarrier["CarrierState"]])
+                CarrierInfo_n=secsgem.SecsVarList([DI.CARRIERID, DI.SLOTID, DI.RACKID, DI.INSTALLTIME,DI.CARRIERSTATE], [EnhancedCarrier["CarrierID"], EnhancedCarrier["SlotID"], EnhancedCarrier["RackID"], EnhancedCarrier["InstallTime"], EnhancedCarrier["CarrierState"]])
                 L_EnhancedCarriers.append(CarrierInfo_n)
             ret=secsgem.SecsVarArray(DI.ENHANCEDCARRIERUNIT, L_EnhancedCarriers)
             return ret

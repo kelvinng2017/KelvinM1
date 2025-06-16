@@ -642,7 +642,7 @@ class Adapter(threading.Thread):
                 self.battery['temperature']=int(data[8:11])
 
             elif (head == "S72"): # Exchange cmd response
-                res='Reject' if data[1] == '0' else 'Ok'
+                res='Reject' if data[1] == '0' else 'OK'
 
                 self.logger.debug('{} {} {}'.format('[{}] '.format(self.id), systemId, res))
                 if res == 'OK':
@@ -665,7 +665,7 @@ class Adapter(threading.Thread):
                     self.logger.debug('{} {} {} {}'.format('[{}] '.format(self.id), 'current moveappend route:', route_name, 'NG'))
 
             elif (head == "S94"): # Map change cmd response 
-                res='Reject' if data[1] == '0' else 'Ok'
+                res='Reject' if data[1] == '0' else 'OK'
                 if res == 'OK':
                     self.route_status['exchange']='OK'
                 else:
@@ -674,7 +674,7 @@ class Adapter(threading.Thread):
                 self.logger.debug('{} {} {} {}'.format('[{}] '.format(self.id), 'route exchange', systemId, res))
 
             elif (head == "P95"): # Map change Report
-                res='NG' if data[1] == '0' else 'Ok'
+                res='NG' if data[1] == '0' else 'OK'
                 if res == 'OK':
                     self.route_status['exchange']='Done'
                 else:
